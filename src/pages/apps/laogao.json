@@ -1,0 +1,13 @@
+{
+    "type": "directed",
+    "nodes": [
+      {"id":"ACCOUNTS.User.id","name":"id","type":"ID","description":"ACCOUNTS"},
+      {"id":"ACCOUNTS.User.name","name":"name","type":"String","description":"ACCOUNTS"},
+      {"id":"ACCOUNTS.User.reviews","name":"reviews","type":"[Review]","description":"REVIEWS"}
+
+    ],
+    "edges": [
+      { "source": "ACCOUNTS.User.reviews", "target": "REVIEWS.Review.id", "weight": "User.reviews" },
+      { "source": "PRODUCTS.Product.reviews", "target": "REVIEWS.Review.id", "weight": "Product.reviews" }
+    ]
+  }

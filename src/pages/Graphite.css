@@ -1,0 +1,139 @@
+
+
+/*
+css notes:
+1. parent block (default), children height=100%
+2. parent flex, children flex=1
+*/
+.graphCanvas {
+  border: 0px solid purple;
+  /* position: relative; */
+  height: 100%;
+}
+.graphCanvas svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+/*整个图的背景*/
+.graphCanvas svg g polygon   {
+  fill: var(--back-color);/*graph back ground #121212;*/
+}
+.graphCanvas svg g  polygon   {
+  -stroke: none;/*这个是整个图的边框*//*graph border and edge arrow, and everything*/
+}
+
+
+/*edge arrow*/
+.graphCanvas svg g .edge polygon   {
+  stroke: var(--font-color);
+  fill: var(--font-color);
+}
+
+/*edge text*/
+.graphCanvas svg g .edge text   {
+  fill: var(--font-color);
+}
+.graphCanvas svg g .edge text:hover   {
+  fill: blue;
+}
+/*edge color*/
+.graphCanvas svg g .edge path   {
+  stroke: var(--font-color);
+  fill: none;
+}
+
+
+
+
+
+
+/*简单的图节点*/
+
+.graphCanvas svg g .graph_node  polygon {
+  stroke: var(--font-color);
+  fill: var(--font-color);
+}
+/* .graphCanvas svg g .graph_node  ellipse {
+  fill: none;
+} */
+
+
+
+/*有子段的表格，整个表格*/
+/*table border*/
+.graphCanvas svg g .graph_node_table_with_fields  polygon {
+  stroke: var(--font-color);
+}
+
+.graphCanvas svg g .graph_node_table_with_fields   {
+  fill: var(--font-color);
+}
+
+
+
+
+
+
+/*没有子段的表格，整个表格*/
+.graphCanvas svg g .graph_node_table polygon {
+  stroke: var(--font-color);/*table and edge text 这个会让graph_node_table:hover 没用*/
+}
+
+.graphCanvas svg  g .graph_node_table    {
+  fill: var(--font-color);/*table and edge text */
+}
+
+.graphCanvas svg  g .graph_node_table:hover    {
+  fill: blue;/*table and edge text */
+}
+
+
+
+
+
+/*特定链接*/
+.graphCanvas svg g  a text   {
+  fill: cornflowerblue;/*a text*/
+  cursor: pointer;
+}
+.graphCanvas svg g  a text:hover   {
+  fill: blue;/*a hover*/
+}
+
+
+.graph_node_table {
+    cursor: pointer;
+}
+.graph_node_table:hover {
+    fill:blue;
+}
+
+.graph_label {
+   cursor: pointer;
+}
+.graph_label:hover {
+    fill:blue;
+}
+
+.graph_icon {
+    cursor: pointer;
+}
+.graph_icon:hover {
+    color: blue;
+}
+
+/*highlight*/
+
+.graphCanvas svg g .graph_node_table_with_fields.highlight ellipse {
+  stroke: orange;
+}
+.graphCanvas svg g .graph_node_table_with_fields.highlight path {
+  stroke: orange;
+}
+.graphCanvas svg g .graph_node_table_with_fields.highlight polygon {
+  fill: var(--back-color);;
+  stroke: orange;
+}
