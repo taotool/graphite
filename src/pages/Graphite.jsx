@@ -11,10 +11,7 @@ import * as d3Graphviz from 'd3-graphviz';
 //https://github.com/johnwalley/allotment?tab=readme-ov-file
 
 
-import TreePanel from './TreePanel';
 import ControlPanel from './ControlPanel';
-// import BottomTab from './BottomTab';
-import { use } from 'react';
 
 console.log("######### Graphite.js ######### ");
 const eventListenersMap = new WeakMap();
@@ -75,12 +72,81 @@ function shapeDetail(graphData) {
 }
 
 //no details
-function noDetail(graphData) {
+function noDetail1(graphData) {
+  // Helper to extract category.entity from full node ID
+  function getCategoryEntity(id) {
+    const parts = id.split('.');
+    return parts.length >= 2 ? `${parts[0]}.${parts[1]}` : null;
+  }
+
+  const nodes = {}; // map of nodeId -> display info
+  const edges = new Set(); 
+  const directon = graphData.direction === "vertical" ? "TD" : "LR";
+
+  // 1. Process declared nodes first (these override anything from edges)
+  graphData.nodes.forEach((node) => {
+    const categoryEntity = getCategoryEntity(node.id);
+    if (categoryEntity) {
+      nodes[categoryEntity] = {
+        id: categoryEntity,
+        category: categoryEntity.split('.')[0],
+        entity: categoryEntity.split('.')[1],
+        sourceNode: node, // keep reference to original node for later
+      };
+    }
+  });
+
+  // 2. Make sure all edge endpoints also exist as nodes (fallback if missing)
+  graphData.edges.forEach((edge) => {
+    const source = getCategoryEntity(edge.source);
+    const target = getCategoryEntity(edge.target);
+    [source, target].forEach((id) => {
+      if (id && !nodes[id]) {
+        nodes[id] = {
+          id,
+          category: id.split('.')[0],
+          entity: id.split('.')[1],
+          sourceNode: null, // no detail available
+        };
+      }
+    });
+  });
+
+  // 3. Collect edges
+  const edgeLabels = [];
+  graphData.edges.forEach((edge) => {
+    const source = getCategoryEntity(edge.source);
+    const target = getCategoryEntity(edge.target);
+    if (source && target && source !== target) {
+      const relationship = edge.weight || "";
+      edges.add(`"${source}" -> "${target}"`);
+      edgeLabels.push({ source, target, label: relationship });
+    }
+  });
+
+  // 4. Build DOT
+  let dot = `digraph "tt" {\n`;
+  dot += `  node [shape=plaintext margin=0]\n\n`;
+  dot += `  edge[arrowhead="open"]\n  tooltip=""\n  rankdir=${directon} \n`;
+
+  // Add nodes
+  Object.values(nodes).forEach((nodeObj) => {
+    const label = createTableHeader(nodeObj.category, nodeObj.entity);
+    dot += `  "${nodeObj.id}" [label=<${label}> class="graph_node_table"]\n`;
+  });
+
+  // Add edges with labels
+  edgeLabels.forEach(({ source, target, label }) => {
+    dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label"]\n`;
+  });
+
+  dot += `}`;
+  return dot;
+}
+
+function noDetail2(graphData) {
   // Helper function to extract category.entity from a full node ID
   function getCategoryEntity(id) {
-    if (!id) {
-      console.log(id)
-    }
     const parts = id.split('.');
     return parts.length >= 2 ? `${parts[0]}.${parts[1]}` : null;
   }
@@ -132,7 +198,92 @@ function noDetail(graphData) {
 }
 
 //one details
-function oneDetail(graphData, highlightEntity) {
+function oneDetail1(graphData, highlightEntity) {
+  // Helper function to extract category.entity from a full node ID
+  function getCategoryEntity(id) {
+    const parts = id.split('.');
+    return parts.length >= 2 ? `${parts[0]}.${parts[1]}` : null;
+  }
+
+  // Determine fields dynamically for the highlighted entity
+  function getDetailedFields(graphData, highlightEntity) {
+    return graphData.nodes
+      .filter(({ id }) => id.startsWith(`${highlightEntity}.`)) // Fields belonging to the entity
+      .map(({ id, type, description }) => {
+        const field = id.split('.').pop(); // Get the field name
+        const fk =
+          graphData.edges.find(
+            (edge) => edge.source === id || edge.target === id
+          )?.target || "Unknown";
+        const tp = fk === "Unknown" ? type : type + "|" + fk;
+        return { id: field, type: tp, description: `${description}` };
+      });
+  }
+
+  const detailedFields = getDetailedFields(graphData, highlightEntity);
+
+  const nodes = {}; // category.entity -> node info
+  const edges = new Set();
+  const edgeLabels = [];
+  const directon = graphData.direction === "vertical" ? "TD" : "LR";
+
+  // 1. Process nodes from graphData.nodes (these override)
+  graphData.nodes.forEach((node) => {
+    const categoryEntity = getCategoryEntity(node.id);
+    if (categoryEntity) {
+      nodes[categoryEntity] = { id: categoryEntity, sourceNode: node };
+    }
+  });
+
+  // 2. Make sure all edge endpoints exist as nodes (fallback if missing)
+  graphData.edges.forEach((edge) => {
+    const source = getCategoryEntity(edge.source);
+    const target = getCategoryEntity(edge.target);
+    [source, target].forEach((id) => {
+      if (id && !nodes[id]) {
+        nodes[id] = { id, sourceNode: null }; // minimal node
+      }
+    });
+  });
+
+  // 3. Process edges with labels
+  graphData.edges.forEach((edge) => {
+    const source = getCategoryEntity(edge.source);
+    const target = getCategoryEntity(edge.target);
+    if (source && target && source !== target) {
+      const relationship = edge.weight || "";
+      edges.add(`"${source}" -> "${target}"`);
+      edgeLabels.push({ source, target, label: relationship });
+    }
+  });
+
+  // 4. Build DOT
+  let dot = `digraph "tt" {\n`;
+  dot += `  node [shape=plaintext margin=0]\n\n`;
+  dot += `  edge[arrowhead="open"]\n  tooltip=""\n  rankdir=${directon} \n overlap = scale \n splines = true \n`;
+
+  // Add nodes (highlightEntity gets details)
+  Object.values(nodes).forEach(({ id: nodeId }) => {
+    const [category, entity] = nodeId.split('.');
+    if (nodeId === highlightEntity) {
+      const label = createTableFields(category, entity, detailedFields);
+      dot += `  "${nodeId}" [label=<${label}> class="graph_node_table_with_fields highlight" style="filled" fillcolor="yellow"]\n`;
+    } else {
+      const label = createTableHeader(category, entity);
+      dot += `  "${nodeId}" [label=<${label}> class="graph_node_table"]\n`;
+    }
+  });
+
+  // Add edges
+  edgeLabels.forEach(({ source, target, label }) => {
+    dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label"]\n`;
+  });
+
+  dot += `}`;
+  return dot;
+}
+
+function oneDetail2(graphData, highlightEntity) {
   // Helper function to extract category.entity from a full node ID
   function getCategoryEntity(id) {
     const parts = id.split('.');
@@ -204,7 +355,129 @@ function oneDetail(graphData, highlightEntity) {
   dot += `}`;
   return dot;
 }
+// Common utility: extract category.entity
+function getCategoryEntity(id) {
+  const parts = id.split('.');
+  return parts.length >= 2 ? `${parts[0]}.${parts[1]}` : null;
+}
 
+// Common utility: process edges and collect edge labels + ensure nodes exist
+function processEdges(graphData, nodes) {
+  const edges = new Set();
+  const edgeLabels = [];
+
+  graphData.edges.forEach((edge) => {
+    const source = getCategoryEntity(edge.source);
+    const target = getCategoryEntity(edge.target);
+
+    [source, target].forEach((id) => {
+      if (id && !nodes[id]) {
+        nodes[id] = { id };
+      }
+    });
+
+    if (source && target && source !== target) {
+      const relationship = edge.weight || "";
+      edges.add(`"${source}" -> "${target}"`);
+      edgeLabels.push({ source, target, label: relationship });
+    }
+  });
+
+  return { edges, edgeLabels };
+}
+
+// Common utility: build DOT graph skeleton
+function buildDot({ directon, nodes, edgeLabels, renderNode }) {
+  let dot = `digraph "tt" {\n`;
+  dot += `  node [shape=plaintext margin=0]\n\n`;
+  dot += `  edge[arrowhead="open"]\n  tooltip=""\n  rankdir=${directon} \n overlap = scale \n splines = true \n`;
+
+  // Add nodes (delegate to renderer)
+  Object.values(nodes).forEach(({ id }) => {
+    dot += renderNode(id);
+  });
+
+  // Add edges
+  edgeLabels.forEach(({ source, target, label }) => {
+    dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label"]\n`;
+  });
+
+  dot += `}`;
+  return dot;
+}
+
+// -----------------------------
+// noDetail (simplified)
+// -----------------------------
+function noDetail(graphData) {
+  const nodes = {};
+  const directon = graphData.direction === "vertical" ? "TD" : "LR";
+
+  // Process nodes from graphData.nodes
+  graphData.nodes.forEach((node) => {
+    const categoryEntity = getCategoryEntity(node.id);
+    if (categoryEntity && !nodes[categoryEntity]) {
+      nodes[categoryEntity] = { id: categoryEntity };
+    }
+  });
+
+  // Process edges (also adds missing nodes)
+  const { edgeLabels } = processEdges(graphData, nodes);
+
+  // Render nodes (simple header only)
+  const renderNode = (nodeId) => {
+    const [category, entity] = nodeId.split('.');
+    const label = createTableHeader(category, entity);
+    return `  "${nodeId}" [label=<${label}> class="graph_node_table"]\n`;
+  };
+
+  return buildDot({ directon, nodes, edgeLabels, renderNode });
+}
+
+// -----------------------------
+// oneDetail (highlighted entity)
+// -----------------------------
+function oneDetail(graphData, highlightEntity) {
+  const nodes = {};
+  const directon = graphData.direction === "vertical" ? "TD" : "LR";
+
+  // Process nodes from graphData.nodes
+  graphData.nodes.forEach((node) => {
+    const categoryEntity = getCategoryEntity(node.id);
+    if (categoryEntity && !nodes[categoryEntity]) {
+      nodes[categoryEntity] = { id: categoryEntity };
+    }
+  });
+
+  // Process edges (also adds missing nodes)
+  const { edgeLabels } = processEdges(graphData, nodes);
+
+  // Gather detailed fields for highlightEntity
+  const detailedFields = graphData.nodes
+    .filter(({ id }) => id.startsWith(`${highlightEntity}.`))
+    .map(({ id, type, description }) => {
+      const field = id.split('.').pop();
+      const fk =
+        graphData.edges.find((edge) => edge.source === id || edge.target === id)
+          ?.target || "Unknown";
+      const tp = fk === "Unknown" ? type : type + "|" + fk;
+      return { id: field, type: tp, description };
+    });
+
+  // Render nodes (highlightEntity gets detailed fields)
+  const renderNode = (nodeId) => {
+    const [category, entity] = nodeId.split('.');
+    if (nodeId === highlightEntity) {
+      const label = createTableFields(category, entity, detailedFields);
+      return `  "${nodeId}" [label=<${label}> class="graph_node_table_with_fields highlight" style="filled" fillcolor="yellow"]\n`;
+    } else {
+      const label = createTableHeader(category, entity);
+      return `  "${nodeId}" [label=<${label}> class="graph_node_table"]\n`;
+    }
+  };
+
+  return buildDot({ directon, nodes, edgeLabels, renderNode });
+}
 //all details
 function allDetail(graphData) {
   const directon = graphData.direction === "vertical" ? "TD" : "LR";
@@ -374,78 +647,7 @@ function Graphite() {
   // const setDot = (d) => {
   //     dot = d;
   // }
-  const [splitState, setSplitState] = useState(
-    {
-      hSplitPaneRight:
-      {
-        minSize: 0,
-        maxSize: 200,
-        preferredSize: 200,
-      },
-      vSplitPaneBottom:
-      {
-        minSize: 0,
-        maxSize: 0,
-        preferredSize: 0,
-      }
-    }
-  );
-  const getScreenOrientation = () => {
-    let screenWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-    let screenHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-    if (screenWidth < 600) {
-      setSplitState(
-        {
-          hSplitPaneRight:
-          {
-            minSize: 52,
-            maxSize: 200,
-            preferredSize: 52,
-          },
-          vSplitPaneBottom:
-          {
-            minSize: 0,
-            maxSize: 0,
-            preferredSize: 0,
-          }
-        }
-      );
-    } else if (screenWidth < 800) {
-      setSplitState(
-        {
-          hSplitPaneRight:
-          {
-            minSize: 52,
-            maxSize: 200,
-            preferredSize: 52,
-          },
-          vSplitPaneBottom:
-          {
-            minSize: 0,
-            maxSize: 0,
-            preferredSize: 0,
-          }
-        }
-      );
-    } else {
-      setSplitState(
-        {
-          hSplitPaneRight:
-          {
-            minSize: 52,
-            maxSize: 200,
-            preferredSize: 200,
-          },
-          vSplitPaneBottom:
-          {
-            minSize: 0,
-            maxSize: 0,
-            preferredSize: 0,
-          }
-        }
-      );
-    }
-  }
+
   const setFieldTree = (ft) => {
     //treePaneRef.current.updateFieldTree(ft);
   }
@@ -467,26 +669,12 @@ function Graphite() {
     showApp(app);
 
   }
-  const memoizedLoadApp = useCallback(loadApp);
   const searchField = async (field) => {
     showDoc('clicked search: [' + field + ']');
     const fff = filterGraphData(globalGraphData, field);
     setFieldTree(fff);
     return {};
   }
-  // const searchField2 = async (field) => {
-  //     showDoc('clicked search: [' +field+']');
-  //     try {
-  //       const data = await fetchFieldTree(field)
-  //       setFieldTree(data.nodes);
-  //       showDoc('search succeeded: [ok]');
-  //       return data.nodes
-  //     } catch (error) {
-  //         console.error("ERROR: "+error);
-  //         showDoc('failed search: [' +error+']');
-  //     }
-  //     return {};
-  // }
   //when the parent component (Graph.js) re renders everything gets recreated
   //including searchField - and the change to searchField causes the child (LeftPane.js) to re-render
   //even though LeftPane is already a memo. it is because of #2 as below
@@ -499,19 +687,6 @@ function Graphite() {
   const memoizedSearchField = useCallback(searchField, []);
 
 
-  const fetchFieldTree = async (field) => {
-    const app = appRef.current;
-    const res = await fetch('http://tt15:9090/api/searchTree/' + app + '/' + field)
-
-    return await res.json()
-  }
-
-  const fetchApp = async (app) => {
-    showDoc('app loading');
-    const res = await fetch('http://tt15:9090/api/graph/' + app + '/OVERVIEW/app/none');
-    showDoc('app loaded');
-    return await res.json()
-  }
 
 
   const showApp = async (app) => {
@@ -521,7 +696,7 @@ function Graphite() {
     globalGraphData = jsonModule.default;
     const nodeShape = globalGraphData.node ? globalGraphData.node.shape : null;
     let dot = null;
-    if (nodeShape) {
+    if (nodeShape) {//new shape
       dot = shapeDetail(globalGraphData);
     } else {
       dot = globalGraphData.edges.length < 3 ? allDetail(globalGraphData) : noDetail(globalGraphData);
@@ -534,15 +709,7 @@ function Graphite() {
     const dot = oneDetail(graphData, table);
     return dot;
   }
-  //    const fetchTable2 = async (table) => {
-  //      showDoc('table loading');
-  //      const app = appRef.current;
-  //      const encodedField = table;
-  //      const level = "table";
-  //      const res = await fetch('http://tt15:9090/api/graph/'+app+'/'+encodedField+"/"+level+'/none');
-  //      showDoc('table loaded');
-  //      return await res.json()
-  //    }
+
 
   const showNode = async (node) => {
     showDoc('clicked node: [' + node + ']')
@@ -559,7 +726,6 @@ function Graphite() {
       renderGraph(data);
     }
   }
-  const memoizedShowTable = useCallback(showTable, []);
 
 
   const showRelation = async (relation) => {
@@ -779,7 +945,7 @@ function Graphite() {
         //panZoomRef.current.center();
       }
     }
-    getScreenOrientation();
+
   }
 
   useEffect(() => {
@@ -787,7 +953,7 @@ function Graphite() {
     loadApp(id)
     console.log("add resize")
     window.addEventListener('resize', handleResize);
-    getScreenOrientation();
+   
 
   }, [])//render only once
 

@@ -1,0 +1,103 @@
+{
+  "type": "directed",
+  "nodes": [
+    {"id":"SELLER.Seller1.id","name":"id","type":"ID","description":"x"},
+    {"id":"SELLER.Seller1.name","name":"name","type":"String","description":"x"},
+    {"id":"SELLER.Seller2.id","name":"x","type":"[Review]","description":"x"},
+    {"id":"SELLER.Seller2.name","name":"username","type":"String","description":"x"},
+
+    {"id":"ITEM.Item1.id","name":"author","type":"User","description":"x"},
+    {"id":"ITEM.Item1.name","name":"body","type":"String","description":"x"},
+    {"id":"ITEM.Item2.id","name":"id","type":"ID","description":"x"},
+    {"id":"ITEM.Item2.name","name":"product","type":"Product","description":"x"},
+    {"id":"ITEM.Item3.id","name":"id","type":"ID","description":"x"},
+    {"id":"ITEM.Item3.name","name":"product","type":"Product","description":"x"},
+
+    {"id":"ORDER.Order1.id","name":"inStock","type":"Boolean","description":"x"},
+    {"id":"ORDER.Order1.name","name":"name","type":"String","description":"x"},
+    {"id":"ORDER.Order1.item1","name":"body","type":"String","description":"1"},
+    {"id":"ORDER.Order1.item2","name":"body","type":"String","description":"2"},
+    {"id":"ORDER.Order2.id","name":"price","type":"Int","description":"PRODUCTS"},
+    {"id":"ORDER.Order2.name","name":"x","type":"[Review]","description":"x"},
+    {"id":"ORDER.Order2.lineitem1","name":"body","type":"String","description":"x"},
+    {"id":"ORDER.Order3.id","name":"shippingEstimate","type":"Int","description":"INVENTORY"},
+    {"id":"ORDER.Order3.name","name":"upc","type":"String","description":"PRODUCTS"},
+    {"id":"ORDER.Order3.lineitem2","name":"body","type":"String","description":"x"},
+
+
+    {"id":"UNIT.Item1_Unit1.id","name":"author","type":"User","description":"x"},
+    {"id":"UNIT.Item1_Unit2.id","name":"id","type":"ID","description":"x"},
+    {"id":"UNIT.Item1_Unit3.id","name":"author","type":"User","description":"x"},
+    
+    {"id":"UNIT.Item2_Unit1.id","name":"author","type":"User","description":"x"},
+    {"id":"UNIT.Item2_Unit2.id","name":"id","type":"ID","description":"x"},
+    {"id":"UNIT.Item2_Unit3.id","name":"id","type":"ID","description":"x"},
+
+
+    {"id":"UNIT.Item3_Unit1.id","name":"id","type":"ID","description":"x"},
+
+    
+    {"id":"PACKAGE.Package1.id","name":"author","type":"User","description":"x"},
+    {"id":"PACKAGE.Package1.unit1","name":"","type":"item1","description":"order1"},
+    {"id":"PACKAGE.Package1.unit1","name":"","type":"item2","description":"order1"},
+
+    {"id":"PACKAGE.Package2.id","name":"id","type":"ID","description":"x"},
+    {"id":"PACKAGE.Package2.unit2","name":"product","type":"item1","description":"order1"},
+    {"id":"PACKAGE.Package2.unit3","name":"product","type":"item1","description":"order2"},
+    {"id":"PACKAGE.Package2.unit2","name":"product","type":"item2","description":"order1"},
+    {"id":"PACKAGE.Package2.unit3","name":"product","type":"item2","description":"order2"},
+
+    {"id":"PACKAGE.Package3.id","name":"id","type":"ID","description":"x"},
+    {"id":"PACKAGE.Package3.unit1","name":"","type":"item3","description":"order3"},
+
+
+    
+    {"id":"BUYER.Buyer1.id","name":"id","type":"ID","description":"x"},
+    {"id":"BUYER.Buyer1.name","name":"name","type":"String","description":"x"},
+    {"id":"BUYER.Buyer2.id","name":"x","type":"[Review]","description":"x"},
+    {"id":"BUYER.Buyer2.name","name":"username","type":"String","description":"x"}
+  ],
+  "edges": [
+    { "source": "SELLER.Seller1.id", "target": "ITEM.Item1.id", "weight": "list" },
+    { "source": "SELLER.Seller2.id", "target": "ITEM.Item2.id", "weight": "list" },
+    { "source": "SELLER.Seller2.id", "target": "ITEM.Item3.id", "weight": "list" },
+
+    { "source": "ITEM.Item1.id", "target": "ORDER.Order1.id", "weight": "order" },
+    { "source": "ITEM.Item2.id", "target": "ORDER.Order1.id", "weight": "order" },
+    { "source": "ITEM.Item1.id", "target": "ORDER.Order2.id", "weight": "order" },
+    { "source": "ITEM.Item2.id", "target": "ORDER.Order2.id", "weight": "order" },
+    { "source": "ITEM.Item3.id", "target": "ORDER.Order3.id", "weight": "order" },
+
+
+    { "source": "ORDER.Order1.id", "target": "UNIT.Item1_Unit1.id", "weight": "" },
+    { "source": "ORDER.Order1.id", "target": "UNIT.Item1_Unit2.id", "weight": "" },
+    { "source": "ORDER.Order1.id", "target": "UNIT.Item2_Unit1.id", "weight": "" },
+    { "source": "ORDER.Order1.id", "target": "UNIT.Item2_Unit2.id", "weight": "" },
+
+    { "source": "ORDER.Order2.id", "target": "UNIT.Item1_Unit3.id", "weight": "" },
+    { "source": "ORDER.Order2.id", "target": "UNIT.Item2_Unit3.id", "weight": "" },
+
+    { "source": "ORDER.Order3.id", "target": "UNIT.Item3_Unit1.id", "weight": "" },
+
+    { "source": "UNIT.Item1_Unit1.id", "target": "PACKAGE.Package1.id", "weight": "pack" },
+    { "source": "UNIT.Item1_Unit2.id", "target": "PACKAGE.Package2.id", "weight": "pack" },
+    { "source": "UNIT.Item1_Unit3.id", "target": "PACKAGE.Package2.id", "weight": "pack" },
+    
+
+    { "source": "UNIT.Item2_Unit1.id", "target": "PACKAGE.Package1.id", "weight": "pack" },
+    { "source": "UNIT.Item2_Unit2.id", "target": "PACKAGE.Package2.id", "weight": "pack" },
+    { "source": "UNIT.Item2_Unit3.id", "target": "PACKAGE.Package2.id", "weight": "pack" },
+
+    { "source": "UNIT.Item3_Unit1.id", "target": "PACKAGE.Package3.id", "weight": "pack" },
+
+
+    { "source": "PACKAGE.Package1.id", "target": "BUYER.Buyer1.id", "weight": "deliver" },
+    { "source": "PACKAGE.Package2.id", "target": "BUYER.Buyer1.id", "weight": "deliver" },
+    { "source": "PACKAGE.Package2.id", "target": "BUYER.Buyer3.id", "weight": "deliver" },
+
+    { "source": "PACKAGE.Package3.id", "target": "AG.Hub.id", "weight": "authenticate" },
+    { "source": "AG.Hub.id", "target": "CG.Hub.id", "weight": "grade" },
+    { "source": "CG.Hub.id", "target": "BUYER.Buyer2.id", "weight": "deliver" }
+
+  ]
+}

@@ -1,5 +1,6 @@
 export const apps = [
     { title: 'Sample', segment:"graphites", link: '/sample', img: '/combos.png'},
+    { title: 'Shpping', segment:"graphites", link: '/shipping', img: '/combos.png'},
     { title: 'Site', segment:"graphites", link: '/site', img: 'https://mui.com/static/images/cards/contemplative-reptile.jpg' },
     { title: '济公传1', segment:"graphites", link: '/jigongzhuan', img: 'https://mui.com/static/images/cards/contemplative-reptile.jpg' },
     { title: '坐飞机', segment:"graphites", link: '/aircheckin', img: 'https://mui.com/static/images/cards/contemplative-reptile.jpg' },
