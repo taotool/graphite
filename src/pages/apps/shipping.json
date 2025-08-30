@@ -13,19 +13,14 @@
     {"id":"ITEM.Item3.id","name":"id","type":"ID","description":"x"},
     {"id":"ITEM.Item3.name","name":"product","type":"Product","description":"x"},
 
-    {"id":"ORDER.Order1.id","name":"inStock","type":"Boolean","description":"x"},
-    {"id":"ORDER.Order1.name","name":"name","type":"String","description":"x"},
-    {"id":"ORDER.Order1.item1","name":"body","type":"String","description":"1"},
-    {"id":"ORDER.Order1.item2","name":"body","type":"String","description":"2"},
-    {"id":"ORDER.Order2.id","name":"price","type":"Int","description":"PRODUCTS"},
-    {"id":"ORDER.Order2.name","name":"x","type":"[Review]","description":"x"},
-    {"id":"ORDER.Order2.lineitem1","name":"body","type":"String","description":"x"},
-    {"id":"ORDER.Order3.id","name":"shippingEstimate","type":"Int","description":"INVENTORY"},
-    {"id":"ORDER.Order3.name","name":"upc","type":"String","description":"PRODUCTS"},
-    {"id":"ORDER.Order3.lineitem2","name":"body","type":"String","description":"x"},
+    {"id":"ORDER.Order1.lineitem1","name":"body","type":"item1","description":"1"},
+    {"id":"ORDER.Order1.lineitem2","name":"body","type":"item2","description":"2"},
+    {"id":"ORDER.Order2.lineitem1","name":"x","type":"item1","description":"1"},
+    {"id":"ORDER.Order2.lineitem2","name":"body","type":"item2","description":"1"},
+    {"id":"ORDER.Order3.lineitem1","name":"body","type":"item3","description":"1"},
 
 
-    {"id":"UNIT.Item1_Unit1.id","name":"author","type":"User","description":"x"},
+    {"id":"UNIT.Item1_Unit1.unit1","name":"author","type":"item1","description":"order1"},
     {"id":"UNIT.Item1_Unit2.id","name":"id","type":"ID","description":"x"},
     {"id":"UNIT.Item1_Unit3.id","name":"author","type":"User","description":"x"},
     

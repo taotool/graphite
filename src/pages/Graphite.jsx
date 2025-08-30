@@ -443,17 +443,18 @@ function Graphite() {
     }
     renderGraph(dot);
   }
+  
   const fetchTable = async (graphData, table) => {
     showDoc('table loading ' + table);
     const dot = oneDetail(graphData, table);
     return dot;
   }
 
-
   const showNode = async (node) => {
     showDoc('clicked node: [' + node + ']')
 
   }
+
   const showTable = async (table) => {
     showDoc('clicked table: [' + table + ']')
     tableRef.current = table;
@@ -465,7 +466,6 @@ function Graphite() {
       renderGraph(data);
     }
   }
-
 
   const showRelation = async (relation) => {
     showDoc('clicked relation: [' + relation + ']')
@@ -619,7 +619,7 @@ function Graphite() {
 
   const push = (name) => {
     //console.log(`pushing ${name}`)
-    //stack.push(name)
+    stack.push(name)
     //console.log(stack)
   }
 
