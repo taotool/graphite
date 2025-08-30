@@ -128,12 +128,24 @@ css notes:
 /*highlight*/
 
 .graphCanvas svg g .graph_node_table_with_fields.highlight ellipse {
-  stroke: orange;
+  stroke: rgb(255, 98, 0);
 }
 .graphCanvas svg g .graph_node_table_with_fields.highlight path {
-  stroke: orange;
+  stroke: rgb(255, 98, 0);
 }
 .graphCanvas svg g .graph_node_table_with_fields.highlight polygon {
   fill: var(--back-color);;
-  stroke: orange;
+  stroke: rgb(255, 98, 0);
+}
+
+
+.graphCanvas svg g .graph_node_table.highlight ellipse {
+  stroke: rgb(255, 98, 0);
+}
+.graphCanvas svg g .graph_node_table.highlight path {
+  stroke: rgb(255, 98, 0);
+}
+.graphCanvas svg g .graph_node_table.highlight polygon {
+  fill: var(--back-color);;
+  stroke: rgb(255, 98, 0);
 }

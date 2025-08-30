@@ -438,6 +438,119 @@ function noDetail(graphData) {
 // oneDetail (highlighted entity)
 // -----------------------------
 function oneDetail(graphData, highlightEntity) {
+  // --- Common util ---
+  function getCategoryEntity(id) {
+    const parts = id.split('.');
+    return parts.length >= 2 ? `${parts[0]}.${parts[1]}` : null;
+  }
+
+  // Build nodes dictionary from edges + nodes
+  const nodes = {};
+  graphData.nodes.forEach((node) => {
+    const categoryEntity = getCategoryEntity(node.id);
+    if (categoryEntity && !nodes[categoryEntity]) {
+      nodes[categoryEntity] = { id: categoryEntity };
+    }
+  });
+
+  // Build adjacency lists
+  const adjForward = {};
+  const adjBackward = {};
+  graphData.edges.forEach((edge) => {
+    const source = getCategoryEntity(edge.source);
+    const target = getCategoryEntity(edge.target);
+    if (source && target) {
+      if (!adjForward[source]) adjForward[source] = [];
+      if (!adjBackward[target]) adjBackward[target] = [];
+      adjForward[source].push(target);
+      adjBackward[target].push(source);
+
+      // Ensure nodes exist
+      if (!nodes[source]) nodes[source] = { id: source };
+      if (!nodes[target]) nodes[target] = { id: target };
+    }
+  });
+
+  // BFS helper
+  function bfs(start, adj) {
+    const visited = new Set();
+    const queue = [start];
+    while (queue.length) {
+      const node = queue.shift();
+      if (!visited.has(node)) {
+        visited.add(node);
+        (adj[node] || []).forEach((next) => {
+          if (!visited.has(next)) queue.push(next);
+        });
+      }
+    }
+    return visited;
+  }
+
+  // Collect upstream + downstream entities
+  const upstream = bfs(highlightEntity, adjBackward);
+  const downstream = bfs(highlightEntity, adjForward);
+  const allHighlights = new Set([highlightEntity, ...upstream, ...downstream]);
+
+  // Build edge labels
+  const edgeLabels = [];
+  graphData.edges.forEach((edge) => {
+    const source = getCategoryEntity(edge.source);
+    const target = getCategoryEntity(edge.target);
+    if (source && target && source !== target) {
+      const relationship = edge.weight || "";
+      edgeLabels.push({ source, target, label: relationship });
+    }
+  });
+
+  const directon = graphData.direction === "vertical" ? "TD" : "LR";
+
+  // Gather detailed fields for the main highlightEntity only
+  const detailedFields = graphData.nodes
+    .filter(({ id }) => id.startsWith(`${highlightEntity}.`))
+    .map(({ id, type, description }) => {
+      const field = id.split('.').pop();
+      const fk =
+        graphData.edges.find((edge) => edge.source === id || edge.target === id)
+          ?.target || "Unknown";
+      const tp = fk === "Unknown" ? type : type + "|" + fk;
+      return { id: field, type: tp, description };
+    });
+
+  // Build DOT
+  let dot = `digraph "tt" {\n`;
+  dot += `  node [shape=plaintext margin=0]\n\n`;
+  dot += `  edge[arrowhead="open"]\n  tooltip=""\n  rankdir=${directon} \n overlap = scale \n splines = true \n`;
+
+  // Render nodes
+  Object.values(nodes).forEach(({ id: nodeId }) => {
+    const [category, entity] = nodeId.split('.');
+
+    if (nodeId === highlightEntity) {
+      // Main highlight → detailed fields
+      const label = createTableFields(category, entity, detailedFields);
+      dot += `  "${nodeId}" [label=<${label}> class="graph_node_table_with_fields highlight" style="filled" fillcolor="yellow"]\n`;
+    } else if (allHighlights.has(nodeId)) {
+      // Upstream/downstream highlights
+      const label = createTableHeader(category, entity);
+      dot += `  "${nodeId}" [label=<${label}> class="graph_node_table highlight" style="filled" fillcolor="red"]\n`;
+    } else {
+      // Normal nodes
+      const label = createTableHeader(category, entity);
+      dot += `  "${nodeId}" [label=<${label}> class="graph_node_table"]\n`;
+    }
+  });
+
+  // Render edges
+  edgeLabels.forEach(({ source, target, label }) => {
+    dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label"]\n`;
+  });
+
+  dot += `}`;
+  return dot;
+}
+
+function oneDetail3(graphData, highlightEntity) {
   const nodes = {};
   const directon = graphData.direction === "vertical" ? "TD" : "LR";
 
