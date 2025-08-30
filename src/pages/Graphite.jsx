@@ -15,7 +15,7 @@ import ControlPanel from './ControlPanel';
 
 console.log("######### Graphite.js ######### ");
 const eventListenersMap = new WeakMap();
-let aaa = [];
+let elements = [];
 
 function trackEventListener(element, type, listener, options) {
   if (!eventListenersMap.has(element)) {
@@ -24,18 +24,15 @@ function trackEventListener(element, type, listener, options) {
   eventListenersMap.get(element).push({ type, listener, options });
   element.addEventListener(type, listener, options);
 
-  aaa.push(element)
+  elements.push(element)
 }
 
-//function getTrackedEventListeners(element) {
-//  return eventListenersMap.get(element) || [];
-//}
 
 function removeAllTrackedListeners() {
-  for (const obj of aaa) {
+  for (const obj of elements) {
     removeTrackedListeners(obj);
   }
-  aaa = [];
+  elements = [];
 }
 
 function removeTrackedListeners(element) {
@@ -321,14 +318,14 @@ function allDetail(graphData) {
 }
 
 function createTableHeader(category, entity) {
-  return `<table border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"><tr><td  width="30">${category}</td></tr><tr><td width="30">${entity}</td></tr></table>`;
+  return `<table border="0" CELLBORDER="1" CELLSPACING="1" CELLPADDING="4"><tr><td>${category}</td></tr><tr><td>${entity}</td></tr></table>`;
 }
 
 function createTableFields(category, entity, fields) {
-  const tableHeader = `<tr><td bgcolor="antiquewhite4"><FONT COLOR="coral">${category}</FONT></td></tr><tr><td bgcolor="antiquewhite4"><FONT COLOR="coral">${entity}</FONT></td></tr>`;
-  console.log(fields);
-  if(fields.length===0){
-    fields.push({id: 'name', type: 'String', description: 'default'});
+  const tableHeader = `<tr><td ><FONT COLOR="coral">${category}</FONT></td></tr><tr><td ><FONT COLOR="coral">${entity}</FONT></td></tr>`;
+
+  if (fields.length === 0) {
+    fields.push({ id: 'name', type: 'String', description: 'default' });
   }
   const fieldRows = fields
     .map(
@@ -357,57 +354,14 @@ function createTableFields(category, entity, fields) {
   return `<table bgcolor="aliceblue" color="coral" border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="0">
               ${tableHeader}
               <tr><td>
-                <table border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" >
+                <table border="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" >
                   ${fieldRows}
                 </table>
               </td></tr>
             </table>`;
 }
 
-function filterGraphData(graphData, searchTerm) {
-  searchTerm = searchTerm ? searchTerm.toLowerCase() : searchTerm;
-  const hierarchy = {};
 
-  // Helper function to recursively build the tree
-  function addNode(parts, id, label) {
-    let currentLevel = hierarchy;
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i];
-      if (!currentLevel[part]) {
-        currentLevel[part] = {
-          id: parts.slice(0, i + 1).join('.'),
-          label: part,
-          children: {}
-        };
-      }
-      currentLevel = currentLevel[part].children;
-    }
-    currentLevel[id] = { id, label, children: {} };
-  }
-
-  // Filter nodes based on the search term
-  const filteredNodes = graphData.nodes.filter(({ id }) =>
-    searchTerm ? id.toLowerCase().includes(searchTerm) : true
-  );
-
-  // Add filtered nodes and their ancestors to the hierarchy
-  filteredNodes.forEach(({ id }) => {
-    const parts = id.split('.');
-    const label = parts[parts.length - 1];
-    addNode(parts.slice(0, -1), id, label);
-  });
-
-  // Convert the hierarchy object into an array
-  function convertToArray(node) {
-    return Object.values(node).map(({ id, label, children }) => ({
-      id,
-      label,
-      children: convertToArray(children)
-    }));
-  }
-
-  return convertToArray(hierarchy);
-}
 
 // Example Usage
 let globalGraphData = null;
@@ -415,10 +369,8 @@ let globalGraphData = null;
 function Graphite() {
   console.log("graph " + window.location.href)
   const { id } = useParams();
-  const theme = useTheme();
 
   const appRef = useRef();
-  const treePaneRef = useRef();
   const tableRef = useRef('_ALL');
   //    const svgRef = useRef([]);
 
@@ -428,14 +380,11 @@ function Graphite() {
   const [lastGraph, setLastGraph] = useState(true)
 
 
-  const vSplitRef = useRef();
-  const hSplitRef = useRef();
   const [fullScreenState, setFullScreenState] = useState(false)
 
   const panZoomRef = useRef();
   //每次都会渲染Graphite
-  // const [doc, setDoc] = useState([]);
-  // const [dot, setDot] = useState("");
+
   //要想避免渲染就得实现类似CodeOverlay或ControlPanel的功能
   // let doc = [];
   // const setDoc = (d) => {
@@ -446,16 +395,14 @@ function Graphite() {
   //     dot = d;
   // }
 
-  const setFieldTree = (ft) => {
-    //treePaneRef.current.updateFieldTree(ft);
-  }
+
   const showDoc = (docSrc) => {
-    //console.log('show doc: [' +docSrc+']');
+    //console.log('show doc: [' + docSrc + ']');
     // setDoc(docSrc);
   }
 
   const showDot = (dot) => {
-    //console.log('show dot: [' +dot+']');
+    // console.log('show dot: [' + dot + ']');
     // setDot(dot);
   }
 
@@ -467,12 +414,7 @@ function Graphite() {
     showApp(app);
 
   }
-  const searchField = async (field) => {
-    showDoc('clicked search: [' + field + ']');
-    const fff = filterGraphData(globalGraphData, field);
-    setFieldTree(fff);
-    return {};
-  }
+
   //when the parent component (Graph.js) re renders everything gets recreated
   //including searchField - and the change to searchField causes the child (LeftPane.js) to re-render
   //even though LeftPane is already a memo. it is because of #2 as below
@@ -482,7 +424,7 @@ function Graphite() {
   3. Re render of Parent Component.
   */
   //since the dependency array is empty [], searchField is only created once.
-  const memoizedSearchField = useCallback(searchField, []);
+  // const memoizedSearchField = useCallback(searchField, []);
 
 
 
@@ -497,10 +439,9 @@ function Graphite() {
     if (nodeShape) {//new shape
       dot = shapeDetail(globalGraphData);
     } else {
-      dot = globalGraphData.edges.length < 3 ? allDetail(globalGraphData) : noDetail(globalGraphData);
+      dot = noDetail(globalGraphData);//globalGraphData.edges.length < 3 ? allDetail(globalGraphData) : noDetail(globalGraphData);
     }
     renderGraph(dot);
-    searchField();
   }
   const fetchTable = async (graphData, table) => {
     showDoc('table loading ' + table);
@@ -531,7 +472,6 @@ function Graphite() {
   }
 
   const renderGraph = (dotSrc, skipPush) => {
-    showDoc('graph rendering');
     showDot(dotSrc);
     removeAllTrackedListeners();
     if (skipPush) {
@@ -557,7 +497,7 @@ function Graphite() {
         .dot(dotSrc)
         .render()
         .on("end", function () {
-          showDoc('graph rendering');
+          showDoc('graph rendering started');
           //const svgElement = document.querySelector(".graphCanvas svg");
 
           //panZoomRef.current = svgPanZoom(".graphCanvas svg", {controlIconsEnabled: true, customEventsHandler: eventsHandler})
@@ -602,20 +542,84 @@ function Graphite() {
             trackEventListener(label, "pointerup", function (event) { showRelation(event.currentTarget.__data__.key); });
           });
 
-          showDoc('graph rendered');
+          showDoc('graph rendering ended');
         });
 
     }
   }
 
   const downloadGraph = () => {
-    downloadPNG();
+    // Function to download the SVG as an image
+    function downloadPNG() {
+      const [svgData, width, height] = extractSVGData();
+
+      // Create a canvas element to render the image
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+
+      // Set canvas size based on SVG dimensions
+      canvas.width = width;
+      canvas.height = height;
+
+      // Create an image element to load SVG data into
+      const img = new Image();
+      img.onload = function () {
+        // Draw the SVG onto the canvas at the correct size
+        context.drawImage(img, 0, 0, width, height);
+
+        // Convert the canvas to a PNG image and download it
+        const pngData = canvas.toDataURL("image/png");
+        const link = document.createElement("a");
+        link.href = pngData;
+        link.download = appRef.current + "." + tableRef.current + ".png";
+        link.click();
+      };
+
+      // Load the serialized SVG data into the image
+      //img.src = "data:image/svg+xml;base64," + btoa(svgData);
+      img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
+    }
+
+
+
+    const extractSVGData = () => {
+      const svgElement = document.querySelector(".graphCanvas svg");
+
+      // Get the computed width and height of the SVG element
+      const width = svgElement.clientWidth || svgElement.getBBox().width;
+      const height = svgElement.clientHeight || svgElement.getBBox().height;
+
+      // Set viewBox attribute to maintain proper scaling
+      const svgElement2 = svgElement.cloneNode(true);
+
+      svgElement2.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      svgElement2.setAttribute("width", width);
+      svgElement2.setAttribute("height", height);
+      svgElement2.removeChild(svgElement2.lastChild);
+      // Serialize the SVG content
+      const svgData = new XMLSerializer().serializeToString(svgElement2);
+      return [svgData, width, height];
+    }
+    const downloadSVG = () => {
+      const [svgData] = extractSVGData();
+      const url = window.URL.createObjectURL(new Blob([svgData], { type: 'image/svg' }));
+
+      const a = document.createElement('a');
+      a.href = url
+      a.download = appRef.current + "." + tableRef.current + ".svg";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      showDoc('download graph');
+    }
+    // downloadPNG();
     downloadSVG();
   }
 
   const push = (name) => {
     //console.log(`pushing ${name}`)
-    stack.push(name)
+    //stack.push(name)
     //console.log(stack)
   }
 
@@ -658,81 +662,9 @@ function Graphite() {
     renderGraph(stack[graphIndexRef.current], true)
   }
   const fullScreen = () => {
-    if (fullScreenState) {
-      vSplitRef.current.reset();
-      hSplitRef.current.reset();
-    } else {
-      vSplitRef.current.resize([0, 0])
-      hSplitRef.current.resize([0, 0])
-    }
-    if (panZoomRef.current != null) {
-      panZoomRef.current.center();
-      panZoomRef.current.fit();
-    }
-    setFullScreenState(!fullScreenState);
-  }
-  const extractSVGData = () => {
-    const svgElement = document.querySelector(".graphCanvas svg");
 
-    // Get the computed width and height of the SVG element
-    const width = svgElement.clientWidth || svgElement.getBBox().width;
-    const height = svgElement.clientHeight || svgElement.getBBox().height;
-
-    // Set viewBox attribute to maintain proper scaling
-    const svgElement2 = svgElement.cloneNode(true);
-
-    svgElement2.setAttribute("viewBox", `0 0 ${width} ${height}`);
-    svgElement2.setAttribute("width", width);
-    svgElement2.setAttribute("height", height);
-    svgElement2.removeChild(svgElement2.lastChild);
-    // Serialize the SVG content
-    const svgData = new XMLSerializer().serializeToString(svgElement2);
-    return [svgData, width, height];
-  }
-  const downloadSVG = () => {
-    const [svgData] = extractSVGData();
-    const url = window.URL.createObjectURL(new Blob([svgData], { type: 'image/svg' }));
-
-    const a = document.createElement('a');
-    a.href = url
-    a.download = appRef.current + "." + tableRef.current + ".svg";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-
-    showDoc('download graph');
   }
 
-  // Function to download the SVG as an image
-  function downloadPNG() {
-    const [svgData, width, height] = extractSVGData();
-
-    // Create a canvas element to render the image
-    const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
-
-    // Set canvas size based on SVG dimensions
-    canvas.width = width;
-    canvas.height = height;
-
-    // Create an image element to load SVG data into
-    const img = new Image();
-    img.onload = function () {
-      // Draw the SVG onto the canvas at the correct size
-      context.drawImage(img, 0, 0, width, height);
-
-      // Convert the canvas to a PNG image and download it
-      const pngData = canvas.toDataURL("image/png");
-      const link = document.createElement("a");
-      link.href = pngData;
-      link.download = appRef.current + "." + tableRef.current + ".png";
-      link.click();
-    };
-
-    // Load the serialized SVG data into the image
-    //img.src = "data:image/svg+xml;base64," + btoa(svgData);
-    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
-  }
   const handleResize = () => {
     //console.log('resized to: ', window.innerWidth, 'x', window.innerHeight +": "+panZoomRef)
     if (panZoomRef.current != null) {
@@ -749,9 +681,8 @@ function Graphite() {
   useEffect(() => {
     console.log("loaded Home")
     loadApp(id)
-    console.log("add resize")
     window.addEventListener('resize', handleResize);
-   
+
 
   }, [])//render only once
 
