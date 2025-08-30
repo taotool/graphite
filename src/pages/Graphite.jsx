@@ -71,290 +71,11 @@ function shapeDetail(graphData) {
   return dot;
 }
 
-//no details
-function noDetail1(graphData) {
-  // Helper to extract category.entity from full node ID
-  function getCategoryEntity(id) {
-    const parts = id.split('.');
-    return parts.length >= 2 ? `${parts[0]}.${parts[1]}` : null;
-  }
 
-  const nodes = {}; // map of nodeId -> display info
-  const edges = new Set(); 
-  const directon = graphData.direction === "vertical" ? "TD" : "LR";
 
-  // 1. Process declared nodes first (these override anything from edges)
-  graphData.nodes.forEach((node) => {
-    const categoryEntity = getCategoryEntity(node.id);
-    if (categoryEntity) {
-      nodes[categoryEntity] = {
-        id: categoryEntity,
-        category: categoryEntity.split('.')[0],
-        entity: categoryEntity.split('.')[1],
-        sourceNode: node, // keep reference to original node for later
-      };
-    }
-  });
 
-  // 2. Make sure all edge endpoints also exist as nodes (fallback if missing)
-  graphData.edges.forEach((edge) => {
-    const source = getCategoryEntity(edge.source);
-    const target = getCategoryEntity(edge.target);
-    [source, target].forEach((id) => {
-      if (id && !nodes[id]) {
-        nodes[id] = {
-          id,
-          category: id.split('.')[0],
-          entity: id.split('.')[1],
-          sourceNode: null, // no detail available
-        };
-      }
-    });
-  });
 
-  // 3. Collect edges
-  const edgeLabels = [];
-  graphData.edges.forEach((edge) => {
-    const source = getCategoryEntity(edge.source);
-    const target = getCategoryEntity(edge.target);
-    if (source && target && source !== target) {
-      const relationship = edge.weight || "";
-      edges.add(`"${source}" -> "${target}"`);
-      edgeLabels.push({ source, target, label: relationship });
-    }
-  });
 
-  // 4. Build DOT
-  let dot = `digraph "tt" {\n`;
-  dot += `  node [shape=plaintext margin=0]\n\n`;
-  dot += `  edge[arrowhead="open"]\n  tooltip=""\n  rankdir=${directon} \n`;
-
-  // Add nodes
-  Object.values(nodes).forEach((nodeObj) => {
-    const label = createTableHeader(nodeObj.category, nodeObj.entity);
-    dot += `  "${nodeObj.id}" [label=<${label}> class="graph_node_table"]\n`;
-  });
-
-  // Add edges with labels
-  edgeLabels.forEach(({ source, target, label }) => {
-    dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label"]\n`;
-  });
-
-  dot += `}`;
-  return dot;
-}
-
-function noDetail2(graphData) {
-  // Helper function to extract category.entity from a full node ID
-  function getCategoryEntity(id) {
-    const parts = id.split('.');
-    return parts.length >= 2 ? `${parts[0]}.${parts[1]}` : null;
-  }
-
-  const nodes = {};
-  const edges = new Set(); // Use a Set to avoid duplicate edges
-  const directon = graphData.direction === "vertical" ? "TD" : "LR";
-  // Process nodes
-  graphData.nodes.forEach((node) => {
-    const categoryEntity = getCategoryEntity(node.id);
-    if (categoryEntity && !nodes[categoryEntity]) {
-      nodes[categoryEntity] = categoryEntity;
-    }
-  });
-
-  // Process edges with labels
-  const edgeLabels = [];
-  graphData.edges.forEach((edge) => {
-    const source = getCategoryEntity(edge.source);
-    const target = getCategoryEntity(edge.target);
-    if (source && target && source !== target) {
-      const relationship = edge.weight || ""; // Use the weight as the label
-      edges.add(`"${source}" -> "${target}"`);
-      edgeLabels.push({ source, target, label: relationship });
-    }
-  });
-
-  // Start building the DOT representation ranksep=0.3
-  let dot = `digraph "tt" {\n`;
-  //dot += `  graph [rankdir=${graphData.graph.rankdir} label=${graphData.graph.title} labelloc=t]\n\n`;
-
-  dot += `  node [shape=plaintext margin=0]\n\n`;
-  dot += `  edge[arrowhead="open"]\n  tooltip=""\n  rankdir=${directon} \n`;
-
-  // Add nodes
-  Object.values(nodes).forEach((nodeId) => {
-    const [category, entity] = nodeId.split('.');
-    const label = createTableHeader(category, entity);
-    dot += `  "${nodeId}" [label=<${label}>] [class="graph_node_table"]\n`;
-  });
-
-  // Add edges with labels
-  edgeLabels.forEach(({ source, target, label }) => {
-    dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label"]\n`;
-  });
-
-  dot += `}`;
-  return dot;
-}
-
-//one details
-function oneDetail1(graphData, highlightEntity) {
-  // Helper function to extract category.entity from a full node ID
-  function getCategoryEntity(id) {
-    const parts = id.split('.');
-    return parts.length >= 2 ? `${parts[0]}.${parts[1]}` : null;
-  }
-
-  // Determine fields dynamically for the highlighted entity
-  function getDetailedFields(graphData, highlightEntity) {
-    return graphData.nodes
-      .filter(({ id }) => id.startsWith(`${highlightEntity}.`)) // Fields belonging to the entity
-      .map(({ id, type, description }) => {
-        const field = id.split('.').pop(); // Get the field name
-        const fk =
-          graphData.edges.find(
-            (edge) => edge.source === id || edge.target === id
-          )?.target || "Unknown";
-        const tp = fk === "Unknown" ? type : type + "|" + fk;
-        return { id: field, type: tp, description: `${description}` };
-      });
-  }
-
-  const detailedFields = getDetailedFields(graphData, highlightEntity);
-
-  const nodes = {}; // category.entity -> node info
-  const edges = new Set();
-  const edgeLabels = [];
-  const directon = graphData.direction === "vertical" ? "TD" : "LR";
-
-  // 1. Process nodes from graphData.nodes (these override)
-  graphData.nodes.forEach((node) => {
-    const categoryEntity = getCategoryEntity(node.id);
-    if (categoryEntity) {
-      nodes[categoryEntity] = { id: categoryEntity, sourceNode: node };
-    }
-  });
-
-  // 2. Make sure all edge endpoints exist as nodes (fallback if missing)
-  graphData.edges.forEach((edge) => {
-    const source = getCategoryEntity(edge.source);
-    const target = getCategoryEntity(edge.target);
-    [source, target].forEach((id) => {
-      if (id && !nodes[id]) {
-        nodes[id] = { id, sourceNode: null }; // minimal node
-      }
-    });
-  });
-
-  // 3. Process edges with labels
-  graphData.edges.forEach((edge) => {
-    const source = getCategoryEntity(edge.source);
-    const target = getCategoryEntity(edge.target);
-    if (source && target && source !== target) {
-      const relationship = edge.weight || "";
-      edges.add(`"${source}" -> "${target}"`);
-      edgeLabels.push({ source, target, label: relationship });
-    }
-  });
-
-  // 4. Build DOT
-  let dot = `digraph "tt" {\n`;
-  dot += `  node [shape=plaintext margin=0]\n\n`;
-  dot += `  edge[arrowhead="open"]\n  tooltip=""\n  rankdir=${directon} \n overlap = scale \n splines = true \n`;
-
-  // Add nodes (highlightEntity gets details)
-  Object.values(nodes).forEach(({ id: nodeId }) => {
-    const [category, entity] = nodeId.split('.');
-    if (nodeId === highlightEntity) {
-      const label = createTableFields(category, entity, detailedFields);
-      dot += `  "${nodeId}" [label=<${label}> class="graph_node_table_with_fields highlight" style="filled" fillcolor="yellow"]\n`;
-    } else {
-      const label = createTableHeader(category, entity);
-      dot += `  "${nodeId}" [label=<${label}> class="graph_node_table"]\n`;
-    }
-  });
-
-  // Add edges
-  edgeLabels.forEach(({ source, target, label }) => {
-    dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label"]\n`;
-  });
-
-  dot += `}`;
-  return dot;
-}
-
-function oneDetail2(graphData, highlightEntity) {
-  // Helper function to extract category.entity from a full node ID
-  function getCategoryEntity(id) {
-    const parts = id.split('.');
-    return parts.length >= 2 ? `${parts[0]}.${parts[1]}` : null;
-  }
-
-  // Determine fields dynamically for the highlighted entity
-  function getDetailedFields(graphData, highlightEntity) {
-    return graphData.nodes
-      .filter(({ id }) => id.startsWith(`${highlightEntity}.`)) // Fields belonging to the entity
-      .map(({ id, type, description }) => {
-        const field = id.split('.').pop(); // Get the field name
-        const fk = graphData.edges.find((edge) => edge.source === id || edge.target === id)?.target || "Unknown";
-        const tp = fk === "Unknown" ? type : type + "|" + fk;
-        return { id: field, type: tp, description: `${description}` }; // Generate description dynamically
-      });
-  }
-
-  const detailedFields = getDetailedFields(graphData, highlightEntity);
-
-  const nodes = {};
-  const edges = new Set(); // Use a Set to avoid duplicate edges
-  const edgeLabels = [];
-  const directon = graphData.direction === "vertical" ? "TD" : "LR";
-
-  // Process nodes
-  graphData.nodes.forEach((node) => {
-    const categoryEntity = getCategoryEntity(node.id);
-    if (categoryEntity && !nodes[categoryEntity]) {
-      nodes[categoryEntity] = { id: categoryEntity };
-    }
-  });
-
-  // Process edges with labels
-  graphData.edges.forEach((edge) => {
-    const source = getCategoryEntity(edge.source);
-    const target = getCategoryEntity(edge.target);
-    if (source && target && source !== target) {
-      const relationship = edge.weight || ""; // Use the weight as the label
-      edges.add(`"${source}" -> "${target}"`);
-      edgeLabels.push({ source, target, label: relationship });
-    }
-  });
-
-  // Start building the DOT representation
-  let dot = `digraph "tt" {\n`;
-  dot += `  node [shape=plaintext margin=0]\n\n`;
-  dot += `  edge[arrowhead="open"]\n  tooltip=""\n  rankdir=${directon} \n overlap = scale \n splines = true \n`;
-
-  // Add nodes with highlight and details
-  Object.values(nodes).forEach(({ id: nodeId }) => {
-    const [category, entity] = nodeId.split('.');
-    if (nodeId === highlightEntity) {
-      // Create detailed table for the highlighted entity
-      const label = createTableFields(category, entity, detailedFields);
-      dot += `  "${nodeId}" [label=<${label}>] [class="graph_node_table_with_fields highlight" style="filled" fillcolor="yellow"]\n`;
-    } else {
-      // Regular node
-      const label = createTableHeader(category, entity);
-      dot += `  "${nodeId}" [label=<${label}>] [class="graph_node_table"]\n`;
-    }
-  });
-
-  // Add edges with labels
-  edgeLabels.forEach(({ source, target, label }) => {
-    dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label"]\n`;
-  });
-
-  dot += `}`;
-  return dot;
-}
 // Common utility: extract category.entity
 function getCategoryEntity(id) {
   const parts = id.split('.');
@@ -529,11 +250,11 @@ function oneDetail(graphData, highlightEntity) {
     if (nodeId === highlightEntity) {
       // Main highlight → detailed fields
       const label = createTableFields(category, entity, detailedFields);
-      dot += `  "${nodeId}" [label=<${label}> class="graph_node_table_with_fields highlight" style="filled" fillcolor="yellow"]\n`;
+      dot += `  "${nodeId}" [label=<${label}> class="graph_node_table_with_fields highlight" ]\n`;
     } else if (allHighlights.has(nodeId)) {
       // Upstream/downstream highlights
       const label = createTableHeader(category, entity);
-      dot += `  "${nodeId}" [label=<${label}> class="graph_node_table highlight" style="filled" fillcolor="red"]\n`;
+      dot += `  "${nodeId}" [label=<${label}> class="graph_node_table highlight" ]\n`;
     } else {
       // Normal nodes
       const label = createTableHeader(category, entity);
@@ -550,47 +271,7 @@ function oneDetail(graphData, highlightEntity) {
   return dot;
 }
 
-function oneDetail3(graphData, highlightEntity) {
-  const nodes = {};
-  const directon = graphData.direction === "vertical" ? "TD" : "LR";
 
-  // Process nodes from graphData.nodes
-  graphData.nodes.forEach((node) => {
-    const categoryEntity = getCategoryEntity(node.id);
-    if (categoryEntity && !nodes[categoryEntity]) {
-      nodes[categoryEntity] = { id: categoryEntity };
-    }
-  });
-
-  // Process edges (also adds missing nodes)
-  const { edgeLabels } = processEdges(graphData, nodes);
-
-  // Gather detailed fields for highlightEntity
-  const detailedFields = graphData.nodes
-    .filter(({ id }) => id.startsWith(`${highlightEntity}.`))
-    .map(({ id, type, description }) => {
-      const field = id.split('.').pop();
-      const fk =
-        graphData.edges.find((edge) => edge.source === id || edge.target === id)
-          ?.target || "Unknown";
-      const tp = fk === "Unknown" ? type : type + "|" + fk;
-      return { id: field, type: tp, description };
-    });
-
-  // Render nodes (highlightEntity gets detailed fields)
-  const renderNode = (nodeId) => {
-    const [category, entity] = nodeId.split('.');
-    if (nodeId === highlightEntity) {
-      const label = createTableFields(category, entity, detailedFields);
-      return `  "${nodeId}" [label=<${label}> class="graph_node_table_with_fields highlight" style="filled" fillcolor="yellow"]\n`;
-    } else {
-      const label = createTableHeader(category, entity);
-      return `  "${nodeId}" [label=<${label}> class="graph_node_table"]\n`;
-    }
-  };
-
-  return buildDot({ directon, nodes, edgeLabels, renderNode });
-}
 //all details
 function allDetail(graphData) {
   const directon = graphData.direction === "vertical" ? "TD" : "LR";
@@ -640,11 +321,15 @@ function allDetail(graphData) {
 }
 
 function createTableHeader(category, entity) {
-  return `<table border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"><tr><td>${category}</td></tr><tr><td width="100">${entity}</td></tr></table>`;
+  return `<table border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"><tr><td  width="30">${category}</td></tr><tr><td width="30">${entity}</td></tr></table>`;
 }
 
 function createTableFields(category, entity, fields) {
   const tableHeader = `<tr><td bgcolor="antiquewhite4"><FONT COLOR="coral">${category}</FONT></td></tr><tr><td bgcolor="antiquewhite4"><FONT COLOR="coral">${entity}</FONT></td></tr>`;
+  console.log(fields);
+  if(fields.length===0){
+    fields.push({id: 'name', type: 'String', description: 'default'});
+  }
   const fieldRows = fields
     .map(
       ({ id, type, description }) => {
@@ -657,14 +342,14 @@ function createTableFields(category, entity, fields) {
           tgt = target[0] + "." + target[1];
         }
         return `<tr>
-            <td width="100" PORT="${id}" ><FONT COLOR="coral">${id}</FONT></td>
+            <td width="50" PORT="${id}" ><FONT COLOR="coral">${id}</FONT></td>
             <td width="50" TITLE="${type}" ${type.includes('|') ? `TARGET="${tgt}"` : ''}>
               ${type.includes('|')
             ? `<U><FONT COLOR="darkslategray1">${tt}</FONT></U>`
             : `<FONT COLOR="coral">${tt}</FONT>`
           }
             </td>
-            <td width="200"><FONT COLOR="coral">${description}</FONT></td>
+            <td width="50"><FONT COLOR="coral">${description}</FONT></td>
           </tr>`
       }
     )
@@ -672,7 +357,7 @@ function createTableFields(category, entity, fields) {
   return `<table bgcolor="aliceblue" color="coral" border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="0">
               ${tableHeader}
               <tr><td>
-                <table border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" color="#cccccc">
+                <table border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" >
                   ${fieldRows}
                 </table>
               </td></tr>
@@ -749,8 +434,8 @@ function Graphite() {
 
   const panZoomRef = useRef();
   //每次都会渲染Graphite
-  const [doc, setDoc] = useState([]);
-  const [dot, setDot] = useState("");
+  // const [doc, setDoc] = useState([]);
+  // const [dot, setDot] = useState("");
   //要想避免渲染就得实现类似CodeOverlay或ControlPanel的功能
   // let doc = [];
   // const setDoc = (d) => {
@@ -766,12 +451,12 @@ function Graphite() {
   }
   const showDoc = (docSrc) => {
     //console.log('show doc: [' +docSrc+']');
-    setDoc(docSrc);
+    // setDoc(docSrc);
   }
 
   const showDot = (dot) => {
     //console.log('show dot: [' +dot+']');
-    setDot(dot);
+    // setDot(dot);
   }
 
   const loadApp = async (app) => {
