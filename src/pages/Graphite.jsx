@@ -1,16 +1,24 @@
 //当route的path为"/graphite/:id"时，这个组件会被渲染
 
 import { useState, useEffect, useRef, useCallback, memo } from 'react'
+
 import './Graphite.css';
 import { useParams } from 'react-router-dom';
 import IconButton from '@mui/material/IconButton';
+import Button from '@mui/material/Button';
+import Stack from '@mui/material/Stack';
+import Dialog from '@mui/material/Dialog';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogActions from '@mui/material/DialogActions';
+
+import Editor from "@monaco-editor/react";
 
 import DownloadIcon from '@mui/icons-material/Download';
 import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
 import HomeIcon from '@mui/icons-material/Home';
 import CodeIcon from "@mui/icons-material/Code";
-import Stack from '@mui/material/Stack';
 //https://github.com/magjac/d3-graphviz
 import * as d3 from 'd3'
 import * as d3Graphviz from 'd3-graphviz';
@@ -189,7 +197,7 @@ export function oneDetail(graphData, highlightEntity) {
       //   graphData.edges.find((edge) => edge.source === id || edge.target === id)
       //     ?.target || "Unknown";
       const fk =
-        graphData.edges.find((edge) => edge.source === id )
+        graphData.edges.find((edge) => edge.source === id)
           ?.target || "Unknown";
       const tp = fk === "Unknown" ? type : type + "|" + fk;
       return { id: field, type: tp, description };
@@ -303,9 +311,9 @@ function createTableFields(category, entity, fields) {
             <td width="50" TITLE="${type}" 
               ${type.includes('|') ? `TARGET="${tgt}"` : ''}>
               ${type.includes('|')
-                ? `<U><FONT COLOR="darkslategray1">${tt}</FONT></U>`
-                : `<FONT COLOR="darkslategray1">${tt}</FONT>`
-              }
+            ? `<U><FONT COLOR="darkslategray1">${tt}</FONT></U>`
+            : `<FONT COLOR="darkslategray1">${tt}</FONT>`
+          }
             </td>
             <td width="50"><FONT COLOR="coral">${description}</FONT></td>
           </tr>`
@@ -350,7 +358,7 @@ export function shapeDetail(graphData) {
 
 
 
-//////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
 const eventListenersMap = new WeakMap();
 let elements = [];
 
@@ -384,15 +392,18 @@ function removeTrackedListeners(element) {
 // Example Usage
 let globalGraphData = null;
 
+
+
 function Graphite({ configUrl }) {
   console.log("graph " + window.location.href)
   const { id } = useParams();
   // Pick config source:
   const app = configUrl || id;
   const appRef = useRef();
-  const tableRef = useRef('_ALL');
+  const tableRef = useRef();
   //    const svgRef = useRef([]);
-
+  const [openEditor, setOpenEditor] = useState(false);
+  const [jsonc, setJsonc] = useState();
   const graphIndexRef = useRef(0)
   const [stack] = useState([])
   const [firstGraph, setFirstGraph] = useState(true)
@@ -430,7 +441,20 @@ function Graphite({ configUrl }) {
     //extract json nodes to database->table-column
     //group relation to table level
 
-    showApp(app);
+        //const data = await fetchApp(app)
+    //renderGraph(data.graph);
+    // option 1
+    // const jsonModule = await import("./apps/" + id + ".json");
+    // globalGraphData = jsonModule.default;
+
+    // option 2
+    const response = await fetch("./apps/" + app + ".jsonc");
+    // globalGraphData = await response.json();
+    const text = await response.text();
+    globalGraphData = parse(text);
+    setJsonc(text);
+
+    showApp(globalGraphData);
 
   }
 
@@ -448,28 +472,28 @@ function Graphite({ configUrl }) {
 
 
 
-  const showApp = async (app) => {
-    //const data = await fetchApp(app)
-    //renderGraph(data.graph);
-    // const jsonModule = await import("./apps/" + id + ".json");
-    const response = await fetch("./apps/" + app + ".jsonc");
-    // globalGraphData = await response.json();
-    const text = await response.text();
-    globalGraphData =  parse(text);
-    // globalGraphData = jsonModule.default;
+  const showApp = async () => {
+
     const nodeShape = globalGraphData.node ? globalGraphData.node.shape : null;
     let dot = null;
     if (nodeShape) {//new shape
       dot = shapeDetail(globalGraphData);
     } else {
-      dot = noDetail(globalGraphData);//globalGraphData.edges.length < 3 ? allDetail(globalGraphData) : noDetail(globalGraphData);
+      console.log("tableRef.current", tableRef.current)
+      if (tableRef.current) {
+        dot = oneDetail(globalGraphData, tableRef.current);
+      } else {
+        //default to first table
+        if (globalGraphData.nodes.length > 0) {}
+        dot = noDetail(globalGraphData);//globalGraphData.edges.length < 3 ? allDetail(globalGraphData) : noDetail(globalGraphData);
+      }
     }
     renderGraph(dot);
   }
 
-  const fetchTable = async (graphData, table) => {
+  const fetchTable = async (table) => {
     showDoc('table loading ' + table);
-    const dot = oneDetail(graphData, table);
+    const dot = oneDetail(globalGraphData, table);
     return dot;
   }
 
@@ -484,7 +508,7 @@ function Graphite({ configUrl }) {
     const parts = table.split(".");
 
     if (parts.length === 2) {
-      const data = await fetchTable(globalGraphData, table)
+      const data = await fetchTable(table)
       //        renderGraph(data.graph);
       renderGraph(data);
     }
@@ -642,14 +666,7 @@ function Graphite({ configUrl }) {
 
   const push = (dotSrc) => {
     stack.push(dotSrc)
-    //console.log(stack)
   }
-
-  //    const pop = () => {
-  //        const obj = stack.shift()
-  //        console.log(`popped ${obj}`)
-  //        console.log('stack: ', stack)
-  //    }
 
   const prevGraph = () => {
     if (graphIndexRef.current > 0) {
@@ -699,7 +716,25 @@ function Graphite({ configUrl }) {
     }
 
   }
+  const handleSave = () => {
+    try {
+      // strip comments: monaco has a parser but simplest is using JSON.parse after stripping comments
+      const value = editorRef.current?.getValue() || jsonc;
+      const parsed = parse(value);
+      // const json = JSON.stringify(parsed, null, 4);
+      setJsonc(value); // format and remove comments
+      setOpenEditor(false);
+      globalGraphData = parsed;
 
+      showApp();
+    } catch (err) {
+      alert("Invalid JSON: " + err.message);
+    }
+  };
+  const editorRef = useRef(null);
+    const handleEditorMount = (editor, monaco) => {
+    editorRef.current = editor;
+  };
   useEffect(() => {
     console.log("loaded Home")
     loadApp(app)
@@ -711,6 +746,7 @@ function Graphite({ configUrl }) {
   //https://medium.com/@akashshukla_1715/preventing-unnecessary-rerendering-of-child-components-in-react-using-usecallback-and-react-memo-34f1423fe263
   return (
     <>
+
       <div className={"graphCanvas"} ></div>
       <Stack id="graphDownload"
         direction="row"
@@ -733,8 +769,34 @@ function Graphite({ configUrl }) {
         <IconButton onClick={prevGraph} disabled={firstGraph}><UndoIcon /></IconButton>
         <IconButton onClick={nextGraph} disabled={lastGraph}><RedoIcon /></IconButton>
         <IconButton onClick={downloadGraph}><DownloadIcon /></IconButton>
+        <IconButton onClick={() => setOpenEditor(true)}>
+          <CodeIcon />
+        </IconButton>
 
       </Stack>
+      <Dialog
+        open={openEditor}
+        onClose={() => setOpenEditor(false)}
+        fullWidth
+        maxWidth="lg"
+      >
+        <DialogTitle>JSONC</DialogTitle>
+        <DialogContent style={{ height: "70vh" }}>
+          <Editor
+            height="100%"
+            defaultLanguage="jsonc"
+            value={jsonc}
+            onMount={handleEditorMount} // capture editor instance
+            theme="vs-dark"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenEditor(false)}>Cancel</Button>
+          <Button onClick={handleSave} variant="contained">
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }
