@@ -792,9 +792,7 @@ function Graphite({ configUrl }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenEditor(false)}>Cancel</Button>
-          <Button onClick={handleSave} variant="contained">
-            Save
-          </Button>
+          <Button onClick={handleSave} variant="contained">Apply</Button>
         </DialogActions>
       </Dialog>
     </>

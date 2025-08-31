@@ -12,8 +12,8 @@ function App() {
       <BrowserRouter>
 
         <Routes>
-          <Route path="/" element={<Graphites />} />
-          <Route path="/:id" element={<Graphite />} />
+          <Route path="/graphite" element={<Graphites />} />
+          <Route path="/graphite/:id" element={<Graphite />} />
         </Routes>
       </BrowserRouter>
     </div>

@@ -19,7 +19,7 @@ export default function Graphites() {
 
     (async () => { // IIFE
       try {
-        const response = await fetch("/apps.json");
+        const response = await fetch("apps.json");
         const apps = await response.json();
         setApps(apps);
       } catch (error) {
