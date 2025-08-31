@@ -441,7 +441,7 @@ function Graphite({ configUrl }) {
     //extract json nodes to database->table-column
     //group relation to table level
 
-        //const data = await fetchApp(app)
+    //const data = await fetchApp(app)
     //renderGraph(data.graph);
     // option 1
     // const jsonModule = await import("./apps/" + id + ".json");
@@ -484,7 +484,7 @@ function Graphite({ configUrl }) {
         dot = oneDetail(globalGraphData, tableRef.current);
       } else {
         //default to first table
-        if (globalGraphData.nodes.length > 0) {}
+        if (globalGraphData.nodes.length > 0) { }
         dot = noDetail(globalGraphData);//globalGraphData.edges.length < 3 ? allDetail(globalGraphData) : noDetail(globalGraphData);
       }
     }
@@ -719,10 +719,9 @@ function Graphite({ configUrl }) {
   const handleSave = () => {
     try {
       // strip comments: monaco has a parser but simplest is using JSON.parse after stripping comments
-      const value = editorRef.current?.getValue() || jsonc;
-      const parsed = parse(value);
-      // const json = JSON.stringify(parsed, null, 4);
-      setJsonc(value); // format and remove comments
+      const json = editorRef.current?.getValue() || jsonc;
+      const parsed = parse(json);
+      setJsonc(json); // format and remove comments
       setOpenEditor(false);
       globalGraphData = parsed;
 
@@ -732,7 +731,7 @@ function Graphite({ configUrl }) {
     }
   };
   const editorRef = useRef(null);
-    const handleEditorMount = (editor, monaco) => {
+  const handleEditorMount = (editor, monaco) => {
     editorRef.current = editor;
   };
   useEffect(() => {
@@ -768,7 +767,7 @@ function Graphite({ configUrl }) {
         <IconButton onClick={resetGraph}><HomeIcon /></IconButton>
         <IconButton onClick={prevGraph} disabled={firstGraph}><UndoIcon /></IconButton>
         <IconButton onClick={nextGraph} disabled={lastGraph}><RedoIcon /></IconButton>
-        <IconButton onClick={downloadGraph}><DownloadIcon /></IconButton>
+        {/* <IconButton onClick={downloadGraph}><DownloadIcon /></IconButton> */}
         <IconButton onClick={() => setOpenEditor(true)}>
           <CodeIcon />
         </IconButton>
@@ -779,15 +778,22 @@ function Graphite({ configUrl }) {
         onClose={() => setOpenEditor(false)}
         fullWidth
         maxWidth="lg"
+        sx={{
+          "& .MuiPaper-root": {
+            border: "1px solid #ccc",     // thinner border
+            borderRadius: "12px",         // slightly rounded corners
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)", // soft shadow
+          },
+        }}
       >
-        <DialogTitle>JSONC</DialogTitle>
+        <DialogTitle>Graph</DialogTitle>
         <DialogContent style={{ height: "70vh" }}>
           <Editor
             height="100%"
             defaultLanguage="jsonc"
             value={jsonc}
             onMount={handleEditorMount} // capture editor instance
-            theme="vs-dark"
+            theme="vs-light"
           />
         </DialogContent>
         <DialogActions>

@@ -9,6 +9,7 @@ import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import { useNavigate } from 'react-router-dom';
 
+import { parse } from "jsonc-parser";/* to support jsonc */
 
 export default function Graphites() {
   const navigate = useNavigate(); // Get the navigate function
@@ -19,8 +20,10 @@ export default function Graphites() {
 
     (async () => { // IIFE
       try {
-        const response = await fetch("apps.json");
-        const apps = await response.json();
+        const response = await fetch("apps.jsonc");
+        // const apps = await response.json();
+        const text = await response.text();
+        const apps = parse(text);
         setApps(apps);
       } catch (error) {
         console.error('Error fetching data:', error);
