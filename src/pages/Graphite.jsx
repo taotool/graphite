@@ -432,8 +432,11 @@ function Graphite() {
   const showApp = async (app) => {
     //const data = await fetchApp(app)
     //renderGraph(data.graph);
-    const jsonModule = await import("./apps/" + id + ".json");
-    globalGraphData = jsonModule.default;
+    // const jsonModule = await import("./apps/" + id + ".json");
+  const response = await fetch("/config.json");
+  globalGraphData = await response.json();
+
+    // globalGraphData = jsonModule.default;
     const nodeShape = globalGraphData.node ? globalGraphData.node.shape : null;
     let dot = null;
     if (nodeShape) {//new shape

@@ -1,8 +1,22 @@
 {
   "name": "graphite",
-  "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
+  "bin": {
+    "graphite": "bin/start.js"
+  },
+  "main": "./dist/graphite.umd.js",
+  "module": "./dist/graphite.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/graphite.es.js",
+      "require": "./dist/graphite.umd.js"
+    }
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -18,9 +32,13 @@
     "allotment": "^1.20.4",
     "d3": "^7.9.0",
     "d3-graphviz": "^5.6.0",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
+    "express": "^5.1.0",
+    "http-server": "^14.1.1",
     "react-router-dom": "^7.8.2"
+  },
+    "peerDependencies": {
+    "react": ">=19",
+    "react-dom": ">=19"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
