@@ -330,7 +330,7 @@ function createTableFields(category, entity, fields) {
   const tableHeader = `<tr><td ><FONT COLOR="coral">${category}</FONT></td></tr><tr><td ><FONT COLOR="coral">${entity}</FONT></td></tr>`;
 
   if (fields.length === 0) {
-    fields.push({ id: 'name', type: 'String', description: 'default' });
+    fields.push({ id: 'id', type: 'String', description: 'default' });
   }
   const fieldRows = fields
     .map(
@@ -374,7 +374,8 @@ let globalGraphData = null;
 function Graphite({ configUrl }) {
   console.log("graph " + window.location.href)
   const { id } = useParams();
-
+  // Pick config source:
+  const app = configUrl || id;
   const appRef = useRef();
   const tableRef = useRef('_ALL');
   //    const svgRef = useRef([]);
@@ -438,7 +439,7 @@ function Graphite({ configUrl }) {
     //const data = await fetchApp(app)
     //renderGraph(data.graph);
     // const jsonModule = await import("./apps/" + id + ".json");
-    const response = await fetch("./apps/"+id+".json");
+    const response = await fetch("./apps/" + id + ".json");
     globalGraphData = await response.json();
 
     // globalGraphData = jsonModule.default;
@@ -451,7 +452,7 @@ function Graphite({ configUrl }) {
     }
     renderGraph(dot);
   }
-  
+
   const fetchTable = async (graphData, table) => {
     showDoc('table loading ' + table);
     const dot = oneDetail(graphData, table);
@@ -625,9 +626,8 @@ function Graphite({ configUrl }) {
     downloadSVG();
   }
 
-  const push = (name) => {
-    //console.log(`pushing ${name}`)
-    stack.push(name)
+  const push = (dotSrc) => {
+    stack.push(dotSrc)
     //console.log(stack)
   }
 
@@ -688,7 +688,7 @@ function Graphite({ configUrl }) {
 
   useEffect(() => {
     console.log("loaded Home")
-    loadApp(id)
+    loadApp(app)
     window.addEventListener('resize', handleResize);
 
 
@@ -698,29 +698,29 @@ function Graphite({ configUrl }) {
   return (
     <>
       <div className={"graphCanvas"} ></div>
-        <Stack id="graphDownload"
-                direction="row"
-                style={{
-                padding: '15px',
-                position:'absolute',
-                left:0,
-                top:0,
-                border: '0px solid red',
-                display:'flex',
-                displayDirection:'column',
-                backgroundColor: "rgba(200,200,200, 0)"
-                }}>
-                {/*
+      <Stack id="graphDownload"
+        direction="row"
+        style={{
+          padding: '15px',
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          border: '0px solid red',
+          display: 'flex',
+          displayDirection: 'column',
+          backgroundColor: "rgba(200,200,200, 0)"
+        }}>
+        {/*
                  <IconButton color="primary" aria-label="add to shopping cart" onClick={fullScreen} >
                     {fullScreenState ? <FullscreenExitIcon /> : <FullscreenIcon />}
                 </IconButton>
 */}
-                <IconButton onClick={resetGraph}><HomeIcon/></IconButton>
-                <IconButton onClick={prevGraph} disabled={firstGraph}><UndoIcon/></IconButton>
-                <IconButton onClick={nextGraph} disabled={lastGraph}><RedoIcon/></IconButton>
-                <IconButton onClick={downloadGraph}><DownloadIcon/></IconButton>
+        <IconButton onClick={resetGraph}><HomeIcon /></IconButton>
+        <IconButton onClick={prevGraph} disabled={firstGraph}><UndoIcon /></IconButton>
+        <IconButton onClick={nextGraph} disabled={lastGraph}><RedoIcon /></IconButton>
+        <IconButton onClick={downloadGraph}><DownloadIcon /></IconButton>
 
-            </Stack>
+      </Stack>
     </>
   );
 }
