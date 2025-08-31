@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { useState, useEffect, useRef, useCallback, memo } from 'react'
 import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
@@ -8,21 +8,31 @@ import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from '@mui/material/styles';
-import { apps } from "./apps.js";
+
 
 export default function Graphites() {
-    const navigate = useNavigate(); // Get the navigate function
-    const theme = useTheme();
+  const navigate = useNavigate(); // Get the navigate function
 
-// const gg = [
-//         { title: 'Sample', segment:"graphite", link: '/graphite/sample', img: './'+theme.palette.mode+'/combos.png'},
-//         { title: 'Site', segment:"graphite", link: '/graphite/site', img: 'https://mui.com/static/images/cards/contemplative-reptile.jpg' },
-//         { title: '济公传', segment:"graphite", link: '/graphite/jigongzhuan', img: 'https://mui.com/static/images/cards/contemplative-reptile.jpg' },
-//       ];
+
+  const [apps, setApps] = useState([]); // State to hold the apps
+  useEffect(() => {
+
+    (async () => { // IIFE
+      try {
+        const response = await fetch("/apps.json");
+        const apps = await response.json();
+        setApps(apps);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    })();
+
+  }, []);
+  //render only once
+
 
   return (
-<Box sx={{ flexGrow: 1, p: 0 }} style={{margin:'0px'}}>
+    <Box sx={{ flexGrow: 1, p: 0 }} style={{ margin: '0px' }}>
       <Grid
         container
         spacing={1}
@@ -50,26 +60,26 @@ export default function Graphites() {
             }}
           >
 
-                <Card sx={{ }} onClick={()=>navigate(g.link)}>
-                      <CardMedia
-                        component="img"
-                        alt="green iguana"
-                        height="140"
-                        image="https://mui.com/static/images/cards/contemplative-reptile.jpg"
-                      />
-                      <CardContent>
-                        <Typography gutterBottom variant="h5" component="div">
-                          {g.title}
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                          sx
-                        </Typography>
-                      </CardContent>
-                      <CardActions>
-                        <Button size="small">Share</Button>
-                        <Button size="small">Learn More</Button>
-                      </CardActions>
-                    </Card>
+            <Card sx={{}} onClick={() => navigate(g.link)}>
+              <CardMedia
+                component="img"
+                alt="green iguana"
+                height="140"
+                image="https://mui.com/static/images/cards/contemplative-reptile.jpg"
+              />
+              <CardContent>
+                <Typography gutterBottom variant="h5" component="div">
+                  {g.title}
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  sx
+                </Typography>
+              </CardContent>
+              <CardActions>
+                <Button size="small">Share</Button>
+                <Button size="small">Learn More</Button>
+              </CardActions>
+            </Card>
 
           </Grid>
         ))}

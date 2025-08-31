@@ -4,14 +4,19 @@ import { useState, useEffect, useRef, useCallback, memo } from 'react'
 import './Graphite.css';
 import { useParams } from 'react-router-dom';
 import { useTheme } from '@mui/material/styles';
+import IconButton from '@mui/material/IconButton';
 
+import DownloadIcon from '@mui/icons-material/Download';
+import UndoIcon from '@mui/icons-material/Undo';
+import RedoIcon from '@mui/icons-material/Redo';
+import HomeIcon from '@mui/icons-material/Home';
+import Stack from '@mui/material/Stack';
 //https://github.com/magjac/d3-graphviz
 import * as d3 from 'd3'
 import * as d3Graphviz from 'd3-graphviz';
 //https://github.com/johnwalley/allotment?tab=readme-ov-file
 
 
-import ControlPanel from './ControlPanel';
 
 console.log("######### Graphite.js ######### ");
 const eventListenersMap = new WeakMap();
@@ -366,7 +371,7 @@ function createTableFields(category, entity, fields) {
 // Example Usage
 let globalGraphData = null;
 
-function Graphite() {
+function Graphite({ configUrl }) {
   console.log("graph " + window.location.href)
   const { id } = useParams();
 
@@ -433,8 +438,8 @@ function Graphite() {
     //const data = await fetchApp(app)
     //renderGraph(data.graph);
     // const jsonModule = await import("./apps/" + id + ".json");
-  const response = await fetch("/config.json");
-  globalGraphData = await response.json();
+    const response = await fetch("./apps/"+id+".json");
+    globalGraphData = await response.json();
 
     // globalGraphData = jsonModule.default;
     const nodeShape = globalGraphData.node ? globalGraphData.node.shape : null;
@@ -693,16 +698,29 @@ function Graphite() {
   return (
     <>
       <div className={"graphCanvas"} ></div>
-      <ControlPanel
-        downloadGraph={downloadGraph}
-        prevGraph={prevGraph}
-        nextGraph={nextGraph}
-        resetGraph={resetGraph}
-        firstGraph={firstGraph}
-        lastGraph={lastGraph}
-        fullScreen={fullScreen}
-        fullScreenState={fullScreenState}
-      />
+        <Stack id="graphDownload"
+                direction="row"
+                style={{
+                padding: '15px',
+                position:'absolute',
+                left:0,
+                top:0,
+                border: '0px solid red',
+                display:'flex',
+                displayDirection:'column',
+                backgroundColor: "rgba(200,200,200, 0)"
+                }}>
+                {/*
+                 <IconButton color="primary" aria-label="add to shopping cart" onClick={fullScreen} >
+                    {fullScreenState ? <FullscreenExitIcon /> : <FullscreenIcon />}
+                </IconButton>
+*/}
+                <IconButton onClick={resetGraph}><HomeIcon/></IconButton>
+                <IconButton onClick={prevGraph} disabled={firstGraph}><UndoIcon/></IconButton>
+                <IconButton onClick={nextGraph} disabled={lastGraph}><RedoIcon/></IconButton>
+                <IconButton onClick={downloadGraph}><DownloadIcon/></IconButton>
+
+            </Stack>
     </>
   );
 }
