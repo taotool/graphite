@@ -34,9 +34,10 @@
     "d3-graphviz": "^5.6.0",
     "express": "^5.1.0",
     "http-server": "^14.1.1",
+    "jsonc-parser": "^3.3.1",
     "react-router-dom": "^7.8.2"
   },
-    "peerDependencies": {
+  "peerDependencies": {
     "react": ">=19",
     "react-dom": ">=19"
   },

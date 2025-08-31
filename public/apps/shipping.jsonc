@@ -1,5 +1,5 @@
 {
-  "type": "directed",
+  "type": "data",
   "nodes": [
     {"id":"SELLER.Seller1.id","name":"id","type":"ID","description":"x"},
     {"id":"SELLER.Seller2.id","name":"x","type":"[Review]","description":"x"},
@@ -8,11 +8,17 @@
     {"id":"ITEM.Item2.id","name":"id","type":"ID","description":"x"},
     {"id":"ITEM.Item3.id","name":"id","type":"ID","description":"x"},
 
-    {"id":"ORDER.Order1.lineitem1","name":"Item1","type":"Item1","description":"1"},
-    {"id":"ORDER.Order1.lineitem2","name":"Item2","type":"Item2","description":"2"},
+    {"id":"ORDER.Order1.Unit1","name":"Item1","type":"Item1","description":"Seller1"},
+    {"id":"ORDER.Order1.Unit2","name":"Item1","type":"Item1","description":"Seller1"},
+    {"id":"ORDER.Order1.Unit21","name":"Item2","type":"Item2","description":"Seller2"},
+    {"id":"ORDER.Order1.Unit22","name":"Item1","type":"Item2","description":"Seller2"},
+
+
     {"id":"ORDER.Order2.lineitem1","name":"Item1","type":"Item1","description":"1"},
     {"id":"ORDER.Order2.lineitem2","name":"Item2","type":"Item2","description":"1"},
-    {"id":"ORDER.Order3.lineitem1","name":"Item3","type":"Item3","description":"1"},
+
+    {"id":"ORDER.Order3.id","name":"Item3","type":"Item3","description":"1"},
+    // {"id":"ORDER.Order3.itemId","name":"Item3","type":"Item3","description":"1"},
 
 
     {"id":"UNIT.Item1_Unit1.unit1","name":"Item1","type":"Item1","description":"Order1"},
@@ -41,7 +47,10 @@
     {"id":"PACKAGE.Package3.unit1","name":"","type":"Item3","description":"Order3"},
 
 
-    
+        {"id":"AG.Hub.event1","name":"","type":"Item3","description":"Order3"},
+        {"id":"AG.Hub.event2","name":"","type":"Item3","description":"Order3"},
+        {"id":"AG.Hub.event3","name":"","type":"Item3","description":"Order3"},
+
     {"id":"BUYER.Buyer1.id","name":"id","type":"ID","description":"x"},
     {"id":"BUYER.Buyer1.name","name":"name","type":"String","description":"x"},
     {"id":"BUYER.Buyer2.id","name":"x","type":"[Review]","description":"x"},
@@ -52,22 +61,24 @@
     { "source": "SELLER.Seller2.id", "target": "ITEM.Item2.id", "weight": "list" },
     { "source": "SELLER.Seller2.id", "target": "ITEM.Item3.id", "weight": "list" },
 
-    { "source": "ITEM.Item1.id", "target": "ORDER.Order1.id", "weight": "order" },
+    { "source": "ITEM.Item1.orderid", "target": "ORDER.Order1.id", "weight": "order" },
     { "source": "ITEM.Item2.id", "target": "ORDER.Order1.id", "weight": "order" },
     { "source": "ITEM.Item1.id", "target": "ORDER.Order2.id", "weight": "order" },
     { "source": "ITEM.Item2.id", "target": "ORDER.Order2.id", "weight": "order" },
     { "source": "ITEM.Item3.id", "target": "ORDER.Order3.id", "weight": "order" },
 
 
-    { "source": "ORDER.Order1.id", "target": "UNIT.Item1_Unit1.id", "weight": "" },
-    { "source": "ORDER.Order1.id", "target": "UNIT.Item1_Unit2.id", "weight": "" },
-    { "source": "ORDER.Order1.id", "target": "UNIT.Item2_Unit1.id", "weight": "" },
-    { "source": "ORDER.Order1.id", "target": "UNIT.Item2_Unit2.id", "weight": "" },
+    { "source": "ORDER.Order1.Unit1", "target": "UNIT.Item1_Unit1.id", "weight": "" },
+    { "source": "ORDER.Order1.Unit2", "target": "UNIT.Item1_Unit2.id", "weight": "" },
+    { "source": "ORDER.Order1.Unit21", "target": "UNIT.Item2_Unit1.id", "weight": "" },
+    { "source": "ORDER.Order1.Unit22", "target": "UNIT.Item2_Unit2.id", "weight": "" },
 
-    { "source": "ORDER.Order2.id", "target": "UNIT.Item1_Unit3.id", "weight": "" },
-    { "source": "ORDER.Order2.id", "target": "UNIT.Item2_Unit3.id", "weight": "" },
+    { "source": "ORDER.Order2.lineitem1", "target": "UNIT.Item1_Unit3.id", "weight": "" },
+    { "source": "ORDER.Order2.lineitem2", "target": "UNIT.Item2_Unit3.id", "weight": "" },
 
     { "source": "ORDER.Order3.id", "target": "UNIT.Item3_Unit1.id", "weight": "" },
+    // { "source": "ORDER.Order3.itemId", "target": "ITEM.Item3.id", "weight": "" },
+
 
     { "source": "UNIT.Item1_Unit1.id", "target": "PACKAGE.Package1.id", "weight": "pack" },
     { "source": "UNIT.Item1_Unit2.id", "target": "PACKAGE.Package2.id", "weight": "pack" },

@@ -3,13 +3,13 @@
 import { useState, useEffect, useRef, useCallback, memo } from 'react'
 import './Graphite.css';
 import { useParams } from 'react-router-dom';
-import { useTheme } from '@mui/material/styles';
 import IconButton from '@mui/material/IconButton';
 
 import DownloadIcon from '@mui/icons-material/Download';
 import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
 import HomeIcon from '@mui/icons-material/Home';
+import CodeIcon from "@mui/icons-material/Code";
 import Stack from '@mui/material/Stack';
 //https://github.com/magjac/d3-graphviz
 import * as d3 from 'd3'
@@ -17,61 +17,11 @@ import * as d3Graphviz from 'd3-graphviz';
 //https://github.com/johnwalley/allotment?tab=readme-ov-file
 
 
+import { parse } from "jsonc-parser";/* to support jsonc */
 
 console.log("######### Graphite.js ######### ");
-const eventListenersMap = new WeakMap();
-let elements = [];
-
-function trackEventListener(element, type, listener, options) {
-  if (!eventListenersMap.has(element)) {
-    eventListenersMap.set(element, []);
-  }
-  eventListenersMap.get(element).push({ type, listener, options });
-  element.addEventListener(type, listener, options);
-
-  elements.push(element)
-}
 
 
-function removeAllTrackedListeners() {
-  for (const obj of elements) {
-    removeTrackedListeners(obj);
-  }
-  elements = [];
-}
-
-function removeTrackedListeners(element) {
-  const listeners = eventListenersMap.get(element) || [];
-  for (const { type, listener, options } of listeners) {
-    element.removeEventListener(type, listener, options);
-  }
-  eventListenersMap.delete(element); // Completely remove the element's entry in the map
-
-}
-
-//new shape
-function shapeDetail(graphData) {
-
-
-  // Start building the DOT representation ranksep=0.3
-  let dot = `digraph "tt" {\n`;
-  dot += `  graph [rankdir=${graphData.graph.rankdir} label=${graphData.graph.title} labelloc=t]\n\n`;
-  dot += `  node [shape=${graphData.node.shape} width=0.2 height=0.2 margin=0 fontsize=8]\n\n`;
-  dot += `  edge[arrowhead="open"  fontsize=6]\n  tooltip=""\n   \n`;
-
-  // Add nodes
-  graphData.nodes.forEach(({ id, label }) => {
-    dot += `  "${id}" [xlabel=<${label ? label : id}> label="" class="graph_node"] \n`;
-  });
-
-  // Add edges with labels
-  graphData.edges.forEach(({ source, target, label }) => {
-    dot += `  "${source}" -> "${target}" [xlabel="${label}" ]\n`;
-  });
-
-  dot += `}`;
-  return dot;
-}
 
 
 
@@ -132,7 +82,7 @@ function buildDot({ directon, nodes, edgeLabels, renderNode }) {
 // -----------------------------
 // noDetail (simplified)
 // -----------------------------
-function noDetail(graphData) {
+export function noDetail(graphData) {
   const nodes = {};
   const directon = graphData.direction === "vertical" ? "TD" : "LR";
 
@@ -160,7 +110,7 @@ function noDetail(graphData) {
 // -----------------------------
 // oneDetail (highlighted entity)
 // -----------------------------
-function oneDetail(graphData, highlightEntity) {
+export function oneDetail(graphData, highlightEntity) {
   // --- Common util ---
   function getCategoryEntity(id) {
     const parts = id.split('.');
@@ -233,8 +183,13 @@ function oneDetail(graphData, highlightEntity) {
     .filter(({ id }) => id.startsWith(`${highlightEntity}.`))
     .map(({ id, type, description }) => {
       const field = id.split('.').pop();
+
+      // set fk if the id is being referenced by another node in edges
+      // const fk =
+      //   graphData.edges.find((edge) => edge.source === id || edge.target === id)
+      //     ?.target || "Unknown";
       const fk =
-        graphData.edges.find((edge) => edge.source === id || edge.target === id)
+        graphData.edges.find((edge) => edge.source === id )
           ?.target || "Unknown";
       const tp = fk === "Unknown" ? type : type + "|" + fk;
       return { id: field, type: tp, description };
@@ -275,7 +230,7 @@ function oneDetail(graphData, highlightEntity) {
 
 
 //all details
-function allDetail(graphData) {
+export function allDetail(graphData) {
   const directon = graphData.direction === "vertical" ? "TD" : "LR";
 
   const edgeTemplate = (source, target, weight) =>
@@ -345,11 +300,12 @@ function createTableFields(category, entity, fields) {
         }
         return `<tr>
             <td width="50" PORT="${id}" ><FONT COLOR="coral">${id}</FONT></td>
-            <td width="50" TITLE="${type}" ${type.includes('|') ? `TARGET="${tgt}"` : ''}>
+            <td width="50" TITLE="${type}" 
+              ${type.includes('|') ? `TARGET="${tgt}"` : ''}>
               ${type.includes('|')
-            ? `<U><FONT COLOR="darkslategray1">${tt}</FONT></U>`
-            : `<FONT COLOR="coral">${tt}</FONT>`
-          }
+                ? `<U><FONT COLOR="darkslategray1">${tt}</FONT></U>`
+                : `<FONT COLOR="darkslategray1">${tt}</FONT>`
+              }
             </td>
             <td width="50"><FONT COLOR="coral">${description}</FONT></td>
           </tr>`
@@ -367,6 +323,63 @@ function createTableFields(category, entity, fields) {
 }
 
 
+
+//new shape
+export function shapeDetail(graphData) {
+
+
+  // Start building the DOT representation ranksep=0.3
+  let dot = `digraph "tt" {\n`;
+  dot += `  graph [rankdir=${graphData.graph.rankdir} label=${graphData.graph.title} labelloc=t]\n\n`;
+  dot += `  node [shape=${graphData.node.shape} width=0.2 height=0.2 margin=0 fontsize=8]\n\n`;
+  dot += `  edge[arrowhead="open"  fontsize=6]\n  tooltip=""\n   \n`;
+
+  // Add nodes
+  graphData.nodes.forEach(({ id, label }) => {
+    dot += `  "${id}" [xlabel=<${label ? label : id}> label="" class="graph_node"] \n`;
+  });
+
+  // Add edges with labels
+  graphData.edges.forEach(({ source, target, label }) => {
+    dot += `  "${source}" -> "${target}" [xlabel="${label}" ]\n`;
+  });
+
+  dot += `}`;
+  return dot;
+}
+
+
+
+//////////////////////////////
+const eventListenersMap = new WeakMap();
+let elements = [];
+
+function trackEventListener(element, type, listener, options) {
+  if (!eventListenersMap.has(element)) {
+    eventListenersMap.set(element, []);
+  }
+  eventListenersMap.get(element).push({ type, listener, options });
+  element.addEventListener(type, listener, options);
+
+  elements.push(element)
+}
+
+
+function removeAllTrackedListeners() {
+  for (const obj of elements) {
+    removeTrackedListeners(obj);
+  }
+  elements = [];
+}
+
+function removeTrackedListeners(element) {
+  const listeners = eventListenersMap.get(element) || [];
+  for (const { type, listener, options } of listeners) {
+    element.removeEventListener(type, listener, options);
+  }
+  eventListenersMap.delete(element); // Completely remove the element's entry in the map
+
+}
 
 // Example Usage
 let globalGraphData = null;
@@ -439,9 +452,10 @@ function Graphite({ configUrl }) {
     //const data = await fetchApp(app)
     //renderGraph(data.graph);
     // const jsonModule = await import("./apps/" + id + ".json");
-    const response = await fetch("./apps/" + id + ".json");
-    globalGraphData = await response.json();
-
+    const response = await fetch("./apps/" + app + ".jsonc");
+    // globalGraphData = await response.json();
+    const text = await response.text();
+    globalGraphData =  parse(text);
     // globalGraphData = jsonModule.default;
     const nodeShape = globalGraphData.node ? globalGraphData.node.shape : null;
     let dot = null;
@@ -539,7 +553,7 @@ function Graphite({ configUrl }) {
             ga.forEach(a => {
               removeTrackedListeners(a);
               trackEventListener(a, "pointerup", function (event) {
-                console.log("graph_node_table_with_field: " + event.currentTarget.__data__.key);
+                console.log("graph_node_table_with_field: " + event.currentTarget.target.baseVal);
                 showTable(event.currentTarget.target.baseVal);
               });
             });
@@ -622,8 +636,8 @@ function Graphite({ configUrl }) {
 
       showDoc('download graph');
     }
-    // downloadPNG();
-    downloadSVG();
+    downloadPNG();
+    // downloadSVG();
   }
 
   const push = (dotSrc) => {
@@ -724,6 +738,7 @@ function Graphite({ configUrl }) {
     </>
   );
 }
+
 
 export default memo(Graphite);
 

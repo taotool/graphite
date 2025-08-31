@@ -8,7 +8,7 @@ function App() {
 
   return (
 
-    <div id="root-scrollpane">
+    <div id="root-scrollpane" className={"dark"}>
       <BrowserRouter>
 
         <Routes>

@@ -1,5 +1,5 @@
 {
-  "type": "directed",
+  "type": "er",
   "nodes": [
     {"id":"ACCOUNTS.User.id","name":"id","type":"ID","description":"ACCOUNTS"},
     {"id":"ACCOUNTS.User.name","name":"name","type":"String","description":"ACCOUNTS"},
