@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: "/graphite/", // 👈 By default, Vite assumes your app is served at /. On GitHub Pages, your app will live at https://<username>.github.io/<repo-name>/.
+  base: "/graphite", // 👈 By default, Vite assumes your app is served at /. On GitHub Pages, your app will live at https://<username>.github.io/<repo-name>/.
 
   build: {
     // lib: {

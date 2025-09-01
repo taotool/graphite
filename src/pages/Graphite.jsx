@@ -290,7 +290,7 @@ function createTableHeader(category, entity) {
 }
 
 function createTableFields(category, entity, fields) {
-  const tableHeader = `<tr><td ><FONT COLOR="coral">${category}</FONT></td></tr><tr><td ><FONT COLOR="coral">${entity}</FONT></td></tr>`;
+  const tableHeader = `<tr><td ><FONT >${category}</FONT></td></tr><tr><td ><FONT >${entity}</FONT></td></tr>`;
 
   if (fields.length === 0) {
     fields.push({ id: 'id', type: 'String', description: 'default' });
@@ -307,15 +307,15 @@ function createTableFields(category, entity, fields) {
           tgt = target[0] + "." + target[1];
         }
         return `<tr>
-            <td width="50" PORT="${id}" ><FONT COLOR="coral">${id}</FONT></td>
+            <td width="50" PORT="${id}" ><FONT >${id}</FONT></td>
             <td width="50" TITLE="${type}" 
               ${type.includes('|') ? `TARGET="${tgt}"` : ''}>
               ${type.includes('|')
-            ? `<U><FONT COLOR="darkslategray1">${tt}</FONT></U>`
-            : `<FONT COLOR="darkslategray1">${tt}</FONT>`
+            ? `<U><FONT >${tt}</FONT></U>`
+            : `<FONT >${tt}</FONT>`
           }
             </td>
-            <td width="50"><FONT COLOR="coral">${description}</FONT></td>
+            <td width="50"><FONT >${description}</FONT></td>
           </tr>`
       }
     )
@@ -410,7 +410,6 @@ function Graphite({ configUrl }) {
   const [lastGraph, setLastGraph] = useState(true)
 
 
-  const [fullScreenState, setFullScreenState] = useState(false)
 
   const panZoomRef = useRef();
   //每次都会渲染Graphite
@@ -437,24 +436,35 @@ function Graphite({ configUrl }) {
   }
 
   const loadApp = async (app) => {
-    appRef.current = app;
-    //extract json nodes to database->table-column
-    //group relation to table level
+    if (app) {
+      appRef.current = app;
+      //extract json nodes to database->table-column
+      //group relation to table level
 
-    //const data = await fetchApp(app)
-    //renderGraph(data.graph);
-    // option 1
-    // const jsonModule = await import("./apps/" + id + ".json");
-    // globalGraphData = jsonModule.default;
+      //const data = await fetchApp(app)
+      //renderGraph(data.graph);
+      // option 1
+      // const jsonModule = await import("./apps/" + id + ".json");
+      // globalGraphData = jsonModule.default;
 
-    // option 2
-    const response = await fetch("./apps/" + app + ".jsonc");
-    // globalGraphData = await response.json();
-    const text = await response.text();
-    globalGraphData = parse(text);
-    setJsonc(text);
-
-    showApp(globalGraphData);
+      // option 2
+      const response = await fetch("./apps/" + app + ".jsonc");
+      // globalGraphData = await response.json();
+      const text = await response.text();
+      globalGraphData = parse(text);
+      setJsonc(text);
+    } else {
+      let json = localStorage.getItem("graphite.json");
+      if(!json) {
+          json = "{\"nodes\": [{\"id\":\"ACCOUNTS.User.id\",\"type\":\"ID\",\"description\":\"ACCOUNTS\"}], \"edges\": []}";
+          
+      }
+      
+      globalGraphData = parse(json);
+      localStorage.setItem("graphite.json", json);
+      setJsonc(json);
+    }
+    showApp();
 
   }
 
@@ -595,74 +605,6 @@ function Graphite({ configUrl }) {
     }
   }
 
-  const downloadGraph = () => {
-    // Function to download the SVG as an image
-    function downloadPNG() {
-      const [svgData, width, height] = extractSVGData();
-
-      // Create a canvas element to render the image
-      const canvas = document.createElement("canvas");
-      const context = canvas.getContext("2d");
-
-      // Set canvas size based on SVG dimensions
-      canvas.width = width;
-      canvas.height = height;
-
-      // Create an image element to load SVG data into
-      const img = new Image();
-      img.onload = function () {
-        // Draw the SVG onto the canvas at the correct size
-        context.drawImage(img, 0, 0, width, height);
-
-        // Convert the canvas to a PNG image and download it
-        const pngData = canvas.toDataURL("image/png");
-        const link = document.createElement("a");
-        link.href = pngData;
-        link.download = appRef.current + "." + tableRef.current + ".png";
-        link.click();
-      };
-
-      // Load the serialized SVG data into the image
-      //img.src = "data:image/svg+xml;base64," + btoa(svgData);
-      img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
-    }
-
-
-
-    const extractSVGData = () => {
-      const svgElement = document.querySelector(".graphCanvas svg");
-
-      // Get the computed width and height of the SVG element
-      const width = svgElement.clientWidth || svgElement.getBBox().width;
-      const height = svgElement.clientHeight || svgElement.getBBox().height;
-
-      // Set viewBox attribute to maintain proper scaling
-      const svgElement2 = svgElement.cloneNode(true);
-
-      svgElement2.setAttribute("viewBox", `0 0 ${width} ${height}`);
-      svgElement2.setAttribute("width", width);
-      svgElement2.setAttribute("height", height);
-      svgElement2.removeChild(svgElement2.lastChild);
-      // Serialize the SVG content
-      const svgData = new XMLSerializer().serializeToString(svgElement2);
-      return [svgData, width, height];
-    }
-    const downloadSVG = () => {
-      const [svgData] = extractSVGData();
-      const url = window.URL.createObjectURL(new Blob([svgData], { type: 'image/svg' }));
-
-      const a = document.createElement('a');
-      a.href = url
-      a.download = appRef.current + "." + tableRef.current + ".svg";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
-      showDoc('download graph');
-    }
-    downloadPNG();
-    // downloadSVG();
-  }
 
   const push = (dotSrc) => {
     stack.push(dotSrc)
@@ -700,8 +642,12 @@ function Graphite({ configUrl }) {
     showDoc(stack[graphIndexRef.current])
     renderGraph(stack[graphIndexRef.current], true)
   }
-  const fullScreen = () => {
 
+  const cleanGraph = () => {
+    stack.length = 0;
+    setFirstGraph(true);
+    setLastGraph(true);
+    graphIndexRef.current = 0;
   }
 
   const handleResize = () => {
@@ -722,10 +668,12 @@ function Graphite({ configUrl }) {
       const json = editorRef.current?.getValue() || jsonc;
       const parsed = parse(json);
       setJsonc(json); // format and remove comments
+      localStorage.setItem("graphite.json", json);
       setOpenEditor(false);
       globalGraphData = parsed;
-
+      cleanGraph();
       showApp();
+
     } catch (err) {
       alert("Invalid JSON: " + err.message);
     }
