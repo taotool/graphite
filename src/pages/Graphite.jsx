@@ -455,11 +455,11 @@ function Graphite({ configUrl }) {
       setJsonc(text);
     } else {
       let json = localStorage.getItem("graphite.json");
-      if(!json) {
-          json = "{\"nodes\": [{\"id\":\"ACCOUNTS.User.id\",\"type\":\"ID\",\"description\":\"ACCOUNTS\"}], \"edges\": []}";
-          
+      if (!json) {
+        json = "{\"nodes\": [{\"id\":\"ACCOUNTS.User.id\",\"type\":\"ID\",\"description\":\"ACCOUNTS\"}], \"edges\": []}";
+
       }
-      
+
       globalGraphData = parse(json);
       localStorage.setItem("graphite.json", json);
       setJsonc(json);
@@ -586,10 +586,12 @@ function Graphite({ configUrl }) {
             const ga = node.querySelectorAll("g a")
             ga.forEach(a => {
               removeTrackedListeners(a);
+
               trackEventListener(a, "pointerup", function (event) {
                 console.log("graph_node_table_with_field: " + event.currentTarget.target.baseVal);
                 showTable(event.currentTarget.target.baseVal);
               });
+
             });
           });
 
