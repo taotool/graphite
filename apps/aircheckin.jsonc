@@ -1,0 +1,36 @@
+{
+    "type": "directed",
+    "direction": "verticalx",
+
+    "nodes": [
+        {"id":"买机票.User.id","name":"id","type":"String","description":"ACCOUNTS"},
+        {"id":"买机票.User.Booking Reference","name":"Booking Reference","type":"String","description":"2P3N43"},
+        {"id":"买机票.User.时间","name":"时间","type":"String","description":"2P3N43"},
+        {"id":"买机票.User.价格","name":"价格","type":"String","description":"2P3N43"},
+        {"id":"登机.值机.name","name":"name","type":"String","description":"打印登机牌"},
+        {"id":"登机.值机.checkin","name":"name","type":"String","description":"填护照，选座位"},
+      {"id":"登机.托运行李.name","name":"name","type":"String","description":"ACCOUNTS"},
+      {"id":"登机.security.name","name":"name","type":"String","description":"ACCOUNTS"},
+      {"id":"登机.wait.name","name":"name","type":"String","description":"ACCOUNTS"},
+      {"id":"登机.board.name","name":"name","type":"String","description":"ACCOUNTS"},
+      {"id":"飞机上.User.reviews","name":"reviews","type":"String","description":"REVIEWS"},
+      {"id":"下飞机.User.reviews","name":"reviews","type":"String","description":"REVIEWS"},
+      {"id":"转机.User.reviews","name":"reviews","type":"String","description":"REVIEWS"},
+      {"id":"END.END.END","name":"reviews","type":"String","description":"REVIEWS"}
+
+    ],
+    "edges": [
+      { "source": "买机票.User.id", "target": "登机.值机.name", "weight": "护照" },
+      { "source": "登机.值机.name", "target": "登机.托运行李.name", "weight": "登机牌" },
+      { "source": "登机.值机.name", "target": "登机.security.name", "weight": "登机牌" },
+      { "source": "登机.托运行李.name", "target": "登机.security.name", "weight": "登机牌" },
+      { "source": "登机.security.name", "target": "登机.wait.name", "weight": "登机牌" },
+      { "source": "登机.wait.name", "target": "登机.board.name", "weight": "登机牌" },
+      { "source": "登机.board.name", "target": "飞机上.User.reviews", "weight": "" },
+      { "source": "飞机上.User.reviews", "target": "下飞机.User.reviews", "weight": "" },
+      { "source": "下飞机.User.reviews", "target": "转机.User.reviews", "weight": "" },
+      { "source": "下飞机.User.reviews", "target": "END.END.END", "weight": "" },
+      { "source": "转机.User.reviews", "target": "登机.wait.name", "weight": "" }
+      
+    ]
+  }

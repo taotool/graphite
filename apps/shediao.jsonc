@@ -1,0 +1,25 @@
+{
+    "type": "directed",
+    "graph": {
+      "title": "射雕英雄传",
+      "rankdir": "TD"
+    },
+    "node": {
+      "shape": "circle"
+    },
+    
+    "nodes": [
+      {"id":"牛家村","name":"牛家村","description":""}
+
+      ,{"id":"大漠","name":"name","description":"ACCOUNTS"}
+      ,{"id":"赵王府","name":"reviews","description":"REVIEWS"}
+      ,{"id":"陆家庄","name":"reviews","description":"REVIEWS"}
+
+    ],
+    "edges": [
+      { "source": "牛家村", "target": "大漠", "label": "江南七怪" }
+      ,{ "source": "大漠", "target": "赵王府", "label": "" }
+      ,{ "source": "赵王府", "target": "陆家庄", "label": "" }
+
+    ]
+  }
