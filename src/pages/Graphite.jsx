@@ -19,6 +19,7 @@ import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
 import HomeIcon from '@mui/icons-material/Home';
 import CodeIcon from "@mui/icons-material/Code";
+import DataObjectIcon from '@mui/icons-material/DataObject';
 //https://github.com/magjac/d3-graphviz
 import * as d3 from 'd3'
 import * as d3Graphviz from 'd3-graphviz';
@@ -456,13 +457,48 @@ function Graphite({ configUrl }) {
     } else {
       let json = localStorage.getItem("graphite.json");
       if (!json) {
-        json = "{\"nodes\": [{\"id\":\"ACCOUNTS.User.id\",\"type\":\"ID\",\"description\":\"ACCOUNTS\"}], \"edges\": []}";
-
+        json = `
+        {
+        "type": "er",
+        "nodes": [
+          {"id":"ACCOUNTS.User.id","name":"id","type":"ID","description":"ACCOUNTS"},
+          {"id":"ACCOUNTS.User.name","name":"name","type":"String","description":"ACCOUNTS"},
+          {"id":"ACCOUNTS.User.reviews","name":"reviews","type":"[Review]","description":"REVIEWS"},
+          {"id":"ACCOUNTS.User.username","name":"username","type":"String","description":"ACCOUNTS"},
+          {"id":"PRODUCTS.Product.inStock","name":"inStock","type":"Boolean","description":"INVENTORY"},
+          {"id":"PRODUCTS.Product.name","name":"name","type":"String","description":"PRODUCTS"},
+          {"id":"PRODUCTS.Product.price","name":"price","type":"Int","description":"PRODUCTS"},
+          {"id":"PRODUCTS.Product.reviews","name":"reviews","type":"[Review]","description":"REVIEWS"},
+          {"id":"PRODUCTS.Product.shippingEstimate","name":"shippingEstimate","type":"Int","description":"INVENTORY"},
+          {"id":"PRODUCTS.Product.upc","name":"upc","type":"String","description":"PRODUCTS"},
+          {"id":"PRODUCTS.Product.weight","name":"weight","type":"Int","description":"PRODUCTS"},
+          {"id":"QUERY.Query.me","name":"me","type":"User","description":"ACCOUNTS"},
+          {"id":"QUERY.Query.topProducts","name":"topProducts","type":"[Product]","description":"PRODUCTS"},
+          {"id":"REVIEWS.Review.author","name":"author","type":"User","description":"REVIEWS"},
+          {"id":"REVIEWS.Review.body","name":"body","type":"String","description":"REVIEWS"},
+          {"id":"REVIEWS.Review.id","name":"id","type":"ID","description":"REVIEWS"},
+          {"id":"REVIEWS.Review.product","name":"product","type":"Product","description":"REVIEWS"}
+        ],
+        "edges": [
+          { "source": "ACCOUNTS.User.reviews", "target": "REVIEWS.Review.id", "weight": "User.reviews" },
+          { "source": "PRODUCTS.Product.reviews", "target": "REVIEWS.Review.id", "weight": "Product.reviews" },
+          { "source": "QUERY.Query.me", "target": "ACCOUNTS.User.id", "weight": ",Query.me" },
+          { "source": "QUERY.Query.topProducts", "target": "PRODUCTS.Product.upc", "weight": "Query.topProducts" },
+          { "source": "REVIEWS.Review.author", "target": "ACCOUNTS.User.id", "weight": "Review.author" },
+          { "source": "REVIEWS.Review.product", "target": "PRODUCTS.Product.upc", "weight": "Review.product" }
+        ]
       }
-
-      globalGraphData = parse(json);
-      localStorage.setItem("graphite.json", json);
-      setJsonc(json);
+        `.trim();
+      }
+      try {
+        JSON.parse(json);//validate json
+        globalGraphData = parse(json);
+        localStorage.setItem("graphite.json", json);
+        setJsonc(json);
+      } catch (err) {
+        localStorage.removeItem("graphite.json");
+        return;
+      }
     }
     showApp();
 
@@ -718,9 +754,7 @@ function Graphite({ configUrl }) {
         <IconButton onClick={prevGraph} disabled={firstGraph}><UndoIcon /></IconButton>
         <IconButton onClick={nextGraph} disabled={lastGraph}><RedoIcon /></IconButton>
         {/* <IconButton onClick={downloadGraph}><DownloadIcon /></IconButton> */}
-        <IconButton onClick={() => setOpenEditor(true)}>
-          <CodeIcon />
-        </IconButton>
+        <IconButton onClick={() => setOpenEditor(true)}><DataObjectIcon /></IconButton>
 
       </Stack>
       <Dialog
