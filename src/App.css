@@ -71,6 +71,8 @@ button:focus-visible {
 
     --back-color: white;
     --font-color: black;
+    --back-color-highlight: cornsilk;
+    --font-color-highlight: rgb(255, 98, 0);
   }
 
   a:hover {

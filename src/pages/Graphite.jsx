@@ -288,7 +288,7 @@ export function allDetail(graphData) {
 }
 
 function createTableHeader(category, entity) {
-  return `<table border="0" CELLBORDER="1" CELLSPACING="1" CELLPADDING="4"><tr><td>${category}</td></tr><tr><td>${entity}</td></tr></table>`;
+  return `<table border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"><tr><td>${category}</td></tr><tr><td>${entity}</td></tr></table>`;
 }
 
 function createTableFields(category, entity, fields) {
@@ -495,7 +495,7 @@ function Graphite({ configUrl }) {
         "edges": [
           { "source": "ACCOUNTS.User.reviews", "target": "REVIEWS.Review.id", "weight": "User.reviews" },
           { "source": "PRODUCTS.Product.reviews", "target": "REVIEWS.Review.id", "weight": "Product.reviews" },
-          { "source": "QUERY.Query.me", "target": "ACCOUNTS.User.id", "weight": ",Query.me" },
+          { "source": "QUERY.Query.me", "target": "ACCOUNTS.User.id", "weight": "Query.me" },
           { "source": "QUERY.Query.topProducts", "target": "PRODUCTS.Product.upc", "weight": "Query.topProducts" },
           { "source": "REVIEWS.Review.author", "target": "ACCOUNTS.User.id", "weight": "Review.author" },
           { "source": "REVIEWS.Review.product", "target": "PRODUCTS.Product.upc", "weight": "Review.product" }
@@ -783,14 +783,23 @@ function Graphite({ configUrl }) {
             },
           }}
         >
-          <DialogTitle>Graph</DialogTitle>
-          <DialogContent style={{ height: "70vh" }}>
+          <DialogTitle><DataObjectIcon /></DialogTitle>
+          <DialogContent style={{ height: "70vh" }} sx={{ p: 2 }}>
             <Editor
               height="100%"
               defaultLanguage="jsonc"
               value={jsonc}
               onMount={handleEditorMount} // capture editor instance
-              theme="vs-light"
+              theme={prefersDarkMode ? "vs-dark" : "light"}
+                    options={{
+        scrollbar: {
+          vertical: "auto",      // "auto" | "visible" | "hidden"
+          horizontal: "auto",
+          verticalScrollbarSize: 4, // <-- width of vertical scrollbar (px)
+          horizontalScrollbarSize: 4, // <-- height of horizontal scrollbar (px)
+          arrowSize: 12,             // optional, size of arrows
+        },
+      }}
             />
           </DialogContent>
           <DialogActions>
