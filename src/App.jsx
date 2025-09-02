@@ -7,14 +7,12 @@ function App() {
 
   return (
 
-    <div id="root-scrollpane" className={"dark"}>
-      <BrowserRouter>
+    <BrowserRouter>
 
-        <Routes>
-          <Route path="/graphite/:id?" element={<Graphite />} />
-        </Routes>
-      </BrowserRouter>
-    </div>
+      <Routes>
+        <Route path="/graphite/:id?" element={<Graphite />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 

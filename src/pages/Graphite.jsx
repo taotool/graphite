@@ -1,6 +1,7 @@
 //当route的path为"/graphite/:id"时，这个组件会被渲染
 
-import { useState, useEffect, useRef, useCallback, memo } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react'
+import { createTheme, ThemeProvider, useMediaQuery } from "@mui/material";
 
 import './Graphite.css';
 import { useParams } from 'react-router-dom';
@@ -410,7 +411,19 @@ function Graphite({ configUrl }) {
   const [firstGraph, setFirstGraph] = useState(true)
   const [lastGraph, setLastGraph] = useState(true)
 
+  // Detect system theme
+  const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
 
+  // Create theme dynamically
+  const theme = useMemo(
+    () =>
+      createTheme({
+        palette: {
+          mode: prefersDarkMode ? "dark" : "light",
+        },
+      }),
+    [prefersDarkMode]
+  );
 
   const panZoomRef = useRef();
   //每次都会渲染Graphite
@@ -731,60 +744,61 @@ function Graphite({ configUrl }) {
   //https://medium.com/@akashshukla_1715/preventing-unnecessary-rerendering-of-child-components-in-react-using-usecallback-and-react-memo-34f1423fe263
   return (
     <>
-
-      <div className={"graphCanvas"} ></div>
-      <Stack id="graphDownload"
-        direction="row"
-        style={{
-          padding: '15px',
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          border: '0px solid red',
-          display: 'flex',
-          displayDirection: 'column',
-          backgroundColor: "rgba(200,200,200, 0)"
-        }}>
-        {/*
+      <ThemeProvider theme={theme}>
+        <div className={"graphCanvas"} ></div>
+        <Stack id="graphDownload"
+          direction="row"
+          style={{
+            padding: '15px',
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            border: '0px solid red',
+            display: 'flex',
+            displayDirection: 'column',
+            backgroundColor: "var(--back-color)",
+          }}>
+          {/*
                  <IconButton color="primary" aria-label="add to shopping cart" onClick={fullScreen} >
                     {fullScreenState ? <FullscreenExitIcon /> : <FullscreenIcon />}
                 </IconButton>
 */}
-        <IconButton onClick={resetGraph}><HomeIcon /></IconButton>
-        <IconButton onClick={prevGraph} disabled={firstGraph}><UndoIcon /></IconButton>
-        <IconButton onClick={nextGraph} disabled={lastGraph}><RedoIcon /></IconButton>
-        {/* <IconButton onClick={downloadGraph}><DownloadIcon /></IconButton> */}
-        <IconButton onClick={() => setOpenEditor(true)}><DataObjectIcon /></IconButton>
+          <IconButton onClick={resetGraph}><HomeIcon /></IconButton>
+          <IconButton onClick={prevGraph} disabled={firstGraph}><UndoIcon /></IconButton>
+          <IconButton onClick={nextGraph} disabled={lastGraph}><RedoIcon /></IconButton>
+          {/* <IconButton onClick={downloadGraph}><DownloadIcon /></IconButton> */}
+          <IconButton onClick={() => setOpenEditor(true)}><DataObjectIcon /></IconButton>
 
-      </Stack>
-      <Dialog
-        open={openEditor}
-        onClose={() => setOpenEditor(false)}
-        fullWidth
-        maxWidth="lg"
-        sx={{
-          "& .MuiPaper-root": {
-            border: "1px solid #ccc",     // thinner border
-            borderRadius: "12px",         // slightly rounded corners
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)", // soft shadow
-          },
-        }}
-      >
-        <DialogTitle>Graph</DialogTitle>
-        <DialogContent style={{ height: "70vh" }}>
-          <Editor
-            height="100%"
-            defaultLanguage="jsonc"
-            value={jsonc}
-            onMount={handleEditorMount} // capture editor instance
-            theme="vs-light"
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenEditor(false)}>Cancel</Button>
-          <Button onClick={handleSave} variant="contained">Apply</Button>
-        </DialogActions>
-      </Dialog>
+        </Stack>
+        <Dialog
+          open={openEditor}
+          onClose={() => setOpenEditor(false)}
+          fullWidth
+          maxWidth="lg"
+          sx={{
+            "& .MuiPaper-root": {
+              border: "1px solid #ccc",     // thinner border
+              borderRadius: "12px",         // slightly rounded corners
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)", // soft shadow
+            },
+          }}
+        >
+          <DialogTitle>Graph</DialogTitle>
+          <DialogContent style={{ height: "70vh" }}>
+            <Editor
+              height="100%"
+              defaultLanguage="jsonc"
+              value={jsonc}
+              onMount={handleEditorMount} // capture editor instance
+              theme="vs-light"
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenEditor(false)}>Cancel</Button>
+            <Button onClick={handleSave} variant="contained">Apply</Button>
+          </DialogActions>
+        </Dialog>
+      </ThemeProvider>
     </>
   );
 }
