@@ -14,6 +14,8 @@
 
   --back-color: #121212;
   --font-color: white;
+  --back-color-highlight: gray;
+  --font-color-highlight: rgb(255, 98, 0);
 }
 
 a {

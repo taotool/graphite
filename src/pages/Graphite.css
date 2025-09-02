@@ -24,7 +24,9 @@ css notes:
 .graphCanvas svg g  polygon   {
   -stroke: none;/*这个是整个图的边框*//*graph border and edge arrow, and everything*/
 }
-
+.graphCanvas svg g path   {
+  fill: var(--back-color);/*动画时polygon会变成path*/
+}
 
 /*edge arrow*/
 .graphCanvas svg g .edge polygon   {
@@ -128,26 +130,28 @@ css notes:
 /*highlight*/
 
 .graphCanvas svg g .graph_node_table_with_fields.highlight ellipse {
-  stroke: rgb(255, 98, 0);fill:cornsilk;
+  stroke: var(--font-color-highlight);
+  fill: var(--back-color-highlight);
 }
 .graphCanvas svg g .graph_node_table_with_fields.highlight path {
-  stroke: rgb(255, 98, 0);fill:cornsilk;
+  stroke: var(--font-color-highlight);
+  fill: var(--back-color-highlight);
 }
 .graphCanvas svg g .graph_node_table_with_fields.highlight polygon {
-  fill:cornsilk;
-  stroke: rgb(255, 98, 0);
+  stroke: var(--font-color-highlight);
+  fill: var(--back-color-highlight);
 }
 
 
 .graphCanvas svg g .graph_node_table.highlight ellipse {
-  stroke: rgb(255, 98, 0);
-  fill:cornsilk;
+  stroke: var(--font-color-highlight);
+  fill: var(--back-color-highlight);
 }
 .graphCanvas svg g .graph_node_table.highlight path {
-  stroke: rgb(255, 98, 0);
-  fill:cornsilk;
+  stroke: var(--font-color-highlight);
+  fill: var(--back-color-highlight);
 }
 .graphCanvas svg g .graph_node_table.highlight polygon {
-  fill:cornsilk;
-  stroke: rgb(255, 98, 0);
+  stroke: var(--font-color-highlight);
+  fill: var(--back-color-highlight);
 }
