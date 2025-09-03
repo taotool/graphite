@@ -1,4 +1,26 @@
+:root {
+  overflow: hidden;
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #121212;
+  --back-color: #121212;
+  --font-color: rgba(255, 255, 255, 0.87);
+  --back-color-highlight: #1976d2;
+  --font-color-highlight: rgb(255, 98, 0);
+}
 
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+
+    --back-color: rgba(255, 255, 255, 0.87);
+    --font-color: black;
+    --back-color-highlight: cornsilk;
+    --font-color-highlight: rgb(255, 98, 0);
+  }
+
+}
 
 /*
 css notes:
@@ -10,39 +32,49 @@ css notes:
   /* position: relative; */
   height: 100%;
 }
+
 .graphCanvas svg {
-  position: absolute;
+  /* position: absolute;
   top: 0;
-  left: 0;
+  left: 0; */
   width: 100%;
   height: 100%;
 }
+
 /*整个图的背景*/
-.graphCanvas svg g polygon   {
-  fill: var(--back-color);/*graph back ground #121212;*/
+.graphCanvas svg g polygon {
+  fill: var(--back-color);
+  /*graph back ground #121212;*/
 }
-.graphCanvas svg g  polygon   {
-  -stroke: none;/*这个是整个图的边框*//*graph border and edge arrow, and everything*/
+
+.graphCanvas svg g polygon {
+  -stroke: none;
+  /*这个是整个图的边框*/
+  /*graph border and edge arrow, and everything*/
 }
-.graphCanvas svg g path   {
-  fill: var(--back-color);/*动画时polygon会变成path*/
+
+.graphCanvas svg g path {
+  fill: var(--back-color);
+  /*动画时polygon会变成path*/
 }
 
 /*edge arrow*/
-.graphCanvas svg g .edge polygon   {
+.graphCanvas svg g .edge polygon {
   stroke: var(--font-color);
   fill: var(--font-color);
 }
 
 /*edge text*/
-.graphCanvas svg g .edge text   {
+.graphCanvas svg g .edge text {
   fill: var(--font-color);
 }
-.graphCanvas svg g .edge text:hover   {
+
+.graphCanvas svg g .edge text:hover {
   fill: blue;
 }
+
 /*edge color*/
-.graphCanvas svg g .edge path   {
+.graphCanvas svg g .edge path {
   stroke: var(--font-color);
   fill: none;
 }
@@ -54,10 +86,11 @@ css notes:
 
 /*简单的图节点*/
 
-.graphCanvas svg g .graph_node  polygon {
+.graphCanvas svg g .graph_node polygon {
   stroke: var(--font-color);
   fill: var(--font-color);
 }
+
 /* .graphCanvas svg g .graph_node  ellipse {
   fill: none;
 } */
@@ -66,11 +99,11 @@ css notes:
 
 /*有子段的表格，整个表格*/
 /*table border*/
-.graphCanvas svg g .graph_node_table_with_fields  polygon {
+.graphCanvas svg g .graph_node_table_with_fields polygon {
   stroke: var(--font-color);
 }
 
-.graphCanvas svg g .graph_node_table_with_fields   {
+.graphCanvas svg g .graph_node_table_with_fields {
   fill: var(--font-color);
 }
 
@@ -81,15 +114,18 @@ css notes:
 
 /*没有子段的表格，整个表格*/
 .graphCanvas svg g .graph_node_table polygon {
-  stroke: var(--font-color);/*table and edge text 这个会让graph_node_table:hover 没用*/
+  stroke: var(--font-color);
+  /*table and edge text 这个会让graph_node_table:hover 没用*/
 }
 
-.graphCanvas svg  g .graph_node_table    {
-  fill: var(--font-color);/*table and edge text */
+.graphCanvas svg g .graph_node_table {
+  fill: var(--font-color);
+  /*table and edge text */
 }
 
-.graphCanvas svg  g .graph_node_table:hover    {
-  fill: blue;/*table and edge text */
+.graphCanvas svg g .graph_node_table:hover {
+  fill: blue;
+  /*table and edge text */
 }
 
 
@@ -97,34 +133,40 @@ css notes:
 
 
 /*特定链接*/
-.graphCanvas svg g  a text   {
-  fill: cornflowerblue;/*a text*/
+.graphCanvas svg g a text {
+  fill: cornflowerblue;
+  /*a text*/
   cursor: pointer;
 }
-.graphCanvas svg g  a text:hover   {
-  fill: blue;/*a hover*/
+
+.graphCanvas svg g a text:hover {
+  fill: blue;
+  /*a hover*/
 }
 
 
 .graph_node_table {
-    cursor: pointer;
+  cursor: pointer;
 }
+
 .graph_node_table:hover {
-    fill:blue;
+  fill: blue;
 }
 
 .graph_label {
-   cursor: pointer;
+  cursor: pointer;
 }
+
 .graph_label:hover {
-    fill:blue;
+  fill: blue;
 }
 
 .graph_icon {
-    cursor: pointer;
+  cursor: pointer;
 }
+
 .graph_icon:hover {
-    color: blue;
+  color: blue;
 }
 
 /*highlight*/
@@ -133,10 +175,12 @@ css notes:
   stroke: var(--font-color-highlight);
   fill: var(--back-color-highlight);
 }
+
 .graphCanvas svg g .graph_node_table_with_fields.highlight path {
   stroke: var(--font-color-highlight);
   fill: var(--back-color-highlight);
 }
+
 .graphCanvas svg g .graph_node_table_with_fields.highlight polygon {
   stroke: var(--font-color-highlight);
   fill: var(--back-color-highlight);
@@ -147,10 +191,12 @@ css notes:
   stroke: var(--font-color-highlight);
   fill: var(--back-color-highlight);
 }
+
 .graphCanvas svg g .graph_node_table.highlight path {
   stroke: var(--font-color-highlight);
   fill: var(--back-color-highlight);
 }
+
 .graphCanvas svg g .graph_node_table.highlight polygon {
   stroke: var(--font-color-highlight);
   fill: var(--back-color-highlight);

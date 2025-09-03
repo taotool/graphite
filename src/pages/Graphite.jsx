@@ -396,7 +396,7 @@ let globalGraphData = null;
 
 
 
-function Graphite({ configUrl }) {
+function Graphite({ configUrl, jsonString }) {
   console.log("graph " + window.location.href)
   const { id } = useParams();
   // Pick config source:
@@ -467,7 +467,9 @@ function Graphite({ configUrl }) {
       const text = await response.text();
       globalGraphData = parse(text);
       setJsonc(text);
-    } else {
+    } else if(jsonString){//from prop
+      globalGraphData = parse(jsonString);
+    } else {//from local
       let json = localStorage.getItem("graphite.json");
       if (!json) {
         json = `
@@ -745,14 +747,12 @@ function Graphite({ configUrl }) {
   return (
     <>
       <ThemeProvider theme={theme}>
-        <div className={"graphCanvas"} ></div>
+        
         <Stack id="graphDownload"
           direction="row"
           style={{
             padding: '15px',
-            position: 'absolute',
-            left: 0,
-            top: 0,
+         
             border: '0px solid red',
             display: 'flex',
             displayDirection: 'column',
@@ -769,7 +769,7 @@ function Graphite({ configUrl }) {
           {/* <IconButton onClick={downloadGraph}><DownloadIcon /></IconButton> */}
           <IconButton onClick={() => setOpenEditor(true)}><DataObjectIcon /></IconButton>
 
-        </Stack>
+        </Stack><div className={"graphCanvas"} ></div>
         <Dialog
           open={openEditor}
           onClose={() => setOpenEditor(false)}

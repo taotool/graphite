@@ -23,7 +23,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d deploy-dist"
 
     ,"build:lib": "vite build --mode lib",
     "prepublishOnly": "npm run build:lib"
