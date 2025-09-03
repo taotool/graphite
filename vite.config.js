@@ -25,11 +25,17 @@
 // })
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import dts from 'vite-plugin-dts';
 
 export default defineConfig(({ mode }) => {
   if (mode === "lib") {
     return {
-      plugins: [react()],
+      plugins: [react(),
+            dts({
+              // Optional: specify where to output the .d.ts files
+              outDir: 'dist/types'
+            })
+      ],
       build: {
         lib: {
           entry: "src/index.js",
@@ -54,7 +60,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     base: "/graphite",
     build: {
-      outDir: "deploy-dist"
+      outDir: "gh-pages"
     }
   };
 });
