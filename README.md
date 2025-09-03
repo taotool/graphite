@@ -14,3 +14,10 @@ If you are developing a production application, we recommend using TypeScript wi
 
 
 ## how to deploy to GitHub Page?
+
+## 3 ways to use it
+- run as a server
+    - load data from url
+    - load data from local storage
+- use it as a lib
+    - load data from property

@@ -1,0 +1,30 @@
+{
+    "type": "directed",
+    "graph": {
+      "title": "济公传",
+      "rankdir": "TD"
+    },
+    "node": {
+      "shape": "box"
+    },
+    
+    "nodes": [
+      {"id":"杨胖子"}
+      ,{"id":"左四"}
+      ,{"id":"月儿双"}
+      ,{"id":"黄淑女"}
+      ,{"id":"走尸人魔"}
+      ,{"id":"六爪鹰"}
+
+
+    ],
+    "edges": [
+
+      { "source": "杨胖子", "target": "左四", "label": "x" }
+      ,{ "source": "左四", "target": "月儿双", "label": "" }
+      ,{ "source": "月儿双", "target": "黄淑女", "label": "" }
+      ,{ "source": "黄淑女", "target": "走尸人魔", "label": "" }
+      ,{ "source": "走尸人魔", "target": "六爪鹰", "label": "" }
+      ,{ "source": "六爪鹰", "target": "月儿双", "label": "" }
+    ]
+  }

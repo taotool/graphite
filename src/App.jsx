@@ -25,14 +25,13 @@ function App() {
   `;
 
   return (
-<Graphite jsonString={jsonString} />
-    // <BrowserRouter>
 
-    //   <Routes>
-    //     <Route path="/graphite/:id?" element={<Graphite />} />
-    //   </Routes>
-    // </BrowserRouter>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/graphite/:id?" element={<Graphite />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
-
+{/* <Graphite jsonString={jsonString} /> */}
 export default App
