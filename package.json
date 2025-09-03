@@ -24,6 +24,9 @@
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
+
+    ,"build:lib": "vite build --mode lib",
+    "prepublishOnly": "npm run build:lib"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
