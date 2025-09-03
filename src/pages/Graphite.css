@@ -20,7 +20,14 @@
   }
 
 }
-
+.graphToolbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  background-color: var(--back-color);
+  width: 100%;
+}
 /*
 css notes:
 1. parent block (default), children height=100%

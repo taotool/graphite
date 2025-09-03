@@ -396,11 +396,11 @@ let globalGraphData = null;
 
 
 
-function Graphite({ configUrl, jsonString }) {
+function Graphite({jsonString }) {
   console.log("graph " + window.location.href)
   const { id } = useParams();
   // Pick config source:
-  const app = configUrl || id;
+  const app = id;
   const appRef = useRef();
   const tableRef = useRef();
   //    const svgRef = useRef([]);
@@ -749,10 +749,9 @@ function Graphite({ configUrl, jsonString }) {
       <ThemeProvider theme={theme}>
         
         <Stack id="graphDownload"
+          className='graphToolbar'
           direction="row"
           style={{
-            padding: '15px',
-         
             border: '0px solid red',
             display: 'flex',
             displayDirection: 'column',
