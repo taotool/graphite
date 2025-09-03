@@ -469,6 +469,7 @@ function Graphite({jsonString }) {
       setJsonc(text);
     } else if(jsonString){//from prop
       globalGraphData = parse(jsonString);
+      setJsonc(jsonString);
     } else {//from local
       let json = localStorage.getItem("graphite.json");
       if (!json) {
