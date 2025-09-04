@@ -22,13 +22,14 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build:static": "vite build --mode static",
     "lint": "eslint .",
     "preview": "vite preview",
-    "predeploy": "npm run build",
+    "predeploy": "npm run build:static",
     "deploy": "gh-pages -d gh-pages",
-    "build:lib": "vite build --mode lib",
-    "prepublishOnly": "npm run build:lib"
+    
+    "build": "vite build",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

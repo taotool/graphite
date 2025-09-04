@@ -28,8 +28,18 @@ import react from "@vitejs/plugin-react";
 import dts from 'vite-plugin-dts';
 
 export default defineConfig(({ mode }) => {
-  if (mode === "lib") {
+  if (mode === "static") {
+    
+    // Default (demo app for GitHub Pages)
     return {
+      plugins: [react()],
+      base: "/graphite",
+      build: {
+        outDir: "gh-pages"
+      }
+    };
+  }
+return {
       plugins: [react(),
             dts({
               // Optional: specify where to output the .d.ts files
@@ -53,14 +63,4 @@ export default defineConfig(({ mode }) => {
         }
       }
     };
-  }
-
-  // Default (demo app for GitHub Pages)
-  return {
-    plugins: [react()],
-    base: "/graphite",
-    build: {
-      outDir: "gh-pages"
-    }
-  };
 });

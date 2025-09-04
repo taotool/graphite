@@ -746,9 +746,9 @@ function Graphite({jsonString }) {
 
   //https://medium.com/@akashshukla_1715/preventing-unnecessary-rerendering-of-child-components-in-react-using-usecallback-and-react-memo-34f1423fe263
   return (
-    <>
+    <div style={{ width: "100%", height: "100%", position: "relative" }}>
       <ThemeProvider theme={theme}>
-        
+        <div className={"graphCanvas"} ></div>
         <Stack id="graphDownload"
           className='graphToolbar'
           direction="row"
@@ -756,7 +756,6 @@ function Graphite({jsonString }) {
             border: '0px solid red',
             display: 'flex',
             displayDirection: 'column',
-            backgroundColor: "var(--back-color)",
           }}>
           {/*
                  <IconButton color="primary" aria-label="add to shopping cart" onClick={fullScreen} >
@@ -769,7 +768,7 @@ function Graphite({jsonString }) {
           {/* <IconButton onClick={downloadGraph}><DownloadIcon /></IconButton> */}
           <IconButton onClick={() => setOpenEditor(true)}><DataObjectIcon /></IconButton>
 
-        </Stack><div className={"graphCanvas"} ></div>
+        </Stack>
         <Dialog
           open={openEditor}
           onClose={() => setOpenEditor(false)}
@@ -784,7 +783,7 @@ function Graphite({jsonString }) {
           }}
         >
           <DialogTitle><DataObjectIcon /></DialogTitle>
-          <DialogContent style={{ height: "70vh" }} sx={{ p: 2 }}>
+          <DialogContent style={{ height: "100vh" }} sx={{ p: 2 }}>
             <Editor
               height="100%"
               defaultLanguage="jsonc"
@@ -808,7 +807,7 @@ function Graphite({jsonString }) {
           </DialogActions>
         </Dialog>
       </ThemeProvider>
-    </>
+    </div>
   );
 }
 
