@@ -756,6 +756,7 @@ function Graphite({jsonString }) {
             border: '0px solid red',
             display: 'flex',
             displayDirection: 'column',
+            padding: '2px',
           }}>
           {/*
                  <IconButton color="primary" aria-label="add to shopping cart" onClick={fullScreen} >
