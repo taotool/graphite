@@ -1,9 +1,9 @@
 :root {
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
+  color: white;
   background-color: #121212;
   --back-color: #121212;
-  --font-color: rgba(255, 255, 255, 0.87);
+  --font-color: white;
   --back-color-highlight: #1976d2;
   --font-color-highlight: rgb(255, 98, 0);
 }
@@ -11,9 +11,9 @@
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
-    background-color: #ffffff;
+    background-color: white;
 
-    --back-color: rgba(255, 255, 255, 0.87);
+    --back-color: white;
     --font-color: black;
     --back-color-highlight: cornsilk;
     --font-color-highlight: rgb(255, 98, 0);
@@ -22,11 +22,13 @@
 }
 .graphToolbar {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 0px;
+  left: 0px;
   z-index: 10;
-  background-color: var(--back-color);
   width: 100%;
+  border: '0px solid red';
+  display: 'flex';
+  direction: 'column';
 }
 /*
 css notes:

@@ -751,13 +751,7 @@ function Graphite({jsonString }) {
         <div className={"graphCanvas"} ></div>
         <Stack id="graphDownload"
           className='graphToolbar'
-          direction="row"
-          style={{
-            border: '0px solid red',
-            display: 'flex',
-            displayDirection: 'column',
-            padding: '2px',
-          }}>
+          direction="row">
           {/*
                  <IconButton color="primary" aria-label="add to shopping cart" onClick={fullScreen} >
                     {fullScreenState ? <FullscreenExitIcon /> : <FullscreenIcon />}
