@@ -21,3 +21,7 @@ If you are developing a production application, we recommend using TypeScript wi
     - load data from local storage
 - use it as a lib
     - load data from property
+
+npm deploy: build to gh-pages, then deploy
+npm build: build to lib
+npm pack: build to lib,  then pack

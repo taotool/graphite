@@ -110,8 +110,12 @@ export function noDetail(graphData) {
   // Render nodes (simple header only)
   const renderNode = (nodeId) => {
     const [category, entity] = nodeId.split('.');
-    const label = createTableHeader(category, entity);
-    return `  "${nodeId}" [label=<${label}> class="graph_node_table"]\n`;
+    if(category.startsWith('[') && category.endsWith(']')){
+      return `  "${nodeId}" [label="+" shape="box3d" class="graph_node_table" ]\n`;
+    } else {
+      const label = createTableHeader(category, entity);
+      return `  "${nodeId}" [label=<${label}> class="graph_node_table"]\n`;
+    }
   };
 
   return buildDot({ directon, nodes, edgeLabels, renderNode });
@@ -218,14 +222,14 @@ export function oneDetail(graphData, highlightEntity) {
       // Main highlight → detailed fields
       const label = createTableFields(category, entity, detailedFields);
       dot += `  "${nodeId}" [label=<${label}> class="graph_node_table_with_fields highlight" ]\n`;
-    } else if (allHighlights.has(nodeId)) {
-      // Upstream/downstream highlights
-      const label = createTableHeader(category, entity);
-      dot += `  "${nodeId}" [label=<${label}> class="graph_node_table highlight" ]\n`;
+    } else if(category.startsWith('[') && category.endsWith(']')){
+      const highlight = allHighlights.has(nodeId) ? "highlight" : "";
+      dot += `  "${nodeId}" [label="+" shape="box3d" class="graph_node_table ${highlight}" ]\n`;
     } else {
-      // Normal nodes
+      // Upstream/downstream highlights
+      const highlight = allHighlights.has(nodeId) ? "highlight" : "";
       const label = createTableHeader(category, entity);
-      dot += `  "${nodeId}" [label=<${label}> class="graph_node_table"]\n`;
+      dot += `  "${nodeId}" [label=<${label}> class="graph_node_table ${highlight}" ]\n`;
     }
   });
 
@@ -286,7 +290,9 @@ export function allDetail(graphData) {
   dot += `}`;
   return dot;
 }
-
+function createCircleLabel(category, entity) {
+  return category+"."+entity
+}
 function createTableHeader(category, entity) {
   return `<table border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"><tr><td>${category}</td></tr><tr><td>${entity}</td></tr></table>`;
 }
