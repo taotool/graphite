@@ -214,3 +214,18 @@ css notes:
   stroke: var(--font-color-highlight);
   fill: var(--back-color-highlight);
 }
+
+.graphCanvas svg g .graph_label.highlight ellipse {
+  stroke: var(--font-color-highlight);
+  --fill: var(--back-color-highlight);
+}
+
+.graphCanvas svg g .graph_label.highlight path {
+  stroke: var(--font-color-highlight);
+  --fill: var(--back-color-highlight);
+}
+
+.graphCanvas svg g .graph_label.highlight polygon {
+  stroke: var(--font-color-highlight);
+  --fill: var(--back-color-highlight);
+}

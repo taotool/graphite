@@ -141,7 +141,8 @@ export function oneDetail(graphData, highlightEntity) {
 
   // Render edges
   edgeLabels.forEach(({ source, target, label }) => {
-    dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label"]\n`;
+    const highlight = allHighlights.has(source) ? "highlight" : "";
+    dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label ${highlight}"]\n`;
   });
 
   dot += `}`;
