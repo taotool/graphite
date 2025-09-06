@@ -16,7 +16,7 @@ function App() {
     //   </Routes>
     // </BrowserRouter>
     <div style={{ width: "100%", height: "100%", border: '0px solid blue' }}>
-    <Graphite jsonString={jsonString} />
+      <Graphite jsonString={jsonString} />
     </div>
   )
 }

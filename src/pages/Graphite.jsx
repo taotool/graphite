@@ -15,111 +15,18 @@ import DialogActions from '@mui/material/DialogActions';
 
 import Editor from "@monaco-editor/react";
 
-import DownloadIcon from '@mui/icons-material/Download';
 import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
 import HomeIcon from '@mui/icons-material/Home';
-import CodeIcon from "@mui/icons-material/Code";
 import DataObjectIcon from '@mui/icons-material/DataObject';
 //https://github.com/magjac/d3-graphviz
 import * as d3 from 'd3'
 import * as d3Graphviz from 'd3-graphviz';
-//https://github.com/johnwalley/allotment?tab=readme-ov-file
-
 
 import { parse } from "jsonc-parser";/* to support jsonc */
 
 console.log("######### Graphite.js ######### ");
 
-
-
-
-
-
-
-
-// Common utility: extract category.entity
-function getCategoryEntity(id) {
-  const parts = id.split('.');
-  return parts.length >= 2 ? `${parts[0]}.${parts[1]}` : null;
-}
-
-// Common utility: process edges and collect edge labels + ensure nodes exist
-function processEdges(graphData, nodes) {
-  const edges = new Set();
-  const edgeLabels = [];
-
-  graphData.edges.forEach((edge) => {
-    const source = getCategoryEntity(edge.source);
-    const target = getCategoryEntity(edge.target);
-
-    [source, target].forEach((id) => {
-      if (id && !nodes[id]) {
-        nodes[id] = { id };
-      }
-    });
-
-    if (source && target && source !== target) {
-      const relationship = edge.weight || "";
-      edges.add(`"${source}" -> "${target}"`);
-      edgeLabels.push({ source, target, label: relationship });
-    }
-  });
-
-  return { edges, edgeLabels };
-}
-
-// Common utility: build DOT graph skeleton
-function buildDot({ directon, nodes, edgeLabels, renderNode }) {
-  let dot = `digraph "tt" {\n`;
-  dot += `  node [shape=plaintext margin=0]\n\n`;
-  dot += `  edge[arrowhead="open"]\n  tooltip=""\n  rankdir=${directon} \n overlap = scale \n splines = true \n`;
-
-  // Add nodes (delegate to renderer)
-  Object.values(nodes).forEach(({ id }) => {
-    dot += renderNode(id);
-  });
-
-  // Add edges
-  edgeLabels.forEach(({ source, target, label }) => {
-    dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label"]\n`;
-  });
-
-  dot += `}`;
-  return dot;
-}
-
-// -----------------------------
-// noDetail (simplified)
-// -----------------------------
-export function noDetail(graphData) {
-  const nodes = {};
-  const directon = graphData.direction === "vertical" ? "TD" : "LR";
-
-  // Process nodes from graphData.nodes
-  graphData.nodes.forEach((node) => {
-    const categoryEntity = getCategoryEntity(node.id);
-    if (categoryEntity && !nodes[categoryEntity]) {
-      nodes[categoryEntity] = { id: categoryEntity };
-    }
-  });
-
-  // Process edges (also adds missing nodes)
-  const { edgeLabels } = processEdges(graphData, nodes);
-
-  // Render nodes (simple header only)
-  const renderNode = (nodeId) => {
-    const [category, entity] = nodeId.split('.');
-    if(category.startsWith('[') && category.endsWith(']')){
-      return `  "${nodeId}" [label="+" shape="box3d" class="graph_node_table" ]\n`;
-    } else {
-      const label = createTableHeader(category, entity);
-      return `  "${nodeId}" [label=<${label}> class="graph_node_table"]\n`;
-    }
-  };
-
-  return buildDot({ directon, nodes, edgeLabels, renderNode });
-}
 
 // -----------------------------
 // oneDetail (highlighted entity)
@@ -175,10 +82,14 @@ export function oneDetail(graphData, highlightEntity) {
   }
 
   // Collect upstream + downstream entities
-  const upstream = bfs(highlightEntity, adjBackward);
-  const downstream = bfs(highlightEntity, adjForward);
-  const allHighlights = new Set([highlightEntity, ...upstream, ...downstream]);
+  const allHighlights = new Set();
+  if(highlightEntity) {
+    const upstream = bfs(highlightEntity, adjBackward);
+    const downstream = bfs(highlightEntity, adjForward);
+    //const allHighlights = new Set([highlightEntity, ...upstream, ...downstream]);
+    [highlightEntity, ...upstream, ...downstream].forEach(item => allHighlights.add(item));
 
+  }
   // Build edge labels
   const edgeLabels = [];
   graphData.edges.forEach((edge) => {
@@ -198,14 +109,9 @@ export function oneDetail(graphData, highlightEntity) {
     .map(({ id, type, description }) => {
       const field = id.split('.').pop();
 
-      // set fk if the id is being referenced by another node in edges
-      // const fk =
-      //   graphData.edges.find((edge) => edge.source === id || edge.target === id)
-      //     ?.target || "Unknown";
-      const fk =
-        graphData.edges.find((edge) => edge.source === id)
-          ?.target || "Unknown";
-      const tp = fk === "Unknown" ? type : type + "|" + fk;
+      // fk -> other nodes. find the other node
+      const fk = graphData.edges.find((edge) => edge.source === id) ?.target || "Unknown";
+      const tp = fk === "Unknown" ? type : type + "|" + fk; // id= "ORDERHISTORY.ORDERHISTORY1.items", tp="[items]|[ITEMS].ORDERHISTORY1.ITEM001"
       return { id: field, type: tp, description };
     });
 
@@ -222,7 +128,7 @@ export function oneDetail(graphData, highlightEntity) {
       // Main highlight → detailed fields
       const label = createTableFields(category, entity, detailedFields);
       dot += `  "${nodeId}" [label=<${label}> class="graph_node_table_with_fields highlight" ]\n`;
-    } else if(category.startsWith('[') && category.endsWith(']')){
+    } else if (category.startsWith('[') && category.endsWith(']')) {
       const highlight = allHighlights.has(nodeId) ? "highlight" : "";
       dot += `  "${nodeId}" [label="+" shape="box3d" class="graph_node_table ${highlight}" ]\n`;
     } else {
@@ -243,56 +149,6 @@ export function oneDetail(graphData, highlightEntity) {
 }
 
 
-//all details
-export function allDetail(graphData) {
-  const directon = graphData.direction === "vertical" ? "TD" : "LR";
-
-  const edgeTemplate = (source, target, weight) =>
-    `"${source}" -> "${target}" [label="${weight}" tooltip="" ] [class="graph_label"]`;
-
-  let dot = `digraph "tt" {
-  node [shape=plaintext margin=0]
-  edge[arrowhead="open"]
-  tooltip=""
-  rankdir=${directon}
-`;
-
-  const groupedNodes = {};
-  graphData.nodes.forEach((node) => {
-    const [category, entity, field] = node.id.split('.');
-    if (!groupedNodes[`${category}.${entity}`]) {
-      groupedNodes[`${category}.${entity}`] = [];
-    }
-    groupedNodes[`${category}.${entity}`].push({
-      id: field,
-      type: node.type,
-      description: node.description,
-    });
-  });
-
-  Object.entries(groupedNodes).forEach(([nodeId, fields]) => {
-    const [category, entity] = nodeId.split('.');
-    const nodeLabel = createTableFields(category, entity, fields);
-    dot += `  "${nodeId}" [label=<${nodeLabel}>] [class="graph_node_table_with_fields"]\n`;
-  });
-
-  const getNodePrefix = (id) => {
-    const parts = id.split('.');
-    return `${parts[0]}.${parts[1]}`; // Extract the `category.entity` prefix.
-  };
-
-  graphData.edges.forEach((edge) => {
-    const sourceNode = getNodePrefix(edge.source);
-    const targetNode = getNodePrefix(edge.target);
-    dot += `  ${edgeTemplate(sourceNode, targetNode, edge.weight)}\n`;
-  });
-
-  dot += `}`;
-  return dot;
-}
-function createCircleLabel(category, entity) {
-  return category+"."+entity
-}
 function createTableHeader(category, entity) {
   return `<table border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"><tr><td>${category}</td></tr><tr><td>${entity}</td></tr></table>`;
 }
@@ -316,18 +172,17 @@ function createTableFields(category, entity, fields) {
         }
         return `<tr>
             <td width="50" PORT="${id}" ><FONT >${id}</FONT></td>
-            <td width="50" TITLE="${type}" 
-              ${type.includes('|') ? `TARGET="${tgt}"` : ''}>
-              ${type.includes('|')
-            ? `<U><FONT >${tt}</FONT></U>`
-            : `<FONT >${tt}</FONT>`
-          }
+            <td width="50"  ${type.includes('|') ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
+              ${type.includes('|') ? `<FONT >${tt}</FONT>` : `<FONT >${tt}</FONT>`}
             </td>
-            <td width="50"><FONT >${description}</FONT></td>
+            <td width="50"  ${type.includes('|') ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
+               ${type.includes('|') ? `<FONT >${description}</FONT>` : `<FONT >${description}</FONT>`}
+            </td>
           </tr>`
       }
     )
     .join('');
+    
   return `<table bgcolor="aliceblue" color="coral" border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="0">
               ${tableHeader}
               <tr><td>
@@ -402,13 +257,14 @@ let globalGraphData = null;
 
 
 
-function Graphite({jsonString }) {
+function Graphite( props ) {
   console.log("graph " + window.location.href)
   const { id } = useParams();
   // Pick config source:
   const app = id;
   const appRef = useRef();
   const tableRef = useRef();
+  const mouseOverRef = useRef();
   //    const svgRef = useRef([]);
   const [openEditor, setOpenEditor] = useState(false);
   const [jsonc, setJsonc] = useState();
@@ -460,25 +316,35 @@ function Graphite({jsonString }) {
       appRef.current = app;
       //extract json nodes to database->table-column
       //group relation to table level
+      const way = 1;
+      if (way === 1) {//load from remote
+        //const jsonString = await fetchApp(app)
 
-      //const data = await fetchApp(app)
-      //renderGraph(data.graph);
-      // option 1
-      // const jsonModule = await import("./apps/" + id + ".json");
-      // globalGraphData = jsonModule.default;
+        globalGraphData = JSON.parse(jsonString);
+        setJsonc(json);
+      } else if (way === 2) {//import from json
+        const jsonModule = await import("./apps/" + id + ".json");
+        globalGraphData = jsonModule.default;
+        const json = JSON.stringify(globalGraphData, null, 2);
+        setJsonc(json);
+      } else if (way === 3) {//load from json
+        const response = await fetch("./apps/" + app + ".json");
+        globalGraphData = await response.json();
+        const json = JSON.stringify(globalGraphData, null, 2);
+        setJsonc(json);
+      } else {//load from jsonc
+        const response = await fetch("./apps/" + app + ".jsonc");
+        const json = await response.text();
+        globalGraphData = parse(json);
+        setJsonc(json);
+      }
 
-      // option 2
-      const response = await fetch("./apps/" + app + ".jsonc");
-      // globalGraphData = await response.json();
-      const text = await response.text();
-      globalGraphData = parse(text);
-      setJsonc(text);
-    } else if(jsonString){//from prop
-      globalGraphData = parse(jsonString);
-      setJsonc(jsonString);
-    } else {//from local
+    } else if (props.jsonString) {//from prop
+      globalGraphData = parse(props.jsonString);
+      setJsonc(props.jsonString);
+    } else {//from local storage or default
       let json = localStorage.getItem("graphite.json");
-      if (!json) {
+      if (!json) { //default
         json = `
         {
         "type": "er",
@@ -512,6 +378,7 @@ function Graphite({jsonString }) {
       }
         `.trim();
       }
+
       try {
         JSON.parse(json);//validate json
         globalGraphData = parse(json);
@@ -522,8 +389,9 @@ function Graphite({jsonString }) {
         return;
       }
     }
-    showApp();
 
+
+    showApp();
   }
 
   //when the parent component (Graph.js) re renders everything gets recreated
@@ -548,13 +416,7 @@ function Graphite({jsonString }) {
       dot = shapeDetail(globalGraphData);
     } else {
       console.log("tableRef.current", tableRef.current)
-      if (tableRef.current) {
-        dot = oneDetail(globalGraphData, tableRef.current);
-      } else {
-        //default to first table
-        if (globalGraphData.nodes.length > 0) { }
-        dot = noDetail(globalGraphData);//globalGraphData.edges.length < 3 ? allDetail(globalGraphData) : noDetail(globalGraphData);
-      }
+      dot = oneDetail(globalGraphData, tableRef.current);
     }
     renderGraph(dot);
   }
@@ -567,17 +429,13 @@ function Graphite({jsonString }) {
 
   const showNode = async (node) => {
     showDoc('clicked node: [' + node + ']')
-
   }
-
   const showTable = async (table) => {
     showDoc('clicked table: [' + table + ']')
     tableRef.current = table;
     const parts = table.split(".");
-
     if (parts.length === 2) {
       const data = await fetchTable(table)
-      //        renderGraph(data.graph);
       renderGraph(data);
     }
   }
@@ -629,13 +487,21 @@ function Graphite({jsonString }) {
 
           const graph_node_tables = document.querySelectorAll(".graphCanvas svg .graph_node_table")
           graph_node_tables.forEach(node => {
-            //                    node.addEventListener('pointerup', function (event) {showTable(event.currentTarget.__data__.key);} );
 
             removeTrackedListeners(node);
             trackEventListener(node, "pointerup", function (event) {
-              console.log("graph_node_table: " + event.currentTarget.__data__.key);
+              console.log("pointerup graph_node_table: " + event.currentTarget.__data__.key);
               showTable(event.currentTarget.__data__.key);
             });
+
+            // trackEventListener(node, "mouseenter", function (event) {
+            //   console.log("mouseenter graph_node_table: " + event.currentTarget.__data__.key);
+            //   highlightTable(event.currentTarget.__data__.key);
+            // });
+            // trackEventListener(node, "mouseleave", function (event) {
+            //   console.log("mouseleave graph_node_table: " + event.currentTarget.__data__.key);
+            //   highlightTable(event.currentTarget.__data__.key);
+            // });
           });
 
 
@@ -646,7 +512,7 @@ function Graphite({jsonString }) {
               removeTrackedListeners(a);
 
               trackEventListener(a, "pointerup", function (event) {
-                console.log("graph_node_table_with_field: " + event.currentTarget.target.baseVal);
+                console.log("pointerup graph_node_table_with_field: " + event.currentTarget.target.baseVal);
                 showTable(event.currentTarget.target.baseVal);
               });
 
@@ -791,15 +657,15 @@ function Graphite({jsonString }) {
               value={jsonc}
               onMount={handleEditorMount} // capture editor instance
               theme={prefersDarkMode ? "vs-dark" : "light"}
-                    options={{
-        scrollbar: {
-          vertical: "auto",      // "auto" | "visible" | "hidden"
-          horizontal: "auto",
-          verticalScrollbarSize: 4, // <-- width of vertical scrollbar (px)
-          horizontalScrollbarSize: 4, // <-- height of horizontal scrollbar (px)
-          arrowSize: 12,             // optional, size of arrows
-        },
-      }}
+              options={{
+                scrollbar: {
+                  vertical: "auto",      // "auto" | "visible" | "hidden"
+                  horizontal: "auto",
+                  verticalScrollbarSize: 4, // <-- width of vertical scrollbar (px)
+                  horizontalScrollbarSize: 4, // <-- height of horizontal scrollbar (px)
+                  arrowSize: 12,             // optional, size of arrows
+                },
+              }}
             />
           </DialogContent>
           <DialogActions>
