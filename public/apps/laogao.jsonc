@@ -4,6 +4,8 @@
       {"id":"ACCOUNTS.User.id","name":"id","type":"ID","description":"ACCOUNTS"},
       {"id":"ACCOUNTS.User.name","name":"name","type":"String","description":"ACCOUNTS"},
       {"id":"ACCOUNTS.User.reviews","name":"reviews","type":"[Review]","description":"REVIEWS"}
+      {"id":"REVIEWS.Review.id","name":"reviews","type":"[Review]","description":"REVIEWS"}
+      {"id":"PRODUCTS.Product.reviews","name":"reviews","type":"[Review]","description":"REVIEWS"}
 
     ],
     "edges": [

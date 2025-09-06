@@ -252,7 +252,7 @@ export function oneDetail(graphData, highlightEntity) {
   // Render edges
   edgeLabels.forEach(({ source, target, label }) => {
     const highlight = allHighlights.has(source) ? "highlight" : "";
-    dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label ${source.replace(/\W/g, '_')} ${highlight}"]\n`;
+    dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label ${source.replace(/\W/g, '_')}_to_${target.replace(/\W/g, '_')} ${highlight}"]\n`;
   });
 
   dot += `}`;
@@ -329,14 +329,14 @@ export function toggleCollapsed(downstream) {
   // Toggle edges
   edges.forEach(({ source, target }) => {
     // Assuming edges have class names in the format "source_target"
-    const edgeElements = document.querySelectorAll(`.${source}_to_${target}`);
+    const edgeElements = document.querySelectorAll(`.${source.replace(/\W/g, '_')}_to_${target.replace(/\W/g, '_')}`);
     edgeElements.forEach(el => el.classList.toggle('collapsed'));
   });
 }
 
 
 function createTableHeader(category, entity) {
-  return `<table border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"><tr><td>${category}</td></tr><tr><td>${entity}</td></tr></table>`;
+  return `<table border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"><tr><td width="100">${category}</td></tr><tr><td>${entity}</td></tr></table>`;
 }
 
 function createTableFields(category, entity, fields) {
@@ -618,6 +618,7 @@ function Graphite(props) {
     const parts = relation.split('->')[1];
     console.log("showRelation: " + parts);
     const downstream = getDownstream(globalGraphData, parts);
+    
     toggleCollapsed(downstream);
   }
 
