@@ -252,7 +252,7 @@ export function oneDetail(graphData, highlightEntity) {
   // Render edges
   edgeLabels.forEach(({ source, target, label }) => {
     const highlight = allHighlights.has(source) ? "highlight" : "";
-    dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label ${source} ${highlight}"]\n`;
+    dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label ${source.replace(/\W/g, '_')} ${highlight}"]\n`;
   });
 
   dot += `}`;
@@ -315,11 +315,11 @@ export function getDownstream(graphData, startNodeId) {
  * @param {Object} downstream - Object with `nodes` and `edges` arrays from getDownstream.
  */
 export function toggleCollapsed(downstream) {
+  // Reset all nodes and edges first
+  document.querySelectorAll(`.node`).forEach(el => el.classList.remove('collapsed'));
+  document.querySelectorAll(`.edge`).forEach(el => el.classList.remove('collapsed'));
+  
   const { nodes, edges } = downstream;
-  nodes.forEach((nodeId) => {
-    const nodeElements = document.querySelectorAll(`.node`);
-    nodeElements.forEach(el => el.classList.toggle('collapsed'));
-  });
   // Toggle nodes
   nodes.forEach((nodeId) => {
     const nodeElements = document.querySelectorAll(`.${nodeId.replace(/\W/g,'_')}`);
