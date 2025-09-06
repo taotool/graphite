@@ -130,7 +130,7 @@ export function oneDetail(graphData, highlightEntity) {
       dot += `  "${nodeId}" [label=<${label}> class="graph_node_table_with_fields highlight" ]\n`;
     } else if (category.startsWith('[') && category.endsWith(']')) {
       const highlight = allHighlights.has(nodeId) ? "highlight" : "";
-      dot += `  "${nodeId}" [label="+" shape="box3d" class="graph_node_table ${highlight}" ]\n`;
+      dot += `  "${nodeId}" [label="+" shape="circle" class="graph_node_table ${highlight}" ]\n`;
     } else {
       // Upstream/downstream highlights
       const highlight = allHighlights.has(nodeId) ? "highlight" : "";
@@ -301,22 +301,14 @@ function Graphite( props ) {
   // }
 
 
-  const showDoc = (docSrc) => {
-    //console.log('show doc: [' + docSrc + ']');
-    // setDoc(docSrc);
-  }
 
-  const showDot = (dot) => {
-    // console.log('show dot: [' + dot + ']');
-    // setDot(dot);
-  }
 
   const loadApp = async (app) => {
     if (app) {
       appRef.current = app;
       //extract json nodes to database->table-column
       //group relation to table level
-      const way = 1;
+      const way = 9;
       if (way === 1) {//load from remote
         //const jsonString = await fetchApp(app)
 
@@ -422,16 +414,13 @@ function Graphite( props ) {
   }
 
   const fetchTable = async (table) => {
-    showDoc('table loading ' + table);
     const dot = oneDetail(globalGraphData, table);
     return dot;
   }
 
   const showNode = async (node) => {
-    showDoc('clicked node: [' + node + ']')
   }
   const showTable = async (table) => {
-    showDoc('clicked table: [' + table + ']')
     tableRef.current = table;
     const parts = table.split(".");
     if (parts.length === 2) {
@@ -441,11 +430,10 @@ function Graphite( props ) {
   }
 
   const showRelation = async (relation) => {
-    showDoc('clicked relation: [' + relation + ']')
   }
 
   const renderGraph = (dotSrc, skipPush) => {
-    showDot(dotSrc);
+
     removeAllTrackedListeners();
     if (skipPush) {
 
@@ -470,7 +458,7 @@ function Graphite( props ) {
         .dot(dotSrc)
         .render()
         .on("end", function () {
-          showDoc('graph rendering started');
+          // showDoc('graph rendering started');
           //const svgElement = document.querySelector(".graphCanvas svg");
 
           //panZoomRef.current = svgPanZoom(".graphCanvas svg", {controlIconsEnabled: true, customEventsHandler: eventsHandler})
@@ -525,7 +513,7 @@ function Graphite( props ) {
             trackEventListener(label, "pointerup", function (event) { showRelation(event.currentTarget.__data__.key); });
           });
 
-          showDoc('graph rendering ended');
+          // showDoc('graph rendering ended');
         });
 
     }
@@ -545,7 +533,7 @@ function Graphite( props ) {
     //        firstGraph = graphIndexRef.current==0;
     //        lastGraph = graphIndexRef.current==stack.length-1;
 
-    showDoc("previous graph " + graphIndexRef.current + ", " + stack.length);
+    // showDoc("previous graph " + graphIndexRef.current + ", " + stack.length);
 
     renderGraph(stack[graphIndexRef.current], true)
   }
@@ -557,15 +545,15 @@ function Graphite( props ) {
     setLastGraph(graphIndexRef.current === stack.length - 1);
     //        firstGraph = graphIndexRef.current==0;
     //        lastGraph = graphIndexRef.current==stack.length-1;
-    showDoc("next graph " + graphIndexRef.current + ", " + stack.length);
+    // showDoc("next graph " + graphIndexRef.current + ", " + stack.length);
 
     renderGraph(stack[graphIndexRef.current], true)
   }
   const resetGraph = () => {
 
     graphIndexRef.current = 0;
-    showDoc("reset graph " + graphIndexRef.current + ", " + stack.length);
-    showDoc(stack[graphIndexRef.current])
+    // showDoc("reset graph " + graphIndexRef.current + ", " + stack.length);
+    // showDoc(stack[graphIndexRef.current])
     renderGraph(stack[graphIndexRef.current], true)
   }
 

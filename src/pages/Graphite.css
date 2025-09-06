@@ -4,7 +4,7 @@
   background-color: #121212;
   --back-color: #121212;
   --font-color: white;
-  --back-color-highlight: #1976d2;
+  --back-color-highlight: rgba(191, 187, 124, 0.207);
   --font-color-highlight: rgb(255, 98, 0);
 }
 
@@ -125,7 +125,12 @@ css notes:
   stroke: var(--font-color);
   /*table and edge text 这个会让graph_node_table:hover 没用*/
 }
-
+.graphCanvas svg g .graph_node_table ellipse {
+  stroke: var(--font-color);
+}
+.graphCanvas svg g .graph_node_table path {
+  stroke: var(--font-color);
+}
 .graphCanvas svg g .graph_node_table {
   fill: var(--font-color);
   /*table and edge text */

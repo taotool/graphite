@@ -10,14 +10,14 @@ function App() {
 
   return (
 
-    // <BrowserRouter>
-    //   <Routes>
-    //     <Route path="/graphite/:id?" element={<Graphite />} />
-    //   </Routes>
-    // </BrowserRouter>
-    <div style={{ width: "100%", height: "100%", border: '0px solid blue' }}>
-      <Graphite jsonString={jsonString} />
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/graphite/:id?" element={<Graphite />} />
+      </Routes>
+    </BrowserRouter>
+    // <div style={{ width: "100%", height: "100%", border: '0px solid blue', padding: '2px', margin: '0px' }}>
+    //   <Graphite jsonString={jsonString} />
+    // </div>
   )
 }
 {/* <Graphite jsonString={jsonString} /> */}
