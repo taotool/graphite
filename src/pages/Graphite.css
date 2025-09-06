@@ -229,3 +229,6 @@ css notes:
   stroke: var(--font-color-highlight);
   --fill: var(--back-color-highlight);
 }
+
+
+.collapsed { color: transparent; fontcolor: transparent; opacity: 0.2; }
