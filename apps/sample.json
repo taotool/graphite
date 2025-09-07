@@ -1,0 +1,30 @@
+{
+  "type": "er",
+  "nodes": [
+    {"id":"ACCOUNTS.User.id","name":"id","type":"ID","value":"ACCOUNTS"},
+    {"id":"ACCOUNTS.User.name","name":"name","type":"String","value":"ACCOUNTS"},
+    {"id":"ACCOUNTS.User.reviews","name":"reviews","type":"[Review]","value":"REVIEWS"},
+    {"id":"ACCOUNTS.User.username","name":"username","type":"String","value":"ACCOUNTS"},
+    {"id":"PRODUCTS.Product.inStock","name":"inStock","type":"Boolean","value":"INVENTORY"},
+    {"id":"PRODUCTS.Product.name","name":"name","type":"String","value":"PRODUCTS"},
+    {"id":"PRODUCTS.Product.price","name":"price","type":"Int","value":"PRODUCTS"},
+    {"id":"PRODUCTS.Product.reviews","name":"reviews","type":"[Review]","value":"REVIEWS"},
+    {"id":"PRODUCTS.Product.shippingEstimate","name":"shippingEstimate","type":"Int","value":"INVENTORY"},
+    {"id":"PRODUCTS.Product.upc","name":"upc","type":"String","value":"PRODUCTS"},
+    {"id":"PRODUCTS.Product.label","name":"label","type":"Int","value":"PRODUCTS"},
+    {"id":"QUERY.Query.me","name":"me","type":"User","value":"ACCOUNTS"},
+    {"id":"QUERY.Query.topProducts","name":"topProducts","type":"[Product]","value":"PRODUCTS"},
+    {"id":"REVIEWS.Review.author","name":"author","type":"User","value":"REVIEWS"},
+    {"id":"REVIEWS.Review.body","name":"body","type":"String","value":"REVIEWS"},
+    {"id":"REVIEWS.Review.id","name":"id","type":"ID","value":"REVIEWS"},
+    {"id":"REVIEWS.Review.product","name":"product","type":"Product","value":"REVIEWS"}
+  ],
+  "edges": [
+    { "source": "ACCOUNTS.User.reviews", "target": "REVIEWS.Review.id", "label": "User.reviews" },
+    { "source": "PRODUCTS.Product.reviews", "target": "REVIEWS.Review.id", "label": "Product.reviews" },
+    { "source": "QUERY.Query.me", "target": "ACCOUNTS.User.id", "label": ",Query.me" },
+    { "source": "QUERY.Query.topProducts", "target": "PRODUCTS.Product.upc", "label": "Query.topProducts" },
+    { "source": "REVIEWS.Review.author", "target": "ACCOUNTS.User.id", "label": "Review.author" },
+    { "source": "REVIEWS.Review.product", "target": "PRODUCTS.Product.upc", "label": "Review.product" }
+  ]
+}

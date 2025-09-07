@@ -9,11 +9,11 @@
     },
     
     "nodes": [
-      {"id":"牛家村","name":"牛家村","description":""}
+      {"id":"牛家村","name":"牛家村","value":""}
 
-      ,{"id":"大漠","name":"name","description":"ACCOUNTS"}
-      ,{"id":"赵王府","name":"reviews","description":"REVIEWS"}
-      ,{"id":"陆家庄","name":"reviews","description":"REVIEWS"}
+      ,{"id":"大漠","name":"name","value":"ACCOUNTS"}
+      ,{"id":"赵王府","name":"reviews","value":"REVIEWS"}
+      ,{"id":"陆家庄","name":"reviews","value":"REVIEWS"}
 
     ],
     "edges": [
