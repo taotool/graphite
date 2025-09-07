@@ -214,12 +214,62 @@ let globalGraphData = null;
     let dot = null;
     if (nodeShape) {//new shape
       dot = shapeDetail(globalGraphData);
+    } else if(props.showDetails) {
+      dot = allDetail(globalGraphData);
     } else {
       dot = oneDetail(globalGraphData, tableRef.current);
     }
     renderGraph(dot);
   }
 
+
+//all details
+function allDetail(graphData) {
+  const directon = graphData.direction === "vertical" ? "TD" : "LR";
+
+  const edgeTemplate = (source, target, label) =>
+    `"${source}" -> "${target}" [label="${label}" tooltip="" ] [class="graph_label"]`;
+
+  let dot = `digraph "tt" {
+  node [shape=plaintext margin=0]
+  edge[arrowhead="open"]
+  tooltip=""
+  rankdir=${directon}
+`;
+
+  const groupedNodes = {};
+  graphData.nodes.forEach((node) => {
+    const [category, entity, field] = node.id.split('.');
+    if (!groupedNodes[`${category}.${entity}`]) {
+      groupedNodes[`${category}.${entity}`] = [];
+    }
+    groupedNodes[`${category}.${entity}`].push({
+      id: field,
+      type: node.type,
+      value: node.value,
+    });
+  });
+
+  Object.entries(groupedNodes).forEach(([nodeId, fields]) => {
+    const [category, entity] = nodeId.split('.');
+    const nodeLabel = createTableFields(category, entity, fields);
+    dot += `  "${nodeId}" [label=<${nodeLabel}>] [class="graph_node_table_with_fields"]\n`;
+  });
+
+  const getNodePrefix = (id) => {
+    const parts = id.split('.');
+    return `${parts[0]}.${parts[1]}`; // Extract the `category.entity` prefix.
+  };
+
+  graphData.edges.forEach((edge) => {
+    const sourceNode = getNodePrefix(edge.source);
+    const targetNode = getNodePrefix(edge.target);
+    dot += `  ${edgeTemplate(sourceNode, targetNode, edge.label)}\n`;
+  });
+
+  dot += `}`;
+  return dot;
+}
 
 
   function oneDetail(graphData, highlightEntity) {
@@ -434,7 +484,7 @@ let globalGraphData = null;
             tgt = target[0] + "." + target[1];
           }
           return `<tr>
-            <td  PORT="${id}" ><FONT >${name} </FONT></td>
+            <td  PORT="${id}" ><FONT >${name || id} </FONT></td>
             <td  ${type.includes('|') ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
               ${type.includes('|') ? `<FONT >${tt}</FONT>` : `<FONT >${tt}</FONT>`}
             </td>
