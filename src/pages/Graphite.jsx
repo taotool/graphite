@@ -28,123 +28,7 @@ import { parse } from "jsonc-parser";/* to support jsonc */
 console.log("######### Graphite.js ######### ");
 
 
-export function oneDetail2(graphData, highlightEntity) {
-  // --- Common util ---
-  function getCategoryEntity(id) {
-    const parts = id.split('.');
-    return parts.length >= 2 ? `${parts[0]}.${parts[1]}` : null;
-  }
 
-  // Build nodes dictionary from edges + nodes
-  const nodes = {};
-  graphData.nodes.forEach((node) => {
-    const categoryEntity = getCategoryEntity(node.id);
-    if (categoryEntity && !nodes[categoryEntity]) {
-      nodes[categoryEntity] = { id: categoryEntity };
-    }
-  });
-
-  // Build adjacency lists
-  const adjForward = {};
-  const adjBackward = {};
-  graphData.edges.forEach((edge) => {
-    const source = getCategoryEntity(edge.source);
-    const target = getCategoryEntity(edge.target);
-    if (source && target) {
-      if (!adjForward[source]) adjForward[source] = [];
-      if (!adjBackward[target]) adjBackward[target] = [];
-      adjForward[source].push(target);
-      adjBackward[target].push(source);
-
-      // Ensure nodes exist
-      if (!nodes[source]) nodes[source] = { id: source };
-      if (!nodes[target]) nodes[target] = { id: target };
-    }
-  });
-
-  // BFS helper
-  function bfs(start, adj) {
-    const visited = new Set();
-    const queue = [start];
-    while (queue.length) {
-      const node = queue.shift();
-      if (!visited.has(node)) {
-        visited.add(node);
-        (adj[node] || []).forEach((next) => {
-          if (!visited.has(next)) queue.push(next);
-        });
-      }
-    }
-    return visited;
-  }
-
-  // Collect upstream + downstream entities
-  const allHighlights = new Set();
-  if (highlightEntity) {
-    const upstream = bfs(highlightEntity, adjBackward);
-    const downstream = bfs(highlightEntity, adjForward);
-    //const allHighlights = new Set([highlightEntity, ...upstream, ...downstream]);
-    [highlightEntity, ...upstream, ...downstream].forEach(item => allHighlights.add(item));
-
-  }
-  // Build edge labels
-  const edgeLabels = [];
-  graphData.edges.forEach((edge) => {
-    const source = getCategoryEntity(edge.source);
-    const target = getCategoryEntity(edge.target);
-    if (source && target && source !== target) {
-      const relationship = edge.weight || "";
-      edgeLabels.push({ source, target, label: relationship });
-    }
-  });
-
-  const directon = graphData.direction === "vertical" ? "TD" : "LR";
-
-  // Gather detailed fields for the main highlightEntity only
-  const detailedFields = graphData.nodes
-    .filter(({ id }) => id.startsWith(`${highlightEntity}.`))
-    .map(({ id, type, description }) => {
-      const field = id.split('.').pop();
-
-      // fk -> other nodes. find the other node
-      const fk = graphData.edges.find((edge) => edge.source === id)?.target || "Unknown";
-      const tp = fk === "Unknown" ? type : type + "|" + fk; // id= "ORDERHISTORY.ORDERHISTORY1.items", tp="[items]|[ITEMS].ORDERHISTORY1.ITEM001"
-      return { id: field, type: tp, description };
-    });
-
-  // Build DOT
-  let dot = `digraph "tt" {\n`;
-  dot += `  node [shape=plaintext margin=0]\n\n`;
-  dot += `  edge[arrowhead="open"]\n  tooltip=""\n  rankdir=${directon} \n overlap = scale \n splines = true \n`;
-
-  // Render nodes
-  Object.values(nodes).forEach(({ id: nodeId }) => {
-    const [category, entity] = nodeId.split('.');
-
-    if (nodeId === highlightEntity) {
-      // Main highlight → detailed fields
-      const label = createTableFields(category, entity, detailedFields);
-      dot += `  "${nodeId}" [label=<${label}> class="graph_node_table_with_fields highlight" ]\n`;
-    } else if (category.startsWith('[') && category.endsWith(']')) {
-      const highlight = allHighlights.has(nodeId) ? "highlight" : "";
-      dot += `  "${nodeId}" [label="+" shape="circle" class="graph_node_table ${highlight}" ]\n`;
-    } else {
-      // Upstream/downstream highlights
-      const highlight = allHighlights.has(nodeId) ? "highlight" : "";
-      const label = createTableHeader(category, entity);
-      dot += `  "${nodeId}" [label=<${label}> class="graph_node_table ${highlight}" ]\n`;
-    }
-  });
-
-  // Render edges
-  edgeLabels.forEach(({ source, target, label }) => {
-    const highlight = allHighlights.has(source) ? "highlight" : "";
-    dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label ${highlight}"]\n`;
-  });
-
-  dot += `}`;
-  return dot;
-}
 export function oneDetail(graphData, highlightEntity) {
   // --- Common util ---
   function getCategoryEntity(id) {
@@ -209,7 +93,7 @@ export function oneDetail(graphData, highlightEntity) {
     const source = getCategoryEntity(edge.source);
     const target = getCategoryEntity(edge.target);
     if (source && target && source !== target) {
-      const relationship = edge.weight || "";
+      const relationship = edge.label || "";
       edgeLabels.push({ source, target, label: relationship });
     }
   });
@@ -219,11 +103,11 @@ export function oneDetail(graphData, highlightEntity) {
   // Gather detailed fields for the main highlightEntity only
   const detailedFields = graphData.nodes
     .filter(({ id }) => id.startsWith(`${highlightEntity}.`))
-    .map(({ id, type, description }) => {
+    .map(({ id, name, type, value }) => {
       const field = id.split('.').pop();
       const fk = graphData.edges.find((edge) => edge.source === id)?.target || "Unknown";
       const tp = fk === "Unknown" ? type : type + "|" + fk;
-      return { id: field, type: tp, description };
+      return { id: field, name: name, type: tp, value };
     });
 
   // Build DOT
@@ -300,7 +184,7 @@ export function getDownstream(graphData, startNodeId) {
     .map(e => ({
       source: getCategoryEntity(e.source),
       target: getCategoryEntity(e.target),
-      weight: e.weight
+      label: e.label
     }))
     .filter(e => visitedNodes.has(e.source) && visitedNodes.has(e.target));
 
@@ -323,14 +207,14 @@ export function toggleCollapsed(downstream) {
   // Toggle nodes
   nodes.forEach((nodeId) => {
     const nodeElements = document.querySelectorAll(`.${nodeId.replace(/\W/g,'_')}`);
-    nodeElements.forEach(el => el.classList.toggle('collapsed'));
+    nodeElements.forEach(el => el.classList.add('collapsed'));
   });
 
   // Toggle edges
   edges.forEach(({ source, target }) => {
     // Assuming edges have class names in the format "source_target"
     const edgeElements = document.querySelectorAll(`.${source.replace(/\W/g, '_')}_to_${target.replace(/\W/g, '_')}`);
-    edgeElements.forEach(el => el.classList.toggle('collapsed'));
+    edgeElements.forEach(el => el.classList.add('collapsed'));
   });
 }
 
@@ -343,11 +227,11 @@ function createTableFields(category, entity, fields) {
   const tableHeader = `<tr><td ><FONT >${category}</FONT></td></tr><tr><td ><FONT >${entity}</FONT></td></tr>`;
 
   if (fields.length === 0) {
-    fields.push({ id: 'id', type: 'String', description: 'default' });
+    fields.push({ id: 'Id', name: "Name", type: 'String', value: 'Value' });
   }
   const fieldRows = fields
     .map(
-      ({ id, type, description }) => {
+      ({ id, name, type, value }) => {
         let tgt = type;
         let tt = type;
         if (type.includes('|')) {
@@ -357,12 +241,12 @@ function createTableFields(category, entity, fields) {
           tgt = target[0] + "." + target[1];
         }
         return `<tr>
-            <td  PORT="${id}" ><FONT >${id}</FONT></td>
+            <td  PORT="${id}" ><FONT >${name} </FONT></td>
             <td  ${type.includes('|') ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
               ${type.includes('|') ? `<FONT >${tt}</FONT>` : `<FONT >${tt}</FONT>`}
             </td>
             <td  ${type.includes('|') ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
-               ${type.includes('|') ? `<FONT >${description}</FONT>` : `<FONT >${description}</FONT>`}
+               ${type.includes('|') ? `<FONT >${value}</FONT>` : `<FONT >${value}</FONT>`}
             </td>
           </tr>`
       }
@@ -494,7 +378,7 @@ function Graphite(props) {
       appRef.current = app;
       //extract json nodes to database->table-column
       //group relation to table level
-      const way = 9;
+      const way = 3;
       if (way === 1) {//load from remote
         //const jsonString = await fetchApp(app)
 
@@ -506,12 +390,12 @@ function Graphite(props) {
         // const json = JSON.stringify(globalGraphData, null, 2);
         // setJsonc(json);
       } else if (way === 3) {//load from json
-        const response = await fetch("./apps/" + app + ".json");
+        const response = await fetch("/apps/" + app + ".json");
         globalGraphData = await response.json();
         const json = JSON.stringify(globalGraphData, null, 2);
         setJsonc(json);
       } else {//load from jsonc
-        const response = await fetch("./apps/" + app + ".jsonc");
+        const response = await fetch("/apps/" + app + ".jsonc");
         const json = await response.text();
         globalGraphData = parse(json);
         setJsonc(json);
@@ -527,31 +411,31 @@ function Graphite(props) {
         {
         "type": "er",
         "nodes": [
-          {"id":"ACCOUNTS.User.id","name":"id","type":"ID","description":"ACCOUNTS"},
-          {"id":"ACCOUNTS.User.name","name":"name","type":"String","description":"ACCOUNTS"},
-          {"id":"ACCOUNTS.User.reviews","name":"reviews","type":"[Review]","description":"REVIEWS"},
-          {"id":"ACCOUNTS.User.username","name":"username","type":"String","description":"ACCOUNTS"},
-          {"id":"PRODUCTS.Product.inStock","name":"inStock","type":"Boolean","description":"INVENTORY"},
-          {"id":"PRODUCTS.Product.name","name":"name","type":"String","description":"PRODUCTS"},
-          {"id":"PRODUCTS.Product.price","name":"price","type":"Int","description":"PRODUCTS"},
-          {"id":"PRODUCTS.Product.reviews","name":"reviews","type":"[Review]","description":"REVIEWS"},
-          {"id":"PRODUCTS.Product.shippingEstimate","name":"shippingEstimate","type":"Int","description":"INVENTORY"},
-          {"id":"PRODUCTS.Product.upc","name":"upc","type":"String","description":"PRODUCTS"},
-          {"id":"PRODUCTS.Product.weight","name":"weight","type":"Int","description":"PRODUCTS"},
-          {"id":"QUERY.Query.me","name":"me","type":"User","description":"ACCOUNTS"},
-          {"id":"QUERY.Query.topProducts","name":"topProducts","type":"[Product]","description":"PRODUCTS"},
-          {"id":"REVIEWS.Review.author","name":"author","type":"User","description":"REVIEWS"},
-          {"id":"REVIEWS.Review.body","name":"body","type":"String","description":"REVIEWS"},
-          {"id":"REVIEWS.Review.id","name":"id","type":"ID","description":"REVIEWS"},
-          {"id":"REVIEWS.Review.product","name":"product","type":"Product","description":"REVIEWS"}
+          {"id":"ACCOUNTS.User.id","name":"id","type":"ID","value":"ACCOUNTS"},
+          {"id":"ACCOUNTS.User.name","name":"name","type":"String","value":"ACCOUNTS"},
+          {"id":"ACCOUNTS.User.reviews","name":"reviews","type":"[Review]","value":"REVIEWS"},
+          {"id":"ACCOUNTS.User.username","name":"username","type":"String","value":"ACCOUNTS"},
+          {"id":"PRODUCTS.Product.inStock","name":"inStock","type":"Boolean","value":"INVENTORY"},
+          {"id":"PRODUCTS.Product.name","name":"name","type":"String","value":"PRODUCTS"},
+          {"id":"PRODUCTS.Product.price","name":"price","type":"Int","value":"PRODUCTS"},
+          {"id":"PRODUCTS.Product.reviews","name":"reviews","type":"[Review]","value":"REVIEWS"},
+          {"id":"PRODUCTS.Product.shippingEstimate","name":"shippingEstimate","type":"Int","value":"INVENTORY"},
+          {"id":"PRODUCTS.Product.upc","name":"upc","type":"String","value":"PRODUCTS"},
+          {"id":"PRODUCTS.Product.label","name":"label","type":"Int","value":"PRODUCTS"},
+          {"id":"QUERY.Query.me","name":"me","type":"User","value":"ACCOUNTS"},
+          {"id":"QUERY.Query.topProducts","name":"topProducts","type":"[Product]","value":"PRODUCTS"},
+          {"id":"REVIEWS.Review.author","name":"author","type":"User","value":"REVIEWS"},
+          {"id":"REVIEWS.Review.body","name":"body","type":"String","value":"REVIEWS"},
+          {"id":"REVIEWS.Review.id","name":"id","type":"ID","value":"REVIEWS"},
+          {"id":"REVIEWS.Review.product","name":"product","type":"Product","value":"REVIEWS"}
         ],
         "edges": [
-          { "source": "ACCOUNTS.User.reviews", "target": "REVIEWS.Review.id", "weight": "User.reviews" },
-          { "source": "PRODUCTS.Product.reviews", "target": "REVIEWS.Review.id", "weight": "Product.reviews" },
-          { "source": "QUERY.Query.me", "target": "ACCOUNTS.User.id", "weight": "Query.me" },
-          { "source": "QUERY.Query.topProducts", "target": "PRODUCTS.Product.upc", "weight": "Query.topProducts" },
-          { "source": "REVIEWS.Review.author", "target": "ACCOUNTS.User.id", "weight": "Review.author" },
-          { "source": "REVIEWS.Review.product", "target": "PRODUCTS.Product.upc", "weight": "Review.product" }
+          { "source": "ACCOUNTS.User.reviews", "target": "REVIEWS.Review.id", "label": "User.reviews" },
+          { "source": "PRODUCTS.Product.reviews", "target": "REVIEWS.Review.id", "label": "Product.reviews" },
+          { "source": "QUERY.Query.me", "target": "ACCOUNTS.User.id", "label": "Query.me" },
+          { "source": "QUERY.Query.topProducts", "target": "PRODUCTS.Product.upc", "label": "Query.topProducts" },
+          { "source": "REVIEWS.Review.author", "target": "ACCOUNTS.User.id", "label": "Review.author" },
+          { "source": "REVIEWS.Review.product", "target": "PRODUCTS.Product.upc", "label": "Review.product" }
         ]
       }
         `.trim();
@@ -615,11 +499,10 @@ function Graphite(props) {
   }
 
   const showRelation = async (relation) => {
-    const parts = relation.split('->')[1];
-    console.log("showRelation: " + parts);
-    const downstream = getDownstream(globalGraphData, parts);
-    
-    toggleCollapsed(downstream);
+    console.log("showRelation: " + relation);
+    // const parts = relation.split('->')[1];
+    // const downstream = getDownstream(globalGraphData, parts);
+    // toggleCollapsed(downstream);
   }
 
   const renderGraph = (dotSrc, skipPush) => {
