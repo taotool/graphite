@@ -28,6 +28,12 @@ import { parse } from "jsonc-parser";/* to support jsonc */
 console.log("######### Graphite.js ######### ");
 
 
+
+
+
+function Graphite(props) {
+  console.log("graph " + window.location.href)
+  
 //////////////////////////////////////////////////////////////////////////////////////////
 const eventListenersMap = new WeakMap();
 let elements = [];
@@ -61,11 +67,6 @@ function removeTrackedListeners(element) {
 
 // Example Usage
 let globalGraphData = null;
-
-
-
-function Graphite(props) {
-  console.log("graph " + window.location.href)
   const { id } = useParams();
   // Pick config source:
   const app = id;
