@@ -28,269 +28,6 @@ import { parse } from "jsonc-parser";/* to support jsonc */
 console.log("######### Graphite.js ######### ");
 
 
-
-export function oneDetail(graphData, highlightEntity) {
-  // --- Common util ---
-  function getCategoryEntity(id) {
-    const parts = id.split('.');
-    return parts.length >= 2 ? `${parts[0]}.${parts[1]}` : null;
-  }
-
-  // Build nodes dictionary from edges + nodes
-  const nodes = {};
-  graphData.nodes.forEach((node) => {
-    const categoryEntity = getCategoryEntity(node.id);
-    if (categoryEntity && !nodes[categoryEntity]) {
-      nodes[categoryEntity] = { id: categoryEntity };
-    }
-  });
-
-  // Build adjacency lists
-  const adjForward = {};
-  const adjBackward = {};
-  graphData.edges.forEach((edge) => {
-    const source = getCategoryEntity(edge.source);
-    const target = getCategoryEntity(edge.target);
-    if (source && target) {
-      if (!adjForward[source]) adjForward[source] = [];
-      if (!adjBackward[target]) adjBackward[target] = [];
-      adjForward[source].push(target);
-      adjBackward[target].push(source);
-
-      // Ensure nodes exist
-      if (!nodes[source]) nodes[source] = { id: source };
-      if (!nodes[target]) nodes[target] = { id: target };
-    }
-  });
-
-  // BFS helper
-  function bfs(start, adj) {
-    const visited = new Set();
-    const queue = [start];
-    while (queue.length) {
-      const node = queue.shift();
-      if (!visited.has(node)) {
-        visited.add(node);
-        (adj[node] || []).forEach((next) => {
-          if (!visited.has(next)) queue.push(next);
-        });
-      }
-    }
-    return visited;
-  }
-
-  // Collect upstream + downstream entities
-  const allHighlights = new Set();
-  if (highlightEntity) {
-    const upstream = bfs(highlightEntity, adjBackward);
-    const downstream = bfs(highlightEntity, adjForward);
-    [highlightEntity, ...upstream, ...downstream].forEach(item => allHighlights.add(item));
-  }
-
-  // Build edge labels
-  const edgeLabels = [];
-  graphData.edges.forEach((edge) => {
-    const source = getCategoryEntity(edge.source);
-    const target = getCategoryEntity(edge.target);
-    if (source && target && source !== target) {
-      const relationship = edge.label || "";
-      edgeLabels.push({ source, target, label: relationship });
-    }
-  });
-
-  const directon = graphData.direction === "vertical" ? "TD" : "LR";
-
-  // Gather detailed fields for the main highlightEntity only
-  const detailedFields = graphData.nodes
-    .filter(({ id }) => id.startsWith(`${highlightEntity}.`))
-    .map(({ id, name, type, value }) => {
-      const field = id.split('.').pop();
-      const fk = graphData.edges.find((edge) => edge.source === id)?.target || "Unknown";
-      const tp = fk === "Unknown" ? type : type + "|" + fk;
-      return { id: field, name: name, type: tp, value };
-    });
-
-  // Build DOT
-  let dot = `digraph "tt" {\n`;
-  dot += `  node [shape=plaintext margin=0]\n\n`;
-  dot += `  edge[arrowhead="open"]\n  tooltip=""\n  rankdir=${directon} \n overlap = scale \n splines = true \n`;
-
-  // Render nodes
-  Object.values(nodes).forEach(({ id: nodeId }) => {
-    const [category, entity] = nodeId.split('.');
-    const nodeClass = `graph_node_table ${allHighlights.has(nodeId) ? "highlight " : ""}${nodeId.replace(/\W/g,'_')}`;
-
-    if (nodeId === highlightEntity) {
-      // Main highlight → detailed fields
-      const label = createTableFields(category, entity, detailedFields);
-      dot += `  "${nodeId}" [label=<${label}> class="graph_node_table_with_fields highlight ${nodeId.replace(/\W/g,'_')}" ]\n`;
-    } else if (category.startsWith('[') && category.endsWith(']')) {
-      dot += `  "${nodeId}" [label="+" shape="circle" class="${nodeClass}" ]\n`;
-    } else {
-      // Upstream/downstream highlights
-      const label = createTableHeader(category, entity);
-      dot += `  "${nodeId}" [label=<${label}> class="${nodeClass}" ]\n`;
-    }
-  });
-
-  // Render edges
-  edgeLabels.forEach(({ source, target, label }) => {
-    const highlight = allHighlights.has(source) ? "highlight" : "";
-    dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label ${source.replace(/\W/g, '_')}_to_${target.replace(/\W/g, '_')} ${highlight}"]\n`;
-  });
-
-  dot += `}`;
-  return dot;
-}
-
-export function getDownstream(graphData, startNodeId) {
-  // --- Helper to get category entity ---
-  function getCategoryEntity(id) {
-    const parts = id.split('.');
-    return parts.length >= 2 ? `${parts[0]}.${parts[1]}` : null;
-  }
-
-  // Build forward adjacency list
-  const adjForward = {};
-  graphData.edges.forEach((edge) => {
-    const source = getCategoryEntity(edge.source);
-    const target = getCategoryEntity(edge.target);
-    if (source && target) {
-      if (!adjForward[source]) adjForward[source] = [];
-      adjForward[source].push(target);
-    }
-  });
-
-  // BFS to collect downstream nodes
-  const visitedNodes = new Set();
-  const queue = [startNodeId];
-
-  while (queue.length) {
-    const node = queue.shift();
-    if (!visitedNodes.has(node)) {
-      visitedNodes.add(node);
-      (adjForward[node] || []).forEach((next) => {
-        if (!visitedNodes.has(next)) queue.push(next);
-      });
-    }
-  }
-
-  // Filter nodes and edges
-  const downstreamNodes = graphData.nodes
-    .map(n => getCategoryEntity(n.id))
-    .filter(n => n && visitedNodes.has(n));
-
-  const downstreamEdges = graphData.edges
-    .map(e => ({
-      source: getCategoryEntity(e.source),
-      target: getCategoryEntity(e.target),
-      label: e.label
-    }))
-    .filter(e => visitedNodes.has(e.source) && visitedNodes.has(e.target));
-
-  return {
-    nodes: new Set(downstreamNodes),
-    edges: new Set(downstreamEdges)
-  };
-}
-
-/**
- * Toggle the "collapsed" class for all downstream nodes and edges.
- * @param {Object} downstream - Object with `nodes` and `edges` arrays from getDownstream.
- */
-export function toggleCollapsed(downstream) {
-  // Reset all nodes and edges first
-  document.querySelectorAll(`.node`).forEach(el => el.classList.remove('collapsed'));
-  document.querySelectorAll(`.edge`).forEach(el => el.classList.remove('collapsed'));
-  
-  const { nodes, edges } = downstream;
-  // Toggle nodes
-  nodes.forEach((nodeId) => {
-    const nodeElements = document.querySelectorAll(`.${nodeId.replace(/\W/g,'_')}`);
-    nodeElements.forEach(el => el.classList.add('collapsed'));
-  });
-
-  // Toggle edges
-  edges.forEach(({ source, target }) => {
-    // Assuming edges have class names in the format "source_target"
-    const edgeElements = document.querySelectorAll(`.${source.replace(/\W/g, '_')}_to_${target.replace(/\W/g, '_')}`);
-    edgeElements.forEach(el => el.classList.add('collapsed'));
-  });
-}
-
-
-function createTableHeader(category, entity) {
-  return `<table border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"><tr><td width="100">${category}</td></tr><tr><td>${entity}</td></tr></table>`;
-}
-
-function createTableFields(category, entity, fields) {
-  const tableHeader = `<tr><td ><FONT >${category}</FONT></td></tr><tr><td ><FONT >${entity}</FONT></td></tr>`;
-
-  if (fields.length === 0) {
-    fields.push({ id: 'Id', name: "Name", type: 'String', value: 'Value' });
-  }
-  const fieldRows = fields
-    .map(
-      ({ id, name, type, value }) => {
-        let tgt = type;
-        let tt = type;
-        if (type.includes('|')) {
-          const t = type.split('|');
-          tt = t[0];
-          const target = t[1].split(".");
-          tgt = target[0] + "." + target[1];
-        }
-        return `<tr>
-            <td  PORT="${id}" ><FONT >${name} </FONT></td>
-            <td  ${type.includes('|') ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
-              ${type.includes('|') ? `<FONT >${tt}</FONT>` : `<FONT >${tt}</FONT>`}
-            </td>
-            <td  ${type.includes('|') ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
-               ${type.includes('|') ? `<FONT >${value}</FONT>` : `<FONT >${value}</FONT>`}
-            </td>
-          </tr>`
-      }
-    )
-    .join('');
-
-  return `<table bgcolor="aliceblue" color="coral" border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="0">
-              ${tableHeader}
-              <tr><td>
-                <table border="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" >
-                  ${fieldRows}
-                </table>
-              </td></tr>
-            </table>`;
-}
-
-
-
-//new shape
-export function shapeDetail(graphData) {
-
-
-  // Start building the DOT representation ranksep=0.3
-  let dot = `digraph "tt" {\n`;
-  dot += `  graph [rankdir=${graphData.graph.rankdir} label=${graphData.graph.title} labelloc=t]\n\n`;
-  dot += `  node [shape=${graphData.node.shape} width=0.2 height=0.2 margin=0 fontsize=8]\n\n`;
-  dot += `  edge[arrowhead="open"  fontsize=6]\n  tooltip=""\n   \n`;
-
-  // Add nodes
-  graphData.nodes.forEach(({ id, label }) => {
-    dot += `  "${id}" [xlabel=<${label ? label : id}> label="" class="graph_node"] \n`;
-  });
-
-  // Add edges with labels
-  graphData.edges.forEach(({ source, target, label }) => {
-    dot += `  "${source}" -> "${target}" [xlabel="${label}" ]\n`;
-  });
-
-  dot += `}`;
-  return dot;
-}
-
-
-
 //////////////////////////////////////////////////////////////////////////////////////////
 const eventListenersMap = new WeakMap();
 let elements = [];
@@ -482,6 +219,271 @@ function Graphite(props) {
     renderGraph(dot);
   }
 
+
+
+  function oneDetail(graphData, highlightEntity) {
+    // --- Common util ---
+    function getCategoryEntity(id) {
+      const parts = id.split('.');
+      return parts.length >= 2 ? `${parts[0]}.${parts[1]}` : null;
+    }
+
+    // Build nodes dictionary from edges + nodes
+    const nodes = {};
+    graphData.nodes.forEach((node) => {
+      const categoryEntity = getCategoryEntity(node.id);
+      if (categoryEntity && !nodes[categoryEntity]) {
+        nodes[categoryEntity] = { id: categoryEntity };
+      }
+    });
+
+    // Build adjacency lists
+    const adjForward = {};
+    const adjBackward = {};
+    graphData.edges.forEach((edge) => {
+      const source = getCategoryEntity(edge.source);
+      const target = getCategoryEntity(edge.target);
+      if (source && target) {
+        if (!adjForward[source]) adjForward[source] = [];
+        if (!adjBackward[target]) adjBackward[target] = [];
+        adjForward[source].push(target);
+        adjBackward[target].push(source);
+
+        // Ensure nodes exist
+        if (!nodes[source]) nodes[source] = { id: source };
+        if (!nodes[target]) nodes[target] = { id: target };
+      }
+    });
+
+    // BFS helper
+    function bfs(start, adj) {
+      const visited = new Set();
+      const queue = [start];
+      while (queue.length) {
+        const node = queue.shift();
+        if (!visited.has(node)) {
+          visited.add(node);
+          (adj[node] || []).forEach((next) => {
+            if (!visited.has(next)) queue.push(next);
+          });
+        }
+      }
+      return visited;
+    }
+
+    // Collect upstream + downstream entities
+    const allHighlights = new Set();
+    if (highlightEntity) {
+      const upstream = bfs(highlightEntity, adjBackward);
+      const downstream = bfs(highlightEntity, adjForward);
+      [highlightEntity, ...upstream, ...downstream].forEach(item => allHighlights.add(item));
+    }
+
+    // Build edge labels
+    const edgeLabels = [];
+    graphData.edges.forEach((edge) => {
+      const source = getCategoryEntity(edge.source);
+      const target = getCategoryEntity(edge.target);
+      if (source && target && source !== target) {
+        const relationship = edge.label || "";
+        edgeLabels.push({ source, target, label: relationship });
+      }
+    });
+
+    const directon = graphData.direction === "vertical" ? "TD" : "LR";
+
+    // Gather detailed fields for the main highlightEntity only
+    const detailedFields = graphData.nodes
+      .filter(({ id }) => id.startsWith(`${highlightEntity}.`))
+      .map(({ id, name, type, value }) => {
+        const field = id.split('.').pop();
+        const fk = graphData.edges.find((edge) => edge.source === id)?.target || "Unknown";
+        const tp = fk === "Unknown" ? type : type + "|" + fk;
+        return { id: field, name: name, type: tp, value };
+      });
+
+    // Build DOT
+    let dot = `digraph "tt" {\n`;
+    dot += `  node [shape=plaintext margin=0]\n\n`;
+    dot += `  edge[arrowhead="open"]\n  tooltip=""\n  rankdir=${directon} \n overlap = scale \n splines = true \n`;
+
+    // Render nodes
+    Object.values(nodes).forEach(({ id: nodeId }) => {
+      const [category, entity] = nodeId.split('.');
+      const nodeClass = `graph_node_table ${allHighlights.has(nodeId) ? "highlight " : ""}${nodeId.replace(/\W/g, '_')}`;
+
+      if (nodeId === highlightEntity) {
+        // Main highlight → detailed fields
+        const label = createTableFields(category, entity, detailedFields);
+        dot += `  "${nodeId}" [label=<${label}> class="graph_node_table_with_fields highlight ${nodeId.replace(/\W/g, '_')}" ]\n`;
+      } else if (category.startsWith('[') && category.endsWith(']')) {
+        dot += `  "${nodeId}" [label="+" shape="circle" class="${nodeClass}" ]\n`;
+      } else {
+        // Upstream/downstream highlights
+        const label = createTableHeader(category, entity);
+        dot += `  "${nodeId}" [label=<${label}> class="${nodeClass}" ]\n`;
+      }
+    });
+
+    // Render edges
+    edgeLabels.forEach(({ source, target, label }) => {
+      const highlight = allHighlights.has(source) ? "highlight" : "";
+      dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label ${source.replace(/\W/g, '_')}_to_${target.replace(/\W/g, '_')} ${highlight}"]\n`;
+    });
+
+    dot += `}`;
+    return dot;
+  }
+
+  function getDownstream(graphData, startNodeId) {
+    // --- Helper to get category entity ---
+    function getCategoryEntity(id) {
+      const parts = id.split('.');
+      return parts.length >= 2 ? `${parts[0]}.${parts[1]}` : null;
+    }
+
+    // Build forward adjacency list
+    const adjForward = {};
+    graphData.edges.forEach((edge) => {
+      const source = getCategoryEntity(edge.source);
+      const target = getCategoryEntity(edge.target);
+      if (source && target) {
+        if (!adjForward[source]) adjForward[source] = [];
+        adjForward[source].push(target);
+      }
+    });
+
+    // BFS to collect downstream nodes
+    const visitedNodes = new Set();
+    const queue = [startNodeId];
+
+    while (queue.length) {
+      const node = queue.shift();
+      if (!visitedNodes.has(node)) {
+        visitedNodes.add(node);
+        (adjForward[node] || []).forEach((next) => {
+          if (!visitedNodes.has(next)) queue.push(next);
+        });
+      }
+    }
+
+    // Filter nodes and edges
+    const downstreamNodes = graphData.nodes
+      .map(n => getCategoryEntity(n.id))
+      .filter(n => n && visitedNodes.has(n));
+
+    const downstreamEdges = graphData.edges
+      .map(e => ({
+        source: getCategoryEntity(e.source),
+        target: getCategoryEntity(e.target),
+        label: e.label
+      }))
+      .filter(e => visitedNodes.has(e.source) && visitedNodes.has(e.target));
+
+    return {
+      nodes: new Set(downstreamNodes),
+      edges: new Set(downstreamEdges)
+    };
+  }
+
+  /**
+   * Toggle the "collapsed" class for all downstream nodes and edges.
+   * @param {Object} downstream - Object with `nodes` and `edges` arrays from getDownstream.
+   */
+  function toggleCollapsed(downstream) {
+    // Reset all nodes and edges first
+    document.querySelectorAll(`.node`).forEach(el => el.classList.remove('collapsed'));
+    document.querySelectorAll(`.edge`).forEach(el => el.classList.remove('collapsed'));
+
+    const { nodes, edges } = downstream;
+    // Toggle nodes
+    nodes.forEach((nodeId) => {
+      const nodeElements = document.querySelectorAll(`.${nodeId.replace(/\W/g, '_')}`);
+      nodeElements.forEach(el => el.classList.add('collapsed'));
+    });
+
+    // Toggle edges
+    edges.forEach(({ source, target }) => {
+      // Assuming edges have class names in the format "source_target"
+      const edgeElements = document.querySelectorAll(`.${source.replace(/\W/g, '_')}_to_${target.replace(/\W/g, '_')}`);
+      edgeElements.forEach(el => el.classList.add('collapsed'));
+    });
+  }
+
+
+  function createTableHeader(category, entity) {
+    return `<table border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"><tr><td width="100">${category}</td></tr><tr><td>${entity}</td></tr></table>`;
+  }
+
+  function createTableFields(category, entity, fields) {
+    const tableHeader = `<tr><td ><FONT >${category}</FONT></td></tr><tr><td ><FONT >${entity}</FONT></td></tr>`;
+
+    if (fields.length === 0) {
+      fields.push({ id: 'Id', name: "Name", type: 'String', value: 'Value' });
+    }
+    const fieldRows = fields
+      .map(
+        ({ id, name, type, value }) => {
+          let tgt = type;
+          let tt = type;
+          if (type.includes('|')) {
+            const t = type.split('|');
+            tt = t[0];
+            const target = t[1].split(".");
+            tgt = target[0] + "." + target[1];
+          }
+          return `<tr>
+            <td  PORT="${id}" ><FONT >${name} </FONT></td>
+            <td  ${type.includes('|') ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
+              ${type.includes('|') ? `<FONT >${tt}</FONT>` : `<FONT >${tt}</FONT>`}
+            </td>
+            <td  ${type.includes('|') ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
+               ${type.includes('|') ? `<FONT >${value}</FONT>` : `<FONT >${value}</FONT>`}
+            </td>
+          </tr>`
+        }
+      )
+      .join('');
+
+    return `<table bgcolor="aliceblue" color="coral" border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="0">
+              ${tableHeader}
+              <tr><td>
+                <table border="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" >
+                  ${fieldRows}
+                </table>
+              </td></tr>
+            </table>`;
+  }
+
+
+
+  //new shape
+  function shapeDetail(graphData) {
+
+
+    // Start building the DOT representation ranksep=0.3
+    let dot = `digraph "tt" {\n`;
+    dot += `  graph [rankdir=${graphData.graph.rankdir} label=${graphData.graph.title} labelloc=t]\n\n`;
+    dot += `  node [shape=${graphData.node.shape} width=0.2 height=0.2 margin=0 fontsize=8]\n\n`;
+    dot += `  edge[arrowhead="open"  fontsize=6]\n  tooltip=""\n   \n`;
+
+    // Add nodes
+    graphData.nodes.forEach(({ id, label }) => {
+      dot += `  "${id}" [xlabel=<${label ? label : id}> label="" class="graph_node"] \n`;
+    });
+
+    // Add edges with labels
+    graphData.edges.forEach(({ source, target, label }) => {
+      dot += `  "${source}" -> "${target}" [xlabel="${label}" ]\n`;
+    });
+
+    dot += `}`;
+    return dot;
+  }
+
+
+
+
   const fetchTable = async (table) => {
     const dot = oneDetail(globalGraphData, table);
     return dot;
@@ -504,6 +506,7 @@ function Graphite(props) {
     // const downstream = getDownstream(globalGraphData, parts);
     // toggleCollapsed(downstream);
   }
+
 
   const renderGraph = (dotSrc, skipPush) => {
 
