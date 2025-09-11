@@ -33,40 +33,40 @@ console.log("######### Graphite.js ######### ");
 
 function Graphite(props) {
   console.log("graph " + window.location.href)
-  
-//////////////////////////////////////////////////////////////////////////////////////////
-const eventListenersMap = new WeakMap();
-let elements = [];
 
-function trackEventListener(element, type, listener, options) {
-  if (!eventListenersMap.has(element)) {
-    eventListenersMap.set(element, []);
+  //////////////////////////////////////////////////////////////////////////////////////////
+  const eventListenersMap = new WeakMap();
+  let elements = [];
+
+  function trackEventListener(element, type, listener, options) {
+    if (!eventListenersMap.has(element)) {
+      eventListenersMap.set(element, []);
+    }
+    eventListenersMap.get(element).push({ type, listener, options });
+    element.addEventListener(type, listener, options);
+
+    elements.push(element)
   }
-  eventListenersMap.get(element).push({ type, listener, options });
-  element.addEventListener(type, listener, options);
-
-  elements.push(element)
-}
 
 
-function removeAllTrackedListeners() {
-  for (const obj of elements) {
-    removeTrackedListeners(obj);
+  function removeAllTrackedListeners() {
+    for (const obj of elements) {
+      removeTrackedListeners(obj);
+    }
+    elements = [];
   }
-  elements = [];
-}
 
-function removeTrackedListeners(element) {
-  const listeners = eventListenersMap.get(element) || [];
-  for (const { type, listener, options } of listeners) {
-    element.removeEventListener(type, listener, options);
+  function removeTrackedListeners(element) {
+    const listeners = eventListenersMap.get(element) || [];
+    for (const { type, listener, options } of listeners) {
+      element.removeEventListener(type, listener, options);
+    }
+    eventListenersMap.delete(element); // Completely remove the element's entry in the map
+
   }
-  eventListenersMap.delete(element); // Completely remove the element's entry in the map
 
-}
-
-// Example Usage
-let globalGraphData = null;
+  // Example Usage
+  let globalGraphData = null;
   const { id } = useParams();
   // Pick config source:
   const app = id;
@@ -211,73 +211,86 @@ let globalGraphData = null;
   const showApp = async () => {
 
     const nodeShape = globalGraphData.node ? globalGraphData.node.shape : null;
+    const allDetailFlag = globalGraphData.metadata ? globalGraphData.metadata.showDetails : null;
     let dot = null;
     if (nodeShape) {//new shape
       dot = shapeDetail(globalGraphData);
-    } else if(props.showDetails) {
+    } else if (allDetailFlag) {
       dot = allDetail(globalGraphData);
     } else {
       dot = oneDetail(globalGraphData, tableRef.current);
     }
     renderGraph(dot);
   }
+  // --- Common util ---
+  function getCategoryEntity(id) {
+    const parts = id.split('.');
+    return parts.length >= 2 ? `${parts[0]}.${parts[1]}` : null;
+  }
 
+  //all details
+  function allDetail(graphData) {
+    const directon = graphData.direction === "vertical" ? "TD" : "LR";
 
-//all details
-function allDetail(graphData) {
-  const directon = graphData.direction === "vertical" ? "TD" : "LR";
+    const edgeTemplate = (source, target, label) =>
+      `"${source}" -> "${target}" [label="${label}" tooltip="" ] [class="graph_label"]`;
 
-  const edgeTemplate = (source, target, label) =>
-    `"${source}" -> "${target}" [label="${label}" tooltip="" ] [class="graph_label"]`;
-
-  let dot = `digraph "tt" {
+    let dot = `digraph "tt" {
   node [shape=plaintext margin=0]
   edge[arrowhead="open"]
   tooltip=""
   rankdir=${directon}
 `;
 
-  const groupedNodes = {};
-  graphData.nodes.forEach((node) => {
-    const [category, entity, field] = node.id.split('.');
-    if (!groupedNodes[`${category}.${entity}`]) {
-      groupedNodes[`${category}.${entity}`] = [];
-    }
-    groupedNodes[`${category}.${entity}`].push({
-      id: field,
-      type: node.type,
-      value: node.value,
+    const nodes = {};
+    graphData.nodes.forEach((node) => {
+      const categoryEntity = getCategoryEntity(node.id);
+      if (!nodes[categoryEntity]) {
+        nodes[categoryEntity] = [];
+      }
+      nodes[categoryEntity].push({
+        id: node.id.split('.').pop(),
+        type: node.type,
+        value: node.value,
+      });
+
     });
-  });
+    graphData.edges.forEach((edge) => {
+      const source = getCategoryEntity(edge.source);
+      const target = getCategoryEntity(edge.target);
+      if (source && target) {
+        // Ensure nodes exist
+        if (!nodes[source]) nodes[source]=[{ id: source,
+        type: "node.type",
+        value: "node.value", }];
+        if (!nodes[target]) nodes[target]=[{ id: target,
+        type: "node.type",
+        value: "node.value", }];
+      }
+    });
 
-  Object.entries(groupedNodes).forEach(([nodeId, fields]) => {
-    const [category, entity] = nodeId.split('.');
-    const nodeLabel = createTableFields(category, entity, fields);
-    dot += `  "${nodeId}" [label=<${nodeLabel}>] [class="graph_node_table_with_fields"]\n`;
-  });
+    // Render nodes
+    Object.entries(nodes).forEach(([nodeId, fields]) => {
+      const [category, entity] = nodeId.split('.');
+      const nodeLabel = createTableFields(category, entity, fields);
+      dot += `  "${nodeId}" [label=<${nodeLabel}>] [class="graph_node_table_with_fields"]\n`;
+    });
 
-  const getNodePrefix = (id) => {
-    const parts = id.split('.');
-    return `${parts[0]}.${parts[1]}`; // Extract the `category.entity` prefix.
-  };
 
-  graphData.edges.forEach((edge) => {
-    const sourceNode = getNodePrefix(edge.source);
-    const targetNode = getNodePrefix(edge.target);
-    dot += `  ${edgeTemplate(sourceNode, targetNode, edge.label)}\n`;
-  });
+    // Render edges
+    graphData.edges.forEach((edge) => {
+      const sourceNode = getCategoryEntity(edge.source);
+      const targetNode = getCategoryEntity(edge.target);
+      dot += `  ${edgeTemplate(sourceNode, targetNode, edge.label)}\n`;
+    });
 
-  dot += `}`;
-  return dot;
-}
+    dot += `}`;
+    return dot;
+  }
 
 
   function oneDetail(graphData, highlightEntity) {
-    // --- Common util ---
-    function getCategoryEntity(id) {
-      const parts = id.split('.');
-      return parts.length >= 2 ? `${parts[0]}.${parts[1]}` : null;
-    }
+
 
     // Build nodes dictionary from edges + nodes
     const nodes = {};
