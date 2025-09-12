@@ -232,8 +232,6 @@ function Graphite(props) {
   function allDetail(graphData) {
     const directon = graphData.direction === "vertical" ? "TD" : "LR";
 
-    const edgeTemplate = (source, target, label) =>
-      `"${source}" -> "${target}" [label="${label}" tooltip="" ] [class="graph_label"]`;
 
     let dot = `digraph "tt" {
   node [shape=plaintext margin=0]
@@ -281,7 +279,8 @@ function Graphite(props) {
     graphData.edges.forEach((edge) => {
       const sourceNode = getCategoryEntity(edge.source);
       const targetNode = getCategoryEntity(edge.target);
-      dot += `  ${edgeTemplate(sourceNode, targetNode, edge.label)}\n`;
+      //dot += `  "${sourceNode}":"OUT_${edge.source}" -> "${targetNode}":"IN_${edge.target}" [label="${edge.label}" tooltip="" ] [class="graph_label"] \n`;
+      dot += `  "${sourceNode}" -> "${targetNode}" [label="${edge.label}" tooltip="" ] [class="graph_label"] \n`;
     });
 
     dot += `}`;
@@ -497,11 +496,11 @@ function Graphite(props) {
             tgt = target[0] + "." + target[1];
           }
           return `<tr>
-            <td  PORT="${id}" ><FONT >${name || id} </FONT></td>
+            <td  PORT="IN_${category}.${entity}.${id}" ><FONT >${name || id} </FONT></td>
             <td  ${type.includes('|') ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
               ${type.includes('|') ? `<FONT >${tt}</FONT>` : `<FONT >${tt}</FONT>`}
             </td>
-            <td  ${type.includes('|') ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
+            <td  PORT="OUT_${category}.${entity}.${id}" ${type.includes('|') ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
                ${type.includes('|') ? `<FONT >${value}</FONT>` : `<FONT >${value}</FONT>`}
             </td>
           </tr>`
@@ -512,7 +511,7 @@ function Graphite(props) {
     return `<table bgcolor="aliceblue" color="coral" border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="0">
               ${tableHeader}
               <tr><td>
-                <table border="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" >
+                <table border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" >
                   ${fieldRows}
                 </table>
               </td></tr>
