@@ -752,7 +752,9 @@ function Graphite(props) {
         <div className={"graphCanvas"} ></div>
         <Stack id="graphDownload"
           className='graphToolbar'
-          direction="row">
+          direction="row"><div style={{ padding: '2px' }}>
+
+          
           {/*
                  <IconButton color="primary" aria-label="add to shopping cart" onClick={fullScreen} >
                     {fullScreenState ? <FullscreenExitIcon /> : <FullscreenIcon />}
@@ -763,7 +765,7 @@ function Graphite(props) {
           <IconButton onClick={nextGraph} disabled={lastGraph}><RedoIcon /></IconButton>
           {/* <IconButton onClick={downloadGraph}><DownloadIcon /></IconButton> */}
           <IconButton onClick={() => setOpenEditor(true)}><DataObjectIcon /></IconButton>
-
+</div>
         </Stack>
         <Dialog
           open={openEditor}
