@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Graphite } from "./pages/Graphite";
 import "./App.css"
 import "./pages/Graphite.css"
-import {convertJsonToGraph} from "./funcs/json-graph";
+import { convertJsonToGraph } from "./funcs/json-graph";
 import Editor from "@monaco-editor/react";
+import { useMediaQuery } from "@mui/material";
+import type { OnMount } from "@monaco-editor/react";
 
 
 
@@ -85,12 +87,14 @@ const initialJson = `
 ]
 `.trim();
 function App() {
+  console.log("--------- App render ");
   const [rawJson, setRawJson] = useState(initialJson); // rawJson as state
   const [graphJson, setGraphJson] = useState(() =>
     JSON.stringify(convertJsonToGraph(JSON.parse(initialJson), true, ["orderId"]), null, 2)
   );
   const [dividerX, setDividerX] = useState(40); // left panel width in %
   const [isDragging, setIsDragging] = useState(false);
+  const editorRef = useRef<any>(null);
 
 
   const handleMouseDown = () => setIsDragging(true);
@@ -105,17 +109,24 @@ function App() {
   };
   // handle JSON editor changes
   const handleEditorChange = (value: string | undefined) => {
+    console.log("Editor changed");
     if (!value) return;
     setRawJson(value);
 
     // try updating graph only if JSON is valid
     try {
       const parsed = JSON.parse(value);
-      const updatedGraph = convertJsonToGraph(parsed);
-      setGraphJson(JSON.stringify(updatedGraph));
+      const updatedGraph = convertJsonToGraph(parsed, true, ["orderId"]);
+      const graphJson = JSON.stringify(updatedGraph, null, 2);
+      setGraphJson(graphJson);
+      console.log("Graph updated ");
     } catch (err) {
       // invalid JSON, ignore for now
     }
+  };
+  const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
+  const handleEditorMount: OnMount = (editor) => {
+    editorRef.current = editor;
   };
   useEffect(() => {
     window.addEventListener("mousemove", handleMouseMove);
@@ -136,7 +147,17 @@ function App() {
           defaultLanguage="json"
           value={rawJson}
           onChange={handleEditorChange}
-          options={{ minimap: { enabled: false } }}
+          onMount={handleEditorMount}
+          theme={prefersDarkMode ? "vs-dark" : "light"}
+          options={{
+            scrollbar: {
+              vertical: "auto",      // "auto" | "visible" | "hidden"
+              horizontal: "auto",
+              verticalScrollbarSize: 4, // <-- width of vertical scrollbar (px)
+              horizontalScrollbarSize: 4, // <-- height of horizontal scrollbar (px)
+              arrowSize: 12,             // optional, size of arrows
+            }
+          }}
         />
       </div>
       {/* Divider */}

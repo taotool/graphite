@@ -657,7 +657,7 @@ function Graphite(props) {
           // showDoc('graph rendering ended');
         });
 
-    }
+    }//end of if graphCanvas
   }
 
 

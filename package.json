@@ -27,7 +27,7 @@
     "preview": "vite preview",
     "predeploy": "npm run build:static",
     "deploy": "gh-pages -d gh-pages",
-    "build": "vite build",
+    "build": "tsc -b && vite build",
     "prepublishOnly": "npm run build",
     "prepack": "npm run build"
   },

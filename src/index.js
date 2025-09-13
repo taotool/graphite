@@ -12,4 +12,4 @@ With an index.js, they can just:
 
 import { MyComponent } from "my-lib";
 */
-export { default as Graphite } from "./pages/Graphite";
+export { Graphite } from "./pages/Graphite";
