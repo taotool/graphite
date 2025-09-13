@@ -18,7 +18,7 @@ interface Graph {
   edges: GraphEdge[];
 }
 
-export function convertJsonToGraph(jsonObj: Record<string, any>, separateNodeForArray = true, linkedFields=[""]): Graph {
+export function convertJsonToGraph(jsonObj: Record<string, any>, separateNodeForArray = true, linkedFields=[[""]]): Graph {
   const result: Graph = { metadata: {}, nodes: [], edges: [] };
 
   function makeNode(entity: string, entityId: string, id: string, type: string, value: string) {
@@ -117,53 +117,70 @@ export function convertJsonToGraph(jsonObj: Record<string, any>, separateNodeFor
       }
     }
   }
-  /**
-   * Connect nodes with the same value, restricted to certain field names.
-   * @param graph Input graph
-   * @param fieldsToCheck Array of field names to check (e.g., ["orderId", "productId"])
-   * @returns A new graph with edges added for duplicates
-   */
-  function connectNodesWithSameValue(
-    graph: Graph,
-    fieldsToCheck: string[]
-  ): Graph {
-    const { nodes, edges } = graph;
+/**
+ * Connect nodes with the same value, restricted to certain field groups.
+ * Field groups allow treating multiple field names as equivalent (e.g., ["orderId", "order_id"]).
+ *
+ * @param graph Input graph
+ * @param fieldGroups Array of field groups, each being a list of equivalent field names
+ * @returns A new graph with edges added for duplicates
+ */
+function connectNodesWithSameValue(
+  graph: Graph,
+  fieldGroups: string[][]
+): Graph {
+  const { nodes, edges } = graph;
 
-    // Map from value -> array of node ids (only for selected fields)
-    const valueMap = new Map<string, string[]>();
-
-    for (const node of nodes) {
-      if (!node.value) continue;
-
-      // Only check if node.name (or id) matches one of the fields
-      if (fieldsToCheck.includes(node.name.replace("-n", ""))) {
-        if (!valueMap.has(node.value)) {
-          valueMap.set(node.value, []);
-        }
-        valueMap.get(node.value)!.push(node.id);
-      }
+  // Normalize groups into a lookup: fieldName -> groupId
+  const fieldToGroup = new Map<string, number>();
+  fieldGroups.forEach((group, idx) => {
+    for (const field of group) {
+      fieldToGroup.set(field, idx);
     }
+  });
 
-    // Create new edges for nodes that share the same value
-    const newEdges: GraphEdge[] = [];
-    for (const [value, ids] of valueMap.entries()) {
-      if (ids.length > 1) {
-        const [first, ...rest] = ids;
-        for (const other of rest) {
-          newEdges.push({
-            source: first,
-            target: other,
-            label: `Link: ${value}`
-          });
-        }
+  // Map: groupId + value -> node ids
+  const valueMap = new Map<string, string[]>();
+
+  for (const node of nodes) {
+    if (!node.value) continue;
+
+    const fieldName = node.id.split(".")[2];
+    const groupId = fieldToGroup.get(fieldName);
+
+    if (groupId !== undefined) {
+      const key = `${groupId}::${node.value}`;
+      if (!valueMap.has(key)) {
+        valueMap.set(key, []);
       }
+      valueMap.get(key)!.push(node.id);
     }
-
-    return {
-      ...graph,
-      edges: [...edges, ...newEdges],
-    };
   }
+
+  // Create new edges for nodes that share the same value in the same field group
+  const newEdges: GraphEdge[] = [];
+  for (const [key, ids] of valueMap.entries()) {
+    if (ids.length > 1) {
+      const [first, ...rest] = ids;
+      const value = key.split("::")[1];
+      for (const other of rest) {
+
+        newEdges.push({
+          source: first,
+          target: other,
+          label: `L:${value}`,
+        });
+      }
+    }
+  }
+
+  return {
+    ...graph,
+    edges: [...edges, ...newEdges],
+  };
+}
+
+  
   // entry point: assume root objects are entities
   for (const [rootKey, rootVal] of Object.entries(jsonObj)) {
     const entity = rootKey.toUpperCase();

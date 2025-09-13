@@ -88,7 +88,7 @@ const initialJson = `
 `.trim();
 function App() {
   console.log("--------- App render ");
-  const keys = ["seller_id", "item_id", "order_id", "buyer_id", "orderId"]
+  const keys = [["seller_id"], ["item_id"], ["order_id", "orderId"], ["buyerId","buyer_id"]]
   const [rawJson, setRawJson] = useState(initialJson); // rawJson as state
   const [graphJson, setGraphJson] = useState(() =>
     JSON.stringify(convertJsonToGraph(JSON.parse(initialJson), true, keys), null, 2)
