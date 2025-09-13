@@ -153,7 +153,7 @@ export function convertJsonToGraph(jsonObj: Record<string, any>, separateNodeFor
           newEdges.push({
             source: first,
             target: other,
-            label: `same value: ${value}`
+            label: `Link: ${value}`
           });
         }
       }

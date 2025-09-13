@@ -378,7 +378,7 @@ export const Graphite: React.FC<GraphiteProps> = (props) => {
 
     const fetchTable = async (table: string) => {
         //lazy load table data
-        const dot = oneDetail(graphData.current, table);
+        const dot = oneDetail(graphDataRef.current, table);
         return dot;
     }
 

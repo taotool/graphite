@@ -88,9 +88,10 @@ const initialJson = `
 `.trim();
 function App() {
   console.log("--------- App render ");
+  const keys = ["seller_id", "item_id", "order_id", "buyer_id", "orderId"]
   const [rawJson, setRawJson] = useState(initialJson); // rawJson as state
   const [graphJson, setGraphJson] = useState(() =>
-    JSON.stringify(convertJsonToGraph(JSON.parse(initialJson), true, ["orderId"]), null, 2)
+    JSON.stringify(convertJsonToGraph(JSON.parse(initialJson), true, keys), null, 2)
   );
   const [dividerX, setDividerX] = useState(40); // left panel width in %
   const [isDragging, setIsDragging] = useState(false);
@@ -116,7 +117,7 @@ function App() {
     // try updating graph only if JSON is valid
     try {
       const parsed = JSON.parse(value);
-      const updatedGraph = convertJsonToGraph(parsed, true, ["orderId"]);
+      const updatedGraph = convertJsonToGraph(parsed, true, keys);
       const graphJson = JSON.stringify(updatedGraph, null, 2);
       setGraphJson(graphJson);
       console.log("Graph updated ");
