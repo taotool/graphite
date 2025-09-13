@@ -1,16 +1,24 @@
-{
-  "compilerOptions": {
-    "allowJs": true,                  // Allow JavaScript files to be compiled
-    "declaration": true,              // Generate .d.ts files for JS files
-    "emitDeclarationOnly": true,      // Only emit .d.ts files, not compiled JS
-    "declarationDir": "./dist/types", // Output directory for .d.ts files
-    "jsx": "react",                   // Specify JSX factory for React projects
-    "moduleResolution": "node",       // Correctly resolve modules
-    "lib": ["es2017", "dom"],          // Add DOM and ES library features
-        "skipLibCheck": true // Add this line
+// {
+//   "compilerOptions": {
+//     "allowJs": true,                  // Allow JavaScript files to be compiled
+//     "declaration": true,              // Generate .d.ts files for JS files
+//     "emitDeclarationOnly": true,      // Only emit .d.ts files, not compiled JS
+//     "declarationDir": "./dist/types", // Output directory for .d.ts files
+//     "jsx": "react",                   // Specify JSX factory for React projects
+//     "moduleResolution": "node",       // Correctly resolve modules
+//     "lib": ["es2017", "dom"],          // Add DOM and ES library features
+//         "skipLibCheck": true // Add this line
 
-  },
-  "include": [
-    "src/**/*"                        // Include all files in your source directory
+//   },
+//   "include": [
+//     "src/**/*"                        // Include all files in your source directory
+//   ]
+// }
+
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
   ]
 }

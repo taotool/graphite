@@ -27,11 +27,9 @@
     "preview": "vite preview",
     "predeploy": "npm run build:static",
     "deploy": "gh-pages -d gh-pages",
-    
     "build": "vite build",
     "prepublishOnly": "npm run build",
-
-    "prepack":"npm run build"
+    "prepack": "npm run build"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -54,6 +52,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
+    "@types/d3": "^7.4.3",
+    "@types/d3-graphviz": "^2.6.10",
     "@types/node": "^24.3.0",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
