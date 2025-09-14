@@ -1,10 +1,10 @@
-import { JsonGraph } from "./pages/JsonGraph";
+import { JsonGraphite } from "./pages/JsonGraphite";
 import "./App.css"
 import "./pages/Graphite.css"
 
 
 
-const initialJson = `
+const jsonString = `
 [
   {
     "user": {
@@ -84,10 +84,12 @@ const initialJson = `
 function App() {
   return (
     <div style={{ display: "flex", height: "90vh", width: "96vw" }} >
-      <JsonGraph jsonString={initialJson} 
-      options={{
-          "arr":true, 
-          "keys":[["seller_id"], ["item_id"], ["order_id", "orderId"], ["buyerId","buyer_id"]]}} />
+      <JsonGraphite
+        jsonString={jsonString}
+        options={{
+          "arr": true,
+          "keys": [["seller_id"], ["item_id"], ["order_id", "orderId"], ["buyerId", "buyer_id"]]
+        }} />
     </div>
   );
 }

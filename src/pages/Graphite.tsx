@@ -154,11 +154,11 @@ export const Graphite: React.FC<GraphiteProps> = (props) => {
                     tgt = target[0] + "." + target[1];
                 }
                 return `<tr>
-            <td ALIGN="LEFT" PORT="IN_${category}.${entity}.${id}" ><FONT >${name || id} </FONT></td>
-            <td ALIGN="LEFT">
+            <td ALIGN="LEFT" width="10" PORT="IN_${category}.${entity}.${id}" ><FONT >${name || id} </FONT></td>
+            <td ALIGN="LEFT" width="10">
               ${tt}
             </td>
-            <td ALIGN="LEFT" PORT="OUT_${category}.${entity}.${id}" ${type.includes('|') ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
+            <td BALIGN="LEFT" PORT="OUT_${category}.${entity}.${id}" ${type.includes('|') ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
                ${type.includes('|') ? `<FONT >${value}</FONT>` : `<FONT >${value}</FONT>`}
             </td>
           </tr>`;
@@ -172,7 +172,7 @@ export const Graphite: React.FC<GraphiteProps> = (props) => {
                 </table>
               </td></tr>
             </table>`;
-    };
+    }
 
     // ------------------ Graph Load ------------------
 
@@ -411,7 +411,7 @@ export const Graphite: React.FC<GraphiteProps> = (props) => {
             dot = oneDetail(gd, tableRef.current);
         }
         renderGraph(dot);
-    };
+    }
 
     // ------------------ Graph Rendering ------------------
 
@@ -433,7 +433,7 @@ export const Graphite: React.FC<GraphiteProps> = (props) => {
             .graphviz({ useWorker: false, engine: 'dot' })
             .transition(function () {
                 return d3.transition()
-                    .duration(300);
+                    .duration(200);
             })
             .fit(true)
             .zoom(true)//disable d3 graphviz zoom, to make svgPanZoom work
@@ -514,7 +514,7 @@ export const Graphite: React.FC<GraphiteProps> = (props) => {
                 // showDoc('graph rendering ended');
                 console.log("Graph rendered.");
             });
-    };
+    }
 
     const prevGraph = () => {
         if (graphIndexRef.current > 0) {

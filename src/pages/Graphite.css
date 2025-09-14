@@ -6,20 +6,22 @@
   --font-color: white;
   --back-color-highlight: rgba(191, 187, 124, 0.207);
   --font-color-highlight: rgb(255, 98, 0);
+  --border-color: #4f4f4f;
 }
 
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
     background-color: white;
-
     --back-color: white;
     --font-color: black;
     --back-color-highlight: cornsilk;
     --font-color-highlight: rgb(255, 98, 0);
+    --border-color: #f0f0f0;
   }
 
 }
+
 .graphToolbar {
   position: absolute;
   top: 0px;
@@ -30,6 +32,7 @@
   display: 'flex';
   direction: 'column';
 }
+
 /*
 css notes:
 1. parent block (default), children height=100%
@@ -125,12 +128,15 @@ css notes:
   stroke: var(--font-color);
   /*table and edge text 这个会让graph_node_table:hover 没用*/
 }
+
 .graphCanvas svg g .graph_node_table ellipse {
   stroke: var(--font-color);
 }
+
 .graphCanvas svg g .graph_node_table path {
   stroke: var(--font-color);
 }
+
 .graphCanvas svg g .graph_node_table {
   fill: var(--font-color);
   /*table and edge text */
@@ -231,4 +237,8 @@ css notes:
 }
 
 
-.collapsed { color: transparent; fontcolor: transparent; opacity: 0.1; }
+.collapsed {
+  color: transparent;
+  fontcolor: transparent;
+  opacity: 0.1;
+}
