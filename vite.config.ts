@@ -19,8 +19,8 @@ return {
       plugins: [react(),
             dts({
               entryRoot: "src",
-              outDir: "dist/types",
-              // insertTypesEntry: true, 
+              outDir: "dist/types", // second
+              insertTypesEntry: true, 
               include: ["src/**/*.ts", "src/**/*.tsx"],
             })
       ],
