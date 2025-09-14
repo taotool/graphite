@@ -25,7 +25,7 @@
 // })
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-// import dts from 'vite-plugin-dts';
+import dts from 'vite-plugin-dts';
 
 export default defineConfig(({ mode }) => {
   if (mode === "static") {
@@ -41,14 +41,15 @@ export default defineConfig(({ mode }) => {
   }
 return {
       plugins: [react(),
-            // dts({
-            //   // Optional: specify where to output the .d.ts files
-            //   outDir: 'dist/types'
-            // })
+            dts({
+              // Optional: specify where to output the .d.ts files
+              outDir: 'dist/types',
+              include: ["src/**/*.ts", "src/**/*.tsx"], // only src files
+            })
       ],
       build: {
         lib: {
-          entry: "src/index.js",
+          entry: "src/index.ts",
           name: "Graphite",
           fileName: (format) => `graphite.${format}.js`
         },

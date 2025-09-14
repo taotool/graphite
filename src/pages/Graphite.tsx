@@ -48,8 +48,7 @@ interface GraphData {
     nodes: GraphNode[];
     edges: GraphEdge[];
 }
-
-interface GraphiteProps {
+export interface GraphiteProps {
     jsonString?: string;
 }
 
@@ -155,11 +154,11 @@ export const Graphite: React.FC<GraphiteProps> = (props) => {
                     tgt = target[0] + "." + target[1];
                 }
                 return `<tr>
-            <td  PORT="IN_${category}.${entity}.${id}" ><FONT >${name || id} </FONT></td>
-            <td >
+            <td ALIGN="LEFT" PORT="IN_${category}.${entity}.${id}" ><FONT >${name || id} </FONT></td>
+            <td ALIGN="LEFT">
               ${tt}
             </td>
-            <td  PORT="OUT_${category}.${entity}.${id}" ${type.includes('|') ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
+            <td ALIGN="LEFT" PORT="OUT_${category}.${entity}.${id}" ${type.includes('|') ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
                ${type.includes('|') ? `<FONT >${value}</FONT>` : `<FONT >${value}</FONT>`}
             </td>
           </tr>`;
