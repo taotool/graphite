@@ -20,7 +20,7 @@ return {
             dts({
               entryRoot: "src",
               outDir: "dist/types",
-              insertTypesEntry: true, 
+              // insertTypesEntry: true, 
               include: ["src/**/*.ts", "src/**/*.tsx"],
             })
       ],
@@ -30,6 +30,8 @@ return {
           name: "Graphite",
           fileName: (format) => `graphite.${format}.js`
         },
+            emptyOutDir: false,  // do not delete 'dist' on build
+
         rollupOptions: {
           external: ["react", "react-dom"],
           output: {
