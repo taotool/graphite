@@ -12,5 +12,8 @@ With an index.ts, they can just:
 
 import { MyComponent } from "my-lib";
 */
+
+export type { GraphiteProps } from "./pages/Graphite";
 export { Graphite } from "./pages/Graphite";
+
 export { JsonGraph } from "./pages/JsonGraph";
