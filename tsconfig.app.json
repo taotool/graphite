@@ -11,7 +11,7 @@
     "emitDeclarationOnly": true,    // only output .d.ts, no .js
     // "composite": true,               // required if using project references
     "rootDir": "./src",
-"outDir": "dist/types",//in order to generate types/.d.ts first
+    "outDir": "dist/types",//in order to generate types/.d.ts first. DO NOT comment out this, otherwise .d.ts will be generated inside src
 
     /* Bundler mode */
     "moduleResolution": "bundler",
