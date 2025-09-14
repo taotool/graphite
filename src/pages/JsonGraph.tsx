@@ -5,7 +5,10 @@ import Editor from "@monaco-editor/react";
 import { useMediaQuery } from "@mui/material";
 import type { OnMount } from "@monaco-editor/react";
 
-
+export interface JsonGraphProps {
+    jsonString: string;
+    options: Record<string, any>
+}
 interface GraphNode {
   id: string;
   name: string;
@@ -47,7 +50,7 @@ export function convertJsonToGraph(jsonObj: Record<string, any>, separateNodeFor
         makeNode(entity, entityId, key, typeof value, String(value));
       } else if (Array.isArray(value)) {
         // array of objects
-        const tp = key[0].toUpperCase() + key.slice(1);
+        const tp = key;
         if (!root) {// for root level, no node
           makeNode(entity, entityId, tp, `[${tp}]`, "[{...}]");
         }
@@ -103,7 +106,7 @@ export function convertJsonToGraph(jsonObj: Record<string, any>, separateNodeFor
         });
       } else if (typeof value === "object") {
         // nested object
-        const tp = key[0].toUpperCase() + key.slice(1);
+        const tp = key;
         if (!root) {
           makeNode(entity, entityId, key, tp, "{...}");
         }
@@ -206,13 +209,13 @@ function connectNodesWithSameValue(
   const updatedGraph = connectNodesWithSameValue(result, linkedFields);
   return updatedGraph;
 }
-export const JsonGraph: React.FC<any> = (props) => {
+export const JsonGraph: React.FC<JsonGraphProps> = (props) => {
 
   console.log("--------- JsonGraph render ");
-  const keys = [["seller_id"], ["item_id"], ["order_id", "orderId"], ["buyerId","buyer_id"]]
-  const [rawJson, setRawJson] = useState(props.json); // rawJson as state
+  // const keys = [["seller_id"], ["item_id"], ["order_id", "orderId"], ["buyerId","buyer_id"]]
+  const [rawJson, setRawJson] = useState(props.jsonString); // rawJson as state
   const [graphJson, setGraphJson] = useState(() =>
-    JSON.stringify(convertJsonToGraph(JSON.parse(props.json), true, keys), null, 2)
+    JSON.stringify(convertJsonToGraph(JSON.parse(props.jsonString), props.options.arr, props.options.keys), null, 2)
   );
   const [dividerX, setDividerX] = useState(40); // left panel width in %
   const [isDragging, setIsDragging] = useState(false);
@@ -238,7 +241,7 @@ export const JsonGraph: React.FC<any> = (props) => {
     // try updating graph only if JSON is valid
     try {
       const parsed = JSON.parse(value);
-      const updatedGraph = convertJsonToGraph(parsed, true, keys);
+      const updatedGraph = convertJsonToGraph(parsed, props.options.arr, props.options.keys);
       const graphJson = JSON.stringify(updatedGraph, null, 2);
       setGraphJson(graphJson);
       console.log("Graph updated ");

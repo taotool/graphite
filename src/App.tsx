@@ -84,7 +84,10 @@ const initialJson = `
 function App() {
   return (
     <div style={{ display: "flex", height: "90vh", width: "96vw" }} >
-      <JsonGraph json={initialJson}/>
+      <JsonGraph jsonString={initialJson} 
+      options={{
+          "arr":true, 
+          "keys":[["seller_id"], ["item_id"], ["order_id", "orderId"], ["buyerId","buyer_id"]]}} />
     </div>
   );
 }

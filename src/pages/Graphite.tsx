@@ -314,6 +314,7 @@ export const Graphite: React.FC<GraphiteProps> = (props) => {
                     .filter(({ id }) => id.startsWith(`${highlightEntity}.`))
                     .map(({ id, name, type, value }) => {
                         const field = id.split(".").pop()!;
+                        console.log("check fk for "+id);
                         const fk = gd.edges.find((e) => e.source === id)?.target || "Unknown";
                         const tp = fk === "Unknown" ? type : `${type}|${fk}`;
                         return { id: field, name, type: tp, value };
