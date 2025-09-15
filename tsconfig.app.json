@@ -11,7 +11,10 @@
     "emitDeclarationOnly": true,    // only output .d.ts, no .js
     // "composite": true,               // required if using project references
     "rootDir": "./src",
-    "outDir": "dist/types",//in order to generate types/.d.ts first. DO NOT comment out this, otherwise .d.ts will be generated inside src
+    "outDir": "./dist",//in order to generate types/.d.ts first. DO NOT comment out this, otherwise .d.ts will be generated inside src
+    //./dist/types -- both: will be in dist/types only
+    // .dist and ./dist/types: will be in dist
+    //actually, even vite.config.ts is commented out, still ok
 
     /* Bundler mode */
     "moduleResolution": "bundler",

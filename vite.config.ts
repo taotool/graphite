@@ -1,7 +1,7 @@
 
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import dts from 'vite-plugin-dts';
+// import dts from 'vite-plugin-dts';
 
 export default defineConfig(({ mode }) => {
   if (mode === "static") {
@@ -17,12 +17,12 @@ export default defineConfig(({ mode }) => {
   }
 return {
       plugins: [react(),
-            dts({
-              entryRoot: "src",
-              outDir: "dist/types", // second
-              insertTypesEntry: true, 
-              include: ["src/**/*.ts", "src/**/*.tsx"],
-            })
+            // dts({
+            //   entryRoot: "src",
+            //   // outDir: "dist/types", // second
+            //   insertTypesEntry: true, 
+            //   include: ["src/**/*.ts", "src/**/*.tsx"],
+            // })
       ],
       build: {
         lib: {

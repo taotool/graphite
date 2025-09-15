@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Graphite } from "./Graphite";
 import "./Graphite.css"
 import Editor from "@monaco-editor/react";
@@ -306,4 +306,3 @@ export const JsonGraphite: React.FC<JsonGraphiteProps> = (props) => {
   );
 }
 
-export default JsonGraphite;

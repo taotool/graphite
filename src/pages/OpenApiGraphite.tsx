@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 
 import "reactflow/dist/style.css";
 import yaml from "js-yaml";
-import { Graphite} from "graphite";
+import { Graphite } from "./Graphite";
 
 interface GraphNode {
   id: string;

@@ -6,15 +6,15 @@
     "graphite": "bin/start.js"
   },
   "main": "./dist/graphite.umd.js",
-  "types": "./dist/types/index.d.ts",
+  "types": "./dist/index.d.ts",
   "module": "./dist/graphite.es.js",
   "exports": {
     ".": {
-      "types": "./dist/types/index.d.ts",
+      "types": "./dist/index.d.ts",
       "import": "./dist/graphite.es.js",
       "require": "./dist/graphite.umd.js"
     },
-    "./dist/graphite.css": "./dist/graphite.css"
+    "./graphite.css": "./dist/graphite.css"
   },
   "files": [
     "dist",
