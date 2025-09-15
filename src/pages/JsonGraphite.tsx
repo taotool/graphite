@@ -52,7 +52,7 @@ export const JsonGraphite: React.FC<JsonGraphiteProps> = (props) => {
       });
     }
 
-    function processEntity(entity: string, entityId: string, obj: Record<string, any>, root = false) {
+    function processEntity(entity: string, entityId: string, obj: Record<string, any>) {
 
       for (const [key, value] of Object.entries(obj)) {
         if (value === null || value === undefined) continue;
@@ -63,27 +63,36 @@ export const JsonGraphite: React.FC<JsonGraphiteProps> = (props) => {
         } else if (Array.isArray(value)) {
           // array of objects
           const tp = key;
-          if (!root) {// for root level, no node
-            makeNode(entity, entityId, tp, `[${tp}]`, "[...]");
-          }
+
+          makeNode(entity, entityId, tp, `[${tp}]`, "[...]");
+
           if (separateNodeForArray) {
             // create an edge from parent entity to the array field
             let linkedToArray = false;
             value.forEach((item, idx) => {
-              const childEntity = key.toUpperCase(); // e.g. addresses -> ADDRESS
+              const childEntity = key.toUpperCase();
               const childId = item.id || `${childEntity}[${idx}]`;
-              if (!root) {// for root level, no edge from outside
-                makeNode(`[${childEntity}]`, entityId, childId, `[${childId}]`, "[...]");//array item node
+              let v = "";
+              if (typeof item !== "object" || (Array.isArray(item) === false && typeof item !== "object")) {
+                v = String(item);
+              } else if (Array.isArray(item)) {
+                v = "[...]";
+              } else if (typeof item === "object") {
+                v = "{...}";
+              } else {
+                v = "???";
               }
+              makeNode(`[${childEntity}]`, entityId, childId, typeof item, v);//array item node
+
               // PARENT -> ARRAY
               if (!linkedToArray) {
-                if (!root) {// for root level, no edge from outside
-                  result.edges.push({
-                    source: `${entity}.${entityId}.${tp}`,
-                    target: `[${childEntity}].${entityId}.${childId}`,
-                    label: "has"
-                  });
-                }
+
+                result.edges.push({
+                  source: `${entity}.${entityId}.${tp}`,
+                  target: `[${childEntity}].${entityId}.${childId}`,
+                  label: "has"
+                });
+
                 linkedToArray = true;
               }
             });
@@ -95,42 +104,42 @@ export const JsonGraphite: React.FC<JsonGraphiteProps> = (props) => {
             const childId = item.id || `${childEntity}[${idx}]`;
 
             if (separateNodeForArray) {
-              if (!root) {// for root level, no edge from outside
-                // ARRAY -> ITEM
-                result.edges.push({
-                  source: `[${childEntity}].${entityId}.${childId}`,
-                  target: `${childEntity}.${childId}.id`,
-                  label: "contains"
-                });
-              }
+
+              // ARRAY -> ITEM
+              result.edges.push({
+                source: `[${childEntity}].${entityId}.${childId}`,
+                target: `${childEntity}.${childId}.id`,
+                label: "contains"
+              });
+
               processEntity(childEntity, childId, item);
 
             } else {
-              if (!root) {// for root level, no edge from outside
-                result.edges.push({
-                  source: `${entity}.${entityId}.${key}`,
-                  target: `${childEntity}.${childId}.id`,
-                  label: "has"
-                });
-              }
+
+              result.edges.push({
+                source: `${entity}.${entityId}.${key}`,
+                target: `${childEntity}.${childId}.id`,
+                label: "has"
+              });
+
               processEntity(childEntity, childId, item);
             }
           });
         } else if (typeof value === "object") {
           // nested object
           const tp = key;
-          if (!root) {
-            makeNode(entity, entityId, key, tp, "{...}");
-          }
+
+          makeNode(entity, entityId, key, tp, "{...}");
+
           const childEntity = key.toUpperCase();
           const childId = value.id || `${tp}Id`;//  if no id
-          if (!root) {// for root level, no edge from outside
-            result.edges.push({
-              source: `${entity}.${entityId}.${key}`,//parent
-              target: `${childEntity}.${childId}.id`,//child - current
-              label: "has"
-            });
-          }
+
+          result.edges.push({
+            source: `${entity}.${entityId}.${key}`,//parent
+            target: `${childEntity}.${childId}.id`,//child - current
+            label: "has"
+          });
+
           processEntity(childEntity, childId, value);
         } else {
           // unknown type, skip
@@ -211,9 +220,9 @@ export const JsonGraphite: React.FC<JsonGraphiteProps> = (props) => {
           const entityId = item.id || `${entity}${idx + 1}`;
           processEntity(entity, entityId, item);
         });
-      } else if (typeof rootVal === "object") {
-        const entityId = rootVal.id || `${entity}`;
-        processEntity(entity, entityId, rootVal, true);
+      } else {
+        const entityId = rootVal?.id || `${entity}`;
+        processEntity(entity, entityId, rootVal);
       }
     }
 
@@ -271,7 +280,7 @@ export const JsonGraphite: React.FC<JsonGraphiteProps> = (props) => {
 
 
       {/* Right panel: JSON editor */}
-      <div style={{ border: "1px solid #ccc", width: `${dividerX}%`}}>
+      <div style={{ border: "1px solid #ccc", width: `${dividerX}%` }}>
         <Editor
           height="100%"
           defaultLanguage="json"
@@ -293,10 +302,12 @@ export const JsonGraphite: React.FC<JsonGraphiteProps> = (props) => {
       {/* Divider */}
       <div
         onPointerDown={handleMouseDown}
-        style={{ width: "4px", cursor: "col-resize", 
+        style={{
+          width: "4px", cursor: "col-resize",
           borderStyle: "solid none",
           border: "1px solid #ccc",
-          backgroundColor: "var(--border-color)" }}
+          backgroundColor: "var(--border-color)"
+        }}
       />
       {/* Left panel: Graph */}
       <div style={{ border: "1px solid #ccc", width: `${100 - dividerX}%` }}>
