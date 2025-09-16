@@ -97,7 +97,7 @@ export const JsonGraphite: React.FC<JsonGraphiteProps> = (props) => {
                 result.edges.push({
                   source: `${entity}.${entityId}.${tp}`,
                   target: `[${childEntity}].${entityId}.${childId}`,
-                  label: `[${key}]`
+                  label: `${key}[]`
                 });
 
                 linkedToArray = true;
