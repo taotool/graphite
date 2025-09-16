@@ -53,7 +53,11 @@ export const JsonGraphite: React.FC<JsonGraphiteProps> = (props) => {
     }
 
     function processEntity(entity: string, entityId: string, obj: Record<string, any>) {
-
+      // ✅ early exit if obj is not a plain object
+      if (typeof obj !== "object" || obj === null || Array.isArray(obj)) {
+        makeNode(entity, entityId, "obj", typeof obj, String(obj));
+        return; // do nothing or handle differently
+      }
       for (const [key, value] of Object.entries(obj)) {
         if (value === null || value === undefined) continue;
 
@@ -64,8 +68,11 @@ export const JsonGraphite: React.FC<JsonGraphiteProps> = (props) => {
           // array of objects
           const tp = key;
 
-          makeNode(entity, entityId, tp, `[${tp}]`, "[...]");
+          //current node with type array USER.USRabc.addresses
+          // makeNode(entity, entityId, tp, `[${tp}]`, "[...]");//USER, USRabc, addresses, [addresses], [...]
+          makeNode(entity, entityId, tp, typeof value, "[...]");//USER, USRabc, addresses, [addresses], [...]
 
+          //child nodes, USER.USRabc.addresses -> 
           if (separateNodeForArray) {
             // create an edge from parent entity to the array field
             let linkedToArray = false;
@@ -90,7 +97,7 @@ export const JsonGraphite: React.FC<JsonGraphiteProps> = (props) => {
                 result.edges.push({
                   source: `${entity}.${entityId}.${tp}`,
                   target: `[${childEntity}].${entityId}.${childId}`,
-                  label: "has"
+                  label: `[${key}]`
                 });
 
                 linkedToArray = true;
@@ -109,21 +116,21 @@ export const JsonGraphite: React.FC<JsonGraphiteProps> = (props) => {
               result.edges.push({
                 source: `[${childEntity}].${entityId}.${childId}`,
                 target: `${childEntity}.${childId}.id`,
-                label: "contains"
+                label: childId
               });
 
-              processEntity(childEntity, childId, item);
 
             } else {
 
               result.edges.push({
                 source: `${entity}.${entityId}.${key}`,
                 target: `${childEntity}.${childId}.id`,
-                label: "has"
+                label: childId
               });
 
-              processEntity(childEntity, childId, item);
+              
             }
+            processEntity(childEntity, childId, item);
           });
         } else if (typeof value === "object") {
           // nested object
@@ -137,7 +144,7 @@ export const JsonGraphite: React.FC<JsonGraphiteProps> = (props) => {
           result.edges.push({
             source: `${entity}.${entityId}.${key}`,//parent
             target: `${childEntity}.${childId}.id`,//child - current
-            label: "has"
+            label: key
           });
 
           processEntity(childEntity, childId, value);
