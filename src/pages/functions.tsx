@@ -1,0 +1,906 @@
+import type { GraphNode, GraphEdge, GraphData } from "./interfaces";
+
+import type { Node, Edge } from "reactflow";
+// import { Position } from "reactflow";
+// import ELK from 'elkjs/lib/elk.bundled.js';
+// import ElkPort from 'elkjs/lib/elk.bundled.js';
+
+// import dagre from "dagre";
+
+export function jsonToFieldGraph(jsonObj: Record<string, any>, separateNodeForArray = true, linkedFields = [[""]]): GraphData {
+    const result: GraphData = { nodes: [], edges: [] };
+
+    function makeNode(entity: string, entityId: string, id: string, type: string, value: string) {
+        result.nodes.push({
+            id: `${entity}.${entityId}.${id}`,
+            name: id,
+            type,
+            value
+        });
+    }
+
+    function processEntity(entity: string, entityId: string, obj: Record<string, any>) {
+        // ✅ early exit if obj is not a plain object
+        if (typeof obj !== "object" || obj === null || Array.isArray(obj)) {
+            makeNode(entity, entityId, "obj", typeof obj, String(obj));
+            return; // do nothing or handle differently
+        }
+        for (const [key, value] of Object.entries(obj)) {
+            if (value === null || value === undefined) continue;
+
+            if (typeof value !== "object" || (Array.isArray(value) === false && typeof value !== "object")) {
+                // primitive field
+                makeNode(entity, entityId, key, typeof value, String(value));
+            } else if (Array.isArray(value)) {
+                // array of objects
+                const tp = key;
+
+                //current node with type array USER.USRabc.addresses
+                // makeNode(entity, entityId, tp, `[${tp}]`, "[...]");//USER, USRabc, addresses, [addresses], [...]
+                makeNode(entity, entityId, tp, typeof value, "[...]");//USER, USRabc, addresses, [addresses], [...]
+
+                //child nodes, USER.USRabc.addresses -> 
+                if (separateNodeForArray) {
+                    // create an edge from parent entity to the array field
+                    let linkedToArray = false;
+                    value.forEach((item, idx) => {
+                        const childEntity = key.toUpperCase();
+                        const childId = item.id || `${childEntity}[${idx}]`;
+                        let v = "";
+                        if (typeof item !== "object" || (Array.isArray(item) === false && typeof item !== "object")) {
+                            v = String(item);
+                        } else if (Array.isArray(item)) {
+                            v = "[...]";
+                        } else if (typeof item === "object") {
+                            v = "{...}";
+                        } else {
+                            v = "???";
+                        }
+                        makeNode(`[${childEntity}]`, entityId, childId, typeof item, v);//array item node
+
+                        // PARENT -> ARRAY
+                        if (!linkedToArray) {
+
+                            result.edges.push({
+                                source: `${entity}.${entityId}.${tp}`,
+                                target: `[${childEntity}].${entityId}.${childId}`,
+                                label: `${key}[]`
+                            });
+
+                            linkedToArray = true;
+                        }
+                    });
+                }
+
+                // each item in the array is a separate entity
+                value.forEach((item, idx) => {
+                    const childEntity = key.toUpperCase(); // e.g. addresses -> ADDRESS
+                    const childId = item.id || `${childEntity}[${idx}]`;
+
+                    if (separateNodeForArray) {
+
+                        // ARRAY -> ITEM
+                        result.edges.push({
+                            source: `[${childEntity}].${entityId}.${childId}`,
+                            target: `${childEntity}.${childId}.id`,
+                            label: childId
+                        });
+
+
+                    } else {
+
+                        result.edges.push({
+                            source: `${entity}.${entityId}.${key}`,
+                            target: `${childEntity}.${childId}.id`,
+                            label: childId
+                        });
+
+
+                    }
+                    processEntity(childEntity, childId, item);
+                });
+            } else if (typeof value === "object") {
+                // nested object
+                const tp = key;
+
+                makeNode(entity, entityId, key, tp, "{...}");
+
+                const childEntity = key.toUpperCase();
+                const childId = value.id || `${tp}Id`;//  if no id
+
+                result.edges.push({
+                    source: `${entity}.${entityId}.${key}`,//parent
+                    target: `${childEntity}.${childId}.id`,//child - current
+                    label: key
+                });
+
+                processEntity(childEntity, childId, value);
+            } else {
+                // unknown type, skip
+                console.warn("Unknown type for key:", key, value);
+                alert("Unknown type for key: " + key);
+            }
+        }
+    }
+    /**
+     * Connect nodes with the same value, restricted to certain field groups.
+     * Field groups allow treating multiple field names as equivalent (e.g., ["orderId", "order_id"]).
+     *
+     * @param graph Input graph
+     * @param fieldGroups Array of field groups, each being a list of equivalent field names
+     * @returns A new graph with edges added for duplicates
+     */
+    function connectNodesWithSameValue(
+        graph: GraphData,
+        fieldGroups: string[][]
+    ): GraphData {
+        const { nodes, edges } = graph;
+
+        // Normalize groups into a lookup: fieldName -> groupId
+        const fieldToGroup = new Map<string, number>();
+        fieldGroups.forEach((group, idx) => {
+            for (const field of group) {
+                fieldToGroup.set(field, idx);
+            }
+        });
+
+        // Map: groupId + value -> node ids
+        const valueMap = new Map<string, string[]>();
+
+        for (const node of nodes) {
+            if (!node.value) continue;
+
+            const fieldName = node.id.split(".")[2];
+            const groupId = fieldToGroup.get(fieldName);
+
+            if (groupId !== undefined) {
+                const key = `${groupId}::${node.value}`;
+                if (!valueMap.has(key)) {
+                    valueMap.set(key, []);
+                }
+                valueMap.get(key)!.push(node.id);
+            }
+        }
+
+        // Create new edges for nodes that share the same value in the same field group
+        const newEdges: GraphEdge[] = [];
+        for (const [key, ids] of valueMap.entries()) {
+            if (ids.length > 1) {
+                const [first, ...rest] = ids;
+                const value = key.split("::")[1];
+                for (const other of rest) {
+
+                    newEdges.push({
+                        source: first,
+                        target: other,
+                        label: `L:${value}`,
+                    });
+                }
+            }
+        }
+
+        return {
+            ...graph,
+            edges: [...edges, ...newEdges],
+        };
+    }
+
+
+
+
+    // entry point: assume root objects are entities
+    const rootId = "root";
+    makeNode("ROOT", rootId, "id", "root", "{...}");
+
+    for (const [rootKey, rootVal] of Object.entries(jsonObj)) {
+        const entity = rootKey.toUpperCase();
+
+        if (Array.isArray(rootVal)) {
+            rootVal.forEach((item, idx) => {
+                const entityId = item.id || `${entity}${idx + 1}`;
+
+                // connect ROOT -> entity
+                result.edges.push({
+                    source: `ROOT.${rootId}.id`,
+                    target: `${entity}.${entityId}.id`,
+                    label: rootKey
+                });
+
+                processEntity(entity, entityId, item);
+            });
+        } else {
+            const entityId = rootVal?.id || `${entity}`;
+
+            // connect ROOT -> entity
+            result.edges.push({
+                source: `ROOT.${rootId}.id`,
+                target: `${entity}.${entityId}.id`,
+                label: rootKey
+            });
+
+            processEntity(entity, entityId, rootVal);
+        }
+    }
+
+
+    //
+    const updatedGraph = connectNodesWithSameValue(result, linkedFields);
+    return updatedGraph;
+}
+
+
+
+
+
+const getCategoryEntity = (id: string): string | null => {
+    const parts = id.split('.');
+    return parts.length >= 2 ? `${parts[0]}.${parts[1]}` : null;
+}
+
+export function toEntityGraph(gd: GraphData): GraphData {
+    const entityNodes: Record<string, GraphNode> = {};
+    const edgeMap = new Map<string, { source: string; target: string; labels: Set<string> }>();
+
+    // collect nodes with fields
+    gd.nodes.forEach((node) => {
+        const entityId = getCategoryEntity(node.id);
+        if (entityId) {
+            if (!entityNodes[entityId]) {
+                const [category, entity] = entityId.split(".");
+                entityNodes[entityId] = { id: entityId, name: entity, type: category, fields: [] };
+            }
+            const field = node.id.split(".").pop()!;
+            entityNodes[entityId].fields!.push({
+                id: node.id,
+                name: node.name || field,
+                type: node.type || "",
+                value: node.value || "",
+            });
+        }
+    });
+
+    // collect edges, merging labels
+    gd.edges.forEach((edge) => {
+        const source = getCategoryEntity(edge.source);
+        const target = getCategoryEntity(edge.target);
+        if (source && target && source !== target) {
+            const key = `${source}|${target}`;
+            if (!edgeMap.has(key)) {
+                edgeMap.set(key, { source, target, labels: new Set() });
+            }
+            if (edge.label) edgeMap.get(key)!.labels.add(edge.label);
+
+            // ensure nodes exist even if they had no fields
+            if (!entityNodes[source]) {
+                const [category, entity] = source.split(".");
+                entityNodes[source] = { id: source, name: entity, type: category, fields: [] };
+            }
+            if (!entityNodes[target]) {
+                const [category, entity] = target.split(".");
+                entityNodes[target] = { id: target, name: entity, type: category, fields: [] };
+            }
+        }
+    });
+
+    const mergedEdges = Array.from(edgeMap.values()).map(({ source, target, labels }) => ({
+        source,
+        target,
+        label: Array.from(labels).join(", "),
+    }));
+
+    return {
+        ...gd,
+        nodes: Object.values(entityNodes),
+        edges: mergedEdges,
+    };
+}
+
+export function oneDetail(
+    entityGraph: GraphData,
+    highlightEntity?: string
+): string {
+    // ---------------- BFS highlighting ----------------
+    const adjForward: Record<string, string[]> = {};
+    const adjBackward: Record<string, string[]> = {};
+    entityGraph.edges.forEach((edge) => {
+        if (!adjForward[edge.source]) adjForward[edge.source] = [];
+        if (!adjBackward[edge.target]) adjBackward[edge.target] = [];
+        adjForward[edge.source].push(edge.target);
+        adjBackward[edge.target].push(edge.source);
+    });
+
+    function bfs(start: string, adj: Record<string, string[]>): Set<string> {
+        const visited = new Set<string>();
+        const queue: string[] = [start];
+        while (queue.length) {
+            const node = queue.shift()!;
+            if (!visited.has(node)) {
+                visited.add(node);
+                (adj[node] || []).forEach((next) => {
+                    if (!visited.has(next)) queue.push(next);
+                });
+            }
+        }
+        return visited;
+    }
+
+    const allHighlights = new Set<string>();
+    if (highlightEntity) {
+        const upstream = bfs(highlightEntity, adjBackward);
+        const downstream = bfs(highlightEntity, adjForward);
+        [highlightEntity, ...upstream, ...downstream].forEach((item) => allHighlights.add(item));
+    }
+
+    // ---------------- Build DOT ----------------
+    let dot = `digraph {\n`;
+    dot += `  node [shape=plaintext margin=0]\n\n`;
+    dot += `  edge[arrowhead="open"]\n  tooltip=""\n  rankdir=${entityGraph.direction === "vertical" ? "TD" : "LR"} \n overlap = scale \n splines = true \n`;
+
+    // nodes
+    entityGraph.nodes.forEach((node) => {
+        const [category, entity] = node.id.split(".");
+        const nodeClass = `graph_node_table ${allHighlights.has(node.id) ? "highlight " : ""}`;
+
+        if (node.id === highlightEntity && node.fields && node.fields.length > 0) {
+            const label = createTableFields(category, entity, node.fields);
+            dot += `  "${node.id}" [label=<${label}> class="graph_node_table_with_fields highlight" ]\n`;
+        } else if (category.startsWith("[") && category.endsWith("]")) {
+            dot += `  "${node.id}" [label="+" shape="circle" class="${nodeClass}" ]\n`;
+        } else {
+            const label = createTableHeader(category, entity);
+            dot += `  "${node.id}" [label=<${label}> class="${nodeClass}" ]\n`;
+        }
+    });
+
+    // edges
+    entityGraph.edges.forEach(({ source, target, label }) => {
+        const highlight = allHighlights.has(source) ? "highlight" : "";
+        dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label ${highlight}"]\n`;
+    });
+
+    dot += `}`;
+    return dot;
+}
+
+
+const createTableHeader = (category: string, entity: string) => {
+    return `<table border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"><tr><td width="100">${category}</td></tr><tr><td>${entity}</td></tr></table>`;
+}
+
+const createTableFields = (
+    category: string,
+    entity: string,
+    fields: GraphNode[]
+) => {
+    const tableHeader = `<tr><td ><FONT >${category}</FONT></td></tr><tr><td ><FONT >${entity}</FONT></td></tr>`;
+    if (fields.length === 0) fields.push({ id: 'Id', name: "Name", type: 'String', value: 'Value' });
+
+    const fieldRows = fields
+        .map(({ id, name, type, value }) => {
+            let tgt = type, tt = type;
+            if (type.includes('|')) {
+                const t = type.split('|');
+                tt = t[0];
+                const target = t[1].split(".");
+                tgt = target[0] + "." + target[1];
+            }
+            return `<tr>
+            <td ALIGN="LEFT" width="10" PORT="IN_${category}.${entity}.${id}" ><FONT >${name || id} </FONT></td>
+            <td ALIGN="LEFT" width="10">
+              ${tt}
+            </td>
+            <td BALIGN="LEFT" PORT="OUT_${category}.${entity}.${id}" ${type.includes('|') ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
+               ${type.includes('|') ? `<FONT >${value}</FONT>` : `<FONT >${value}</FONT>`}
+            </td>
+          </tr>`;
+        }).join('');
+
+    return `<table bgcolor="aliceblue" color="coral" border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="0">
+              ${tableHeader}
+              <tr><td>
+                <table border="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" >
+                  ${fieldRows}
+                </table>
+              </td></tr>
+            </table>`;
+}
+
+// ------------------ DOT Builders ------------------
+
+// const allDetail = (gd: GraphData) => {
+//     const direction = gd.direction === "vertical" ? "TD" : "LR";
+//     let dot = `digraph "tt" {\n node [shape=plaintext margin=0]\n edge[arrowhead="open"]\n tooltip=""\n rankdir=${direction}\n`;
+
+//     const nodes: Record<string, GraphNode[]> = {};
+
+//     gd.nodes.forEach(node => {
+//         const cat = getCategoryEntity(node.id);
+//         if (!cat) return;
+//         if (!nodes[cat]) nodes[cat] = [];
+//         nodes[cat].push({ id: node.id.split('.').pop()!, name: "a", type: node.type || "", value: node.value || "" });
+//     });
+
+//     gd.edges.forEach(edge => {
+//         const source = getCategoryEntity(edge.source);
+//         const target = getCategoryEntity(edge.target);
+//         if (!source || !target) return;
+//         if (!nodes[source]) nodes[source] = [{ id: source, name: "a", type: "node.type", value: "node.value" }];
+//         if (!nodes[target]) nodes[target] = [{ id: target, name: "a", type: "node.type", value: "node.value" }];
+//     });
+
+//     Object.entries(nodes).forEach(([nodeId, fields]) => {
+//         const [category, entity] = nodeId.split('.');
+//         const label = createTableFields(category, entity, fields);
+//         dot += `  "${nodeId}" [label=<${label}>] [class="graph_node_table_with_fields"]\n`;
+//     });
+
+//     gd.edges.forEach(edge => {
+//         const src = getCategoryEntity(edge.source);
+//         const tgt = getCategoryEntity(edge.target);
+//         if (!src || !tgt) return;
+//         dot += `  "${src}" -> "${tgt}" [label="${edge.label}" tooltip="" ] [class="graph_label"]\n`;
+//     });
+
+//     dot += `}`;
+//     return dot;
+// };
+
+export function oneDetaiBasedOnField(gd: GraphData, highlightEntity?: string): string {
+    // ---------------- Build nodes dictionary ----------------
+    const nodes: Record<string, { id: string }> = {};
+    gd.nodes.forEach((node) => {
+        const categoryEntity = getCategoryEntity(node.id);
+        if (categoryEntity && !nodes[categoryEntity]) {
+            nodes[categoryEntity] = { id: categoryEntity };
+        }
+    });
+
+    // ---------------- Build adjacency lists ----------------
+    const adjForward: Record<string, string[]> = {};
+    const adjBackward: Record<string, string[]> = {};
+    gd.edges.forEach((edge) => {
+        const source = getCategoryEntity(edge.source);
+        const target = getCategoryEntity(edge.target);
+        if (source && target) {
+            if (!adjForward[source]) adjForward[source] = [];
+            if (!adjBackward[target]) adjBackward[target] = [];
+            adjForward[source].push(target);
+            adjBackward[target].push(source);
+
+            // Ensure nodes exist
+            if (!nodes[source]) nodes[source] = { id: source };
+            if (!nodes[target]) nodes[target] = { id: target };
+        }
+    });
+
+    // ---------------- BFS helper ----------------
+    function bfs(start: string, adj: Record<string, string[]>): Set<string> {
+        const visited = new Set<string>();
+        const queue: string[] = [start];
+        while (queue.length) {
+            const node = queue.shift()!;
+            if (!visited.has(node)) {
+                visited.add(node);
+                (adj[node] || []).forEach((next) => {
+                    if (!visited.has(next)) queue.push(next);
+                });
+            }
+        }
+        return visited;
+    }
+
+    // ---------------- Collect highlights ----------------
+    const allHighlights = new Set<string>();
+    if (highlightEntity) {
+        const upstream = bfs(highlightEntity, adjBackward);
+        const downstream = bfs(highlightEntity, adjForward);
+        [highlightEntity, ...upstream, ...downstream].forEach((item) =>
+            allHighlights.add(item)
+        );
+    }
+
+    // ---------------- Build edge labels ----------------
+    // const edgeLabels: GraphEdge[] = [];
+    // gd.edges.forEach((edge) => {
+    //     const source = getCategoryEntity(edge.source);
+    //     const target = getCategoryEntity(edge.target);
+    //     if (source && target && source !== target) {
+    //         edgeLabels.push({ source, target, label: edge.label || "" });
+    //     }
+    // });
+
+    // ---------------- Build merged edge labels ----------------
+    const edgeMap = new Map<string, { source: string; target: string; labels: Set<string> }>();
+
+    gd.edges.forEach((edge) => {
+        const source = getCategoryEntity(edge.source);
+        const target = getCategoryEntity(edge.target);
+        if (source && target && source !== target) {
+            const key = `${source}|${target}`;
+            if (!edgeMap.has(key)) {
+                edgeMap.set(key, { source, target, labels: new Set() });
+            }
+            if (edge.label) {
+                edgeMap.get(key)!.labels.add(edge.label);
+            }
+        }
+    });
+
+    const edgeLabels = Array.from(edgeMap.values()).map(({ source, target, labels }) => ({
+        source,
+        target,
+        label: Array.from(labels).join(", "),
+    }));
+
+    const direction = gd.direction === "vertical" ? "TD" : "LR";
+
+    // ---------------- Gather detailed fields ----------------
+    const detailedFields =
+        highlightEntity
+            ? gd.nodes
+                .filter(({ id }) => id.startsWith(`${highlightEntity}.`))
+                .map(({ id, name, type, value }) => {
+                    const field = id.split(".").pop()!;
+                    console.log("check fk for " + id);
+                    const fk = gd.edges.find((e) => e.source === id)?.target || "Unknown";
+                    const tp = fk === "Unknown" ? type : `${type}|${fk}`;
+                    return { id: field, name, type: tp, value };
+                })
+            : [];
+
+    // ---------------- Build DOT ----------------
+    let dot = `digraph {\n`;
+    dot += `  node [shape=plaintext margin=0]\n\n`;
+    dot += `  edge[arrowhead="open"]\n  tooltip=""\n  rankdir=${direction} \n overlap = scale \n splines = true \n`;
+
+    // ---------------- Render nodes ----------------
+    Object.values(nodes).forEach(({ id: nodeId }) => {
+        const [category, entity] = nodeId.split(".");
+        const nodeClass = `graph_node_table ${allHighlights.has(nodeId) ? "highlight " : ""}${nodeId.replace(
+            /\W/g,
+            "_"
+        )}`;
+
+        if (nodeId === highlightEntity) {
+            const label = createTableFields(category, entity, detailedFields);
+            dot += `  "${nodeId}" [label=<${label}> class="graph_node_table_with_fields highlight ${nodeId.replace(
+                /\W/g,
+                "_"
+            )}" ]\n`;
+        } else if (category.startsWith("[") && category.endsWith("]")) {
+            dot += `  "${nodeId}" [label="+" shape="circle" class="${nodeClass}" ]\n`;
+        } else {
+            const label = createTableHeader(category, entity);
+            dot += `  "${nodeId}" [label=<${label}> class="${nodeClass}" ]\n`;
+        }
+    });
+
+    // ---------------- Render edges ----------------
+    edgeLabels.forEach(({ source, target, label }) => {
+        const highlight = allHighlights.has(source) ? "highlight" : "";
+        dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label ${source.replace(
+            /\W/g,
+            "_"
+        )}_to_${target.replace(/\W/g, "_")} ${highlight}"]\n`;
+    });
+
+    dot += `}`;
+    return dot;
+}
+
+
+// const shapeDetail = (gd: GraphData) => {
+//     // Full original shapeDetail logic
+//     let dot = `digraph "tt" {\n graph [rankdir=${gd.graph?.rankdir} label=${gd.graph?.title} labelloc=t]\n node [shape=${gd.node?.shape} width=0.2 height=0.2 margin=0 fontsize=8]\n edge[arrowhead="open" fontsize=6]\n`;
+//     gd.nodes.forEach(({ id, name }) => {
+//         dot += `  "${id}" [xlabel=<${name || id}> label="" class="graph_node"]\n`;
+//     });
+//     gd.edges.forEach(({ source, target, label }) => {
+//         dot += `  "${source}" -> "${target}" [xlabel="${label}"]\n`;
+//     });
+//     dot += `}`;
+//     return dot;
+// };
+
+
+
+
+
+export function toEntityGraphFlow(
+    entityGraph: GraphData,
+    highlightEntity?: string,
+    rankdir: "TB" | "LR" = "TB"
+): { nodes: Node[]; edges: Edge[] } {
+    // function bfs(start: string, adj: Record<string, string[]>): Set<string> {
+    //     const visited = new Set<string>();
+    //     const queue: string[] = [start];
+    //     while (queue.length) {
+    //         const node = queue.shift()!;
+    //         if (!visited.has(node)) {
+    //             visited.add(node);
+    //             (adj[node] || []).forEach((next) => {
+    //                 if (!visited.has(next)) queue.push(next);
+    //             });
+    //         }
+    //     }
+    //     return visited;
+    // }
+
+    // const adjForward: Record<string, string[]> = {};
+    // const adjBackward: Record<string, string[]> = {};
+    // entityGraph.edges.forEach(({ source, target }) => {
+    //     if (!adjForward[source]) adjForward[source] = [];
+    //     if (!adjBackward[target]) adjBackward[target] = [];
+    //     adjForward[source].push(target);
+    //     adjBackward[target].push(source);
+    // });
+
+    // const allHighlights = new Set<string>();
+    // if (highlightEntity) {
+    //     const upstream = bfs(highlightEntity, adjBackward);
+    //     const downstream = bfs(highlightEntity, adjForward);
+    //     [highlightEntity, ...upstream, ...downstream].forEach((id) =>
+    //         allHighlights.add(id)
+    //     );
+    // }
+
+    // const sourcePosition = rankdir === "LR" ? Position.Right : Position.Bottom;
+    // const targetPosition = rankdir === "LR" ? Position.Left : Position.Top;
+
+    // const defaultWidth = 180;
+    // const defaultHeight = 80;
+
+    // const nodes: Node[] = entityGraph.nodes.map((n) => {
+    //     const [category, entity] = n.id.split(".");
+    //     const isHighlighted = allHighlights.has(n.id);
+    //     const isDetailNode = n.id === highlightEntity && n.fields?.length;
+
+    //     // Only increase size for the highlighted node
+    //     const nodeWidth = defaultWidth;
+    //     const nodeHeight = isDetailNode
+    //         ? Math.min(10, defaultHeight + n.fields!.length * 25)
+    //         : defaultHeight;
+
+    //     let label: React.ReactNode;
+    //     if (isDetailNode) {
+    //         label = (
+    //             <div className="text-xs">
+    //                 <div className="font-semibold mb-1">{entity} ({category})</div>
+    //                 <table className="border-collapse border border-gray-300">
+    //                     <thead>
+    //                         <tr className="bg-gray-100">
+    //                             <th className="border border-gray-300 px-1">Field</th>
+    //                             <th className="border border-gray-300 px-1">Type</th>
+    //                             <th className="border border-gray-300 px-1">Value</th>
+    //                         </tr>
+    //                     </thead>
+    //                     <tbody>
+    //                         {n.fields!.map((f) => (
+    //                             <tr key={f.id}>
+    //                                 <td className="border border-gray-300 px-1">{f.name}</td>
+    //                                 <td className="border border-gray-300 px-1">{f.type}</td>
+    //                                 <td className="border border-gray-300 px-1">{f.value}</td>
+    //                             </tr>
+    //                         ))}
+    //                     </tbody>
+    //                 </table>
+    //             </div>
+    //         );
+    //     } else {
+    //         label = (
+    //             <div className="font-medium">
+    //                 {entity} <span className="text-gray-500">({category})</span>
+    //             </div>
+    //         );
+    //     }
+
+    //     return {
+    //         id: n.id,
+    //         data: { label },
+    //         position: { x: 0, y: 0 },
+    //         style: {
+    //             border: isHighlighted ? "2px solid #1976d2" : "1px solid #888",
+    //             borderRadius: "12px",
+    //             padding: "8px",
+    //             background: isHighlighted ? "#E3F2FD" : "#FFF",
+    //             minWidth: nodeWidth,
+    //             minHeight: nodeHeight,
+    //         },
+    //         sourcePosition,
+    //         targetPosition,
+    //         __width: nodeWidth,
+    //         __height: nodeHeight,
+    //     };
+    // });
+
+    // // Merge edges
+    // const edgeMap = new Map<string, { source: string; target: string; labels: Set<string> }>();
+    // entityGraph.edges.forEach((e) => {
+    //     const key = `${e.source}|${e.target}`;
+    //     if (!edgeMap.has(key))
+    //         edgeMap.set(key, { source: e.source, target: e.target, labels: new Set() });
+    //     if (e.label) edgeMap.get(key)!.labels.add(e.label);
+    // });
+    // const edges: Edge[] = Array.from(edgeMap.values()).map(({ source, target, labels }, i) => ({
+    //     id: `edge-${i}`,
+    //     source,
+    //     target,
+    //     label: Array.from(labels).join(", "),
+    //     animated: true,
+    //     style: { stroke: allHighlights.has(source) ? "#1976d2" : "#555" },
+    // }));
+
+    // // Dagre layout
+    // const dagreGraph = new dagre.graphlib.Graph();
+    // dagreGraph.setDefaultEdgeLabel(() => ({}));
+    // dagreGraph.setGraph({ rankdir, nodesep: 50, ranksep: 80 });
+
+    // nodes.forEach((node) => {
+    //     dagreGraph.setNode(node.id, { width: node.__width, height: node.__height });
+    // });
+    // edges.forEach((edge) => dagreGraph.setEdge(edge.source, edge.target));
+
+    // dagre.layout(dagreGraph);
+
+    // nodes.forEach((node) => {
+    //     const nodeWithPosition = dagreGraph.node(node.id);
+    //     node.position = {
+    //         x: nodeWithPosition.x - node.__width / 2,
+    //         y: nodeWithPosition.y - node.__height / 2,
+    //     };
+    // });
+    console.log(entityGraph);
+    console.log(highlightEntity);
+    console.log(rankdir);
+    const nodes : Node[]= [];
+    const edges : Edge[]= [];
+    return { nodes, edges };
+}
+
+
+// const elk = new ELK();
+
+// export async function toEntityGraphFlow(
+//   entityGraph: GraphData,
+//   highlightEntity?: string,
+//   rankdir: 'TB' | 'LR' = 'LR'
+// ): Promise<{ nodes: Node[]; edges: Edge[] }> {
+//   // ---------- BFS helper for highlighting ----------
+//   function bfs(start: string, adj: Record<string, string[]>): Set<string> {
+//     const visited = new Set<string>();
+//     const queue: string[] = [start];
+//     while (queue.length) {
+//       const node = queue.shift()!;
+//       if (!visited.has(node)) {
+//         visited.add(node);
+//         (adj[node] || []).forEach((next) => {
+//           if (!visited.has(next)) queue.push(next);
+//         });
+//       }
+//     }
+//     return visited;
+//   }
+
+//   // ---------- adjacency ----------
+//   const adjForward: Record<string, string[]> = {};
+//   const adjBackward: Record<string, string[]> = {};
+//   entityGraph.edges.forEach(({ source, target }) => {
+//     if (!adjForward[source]) adjForward[source] = [];
+//     if (!adjBackward[target]) adjBackward[target] = [];
+//     adjForward[source].push(target);
+//     adjBackward[target].push(source);
+//   });
+
+//   const allHighlights = new Set<string>();
+//   if (highlightEntity) {
+//     const upstream = bfs(highlightEntity, adjBackward);
+//     const downstream = bfs(highlightEntity, adjForward);
+//     [highlightEntity, ...upstream, ...downstream].forEach(id =>
+//       allHighlights.add(id)
+//     );
+//   }
+
+//   const defaultWidth = 180;
+//   const defaultHeight = 20;
+
+//   // ---------- build nodes ----------
+//   const nodes: Node[] = entityGraph.nodes.map(n => {
+//     const [category, entity] = n.id.split('.');
+//     const isHighlighted = allHighlights.has(n.id);
+//     const isDetailNode = n.id === highlightEntity && n.fields?.length;
+
+//     const width = defaultWidth;
+//     const height = isDetailNode ? defaultHeight + n.fields!.length * 25 : defaultHeight;
+
+//     let label: React.ReactNode;
+//     if (isDetailNode) {
+//       label = (
+//         <div className="text-xs">
+//           <div className="font-semibold mb-1">{entity} ({category})</div>
+//           <table className="border-collapse border border-gray-300">
+//             <thead>
+//               <tr className="bg-gray-100">
+//                 <th className="border border-gray-300 px-1">Field</th>
+//                 <th className="border border-gray-300 px-1">Type</th>
+//                 <th className="border border-gray-300 px-1">Value</th>
+//               </tr>
+//             </thead>
+//             <tbody>
+//               {n.fields!.map(f => (
+//                 <tr key={f.id}>
+//                   <td className="border border-gray-300 px-1">{f.name}</td>
+//                   <td className="border border-gray-300 px-1">{f.type}</td>
+//                   <td className="border border-gray-300 px-1">{f.value}</td>
+//                 </tr>
+//               ))}
+//             </tbody>
+//           </table>
+//         </div>
+//       );
+//     } else {
+//       label = (
+//         <div className="font-medium">
+//           {entity} <span className="text-gray-500">({category})</span>
+//         </div>
+//       );
+//     }
+
+//     return {
+//       id: n.id,
+//       data: { label },
+//       style: {
+//         border: isHighlighted ? '2px solid #1976d2' : '1px solid #888',
+//         borderRadius: '12px',
+//         padding: '8px',
+//         background: isHighlighted ? '#E3F2FD' : '#FFF',
+//         minWidth: width,
+//         minHeight: height,
+//       },
+//       width,
+//       height,
+//       sourcePosition: rankdir === 'LR' ? Position.Right : Position.Bottom,
+//       targetPosition: rankdir === 'LR' ? Position.Left : Position.Top,
+//     };
+//   });
+
+//   // ---------- merge edges ----------
+//   const edgeMap = new Map<string, { source: string; target: string; labels: Set<string> }>();
+//   entityGraph.edges.forEach(e => {
+//     const key = `${e.source}|${e.target}`;
+//     if (!edgeMap.has(key)) edgeMap.set(key, { source: e.source, target: e.target, labels: new Set() });
+//     if (e.label) edgeMap.get(key)!.labels.add(e.label);
+//   });
+//   const edges: Edge[] = Array.from(edgeMap.values()).map(({ source, target, labels }, i) => ({
+//     id: `edge-${i}`,
+//     source,
+//     target,
+//     label: Array.from(labels).join(', '),
+//     animated: true,
+//     style: { stroke: allHighlights.has(source) ? '#1976d2' : '#555' },
+//   }));
+
+//   // ---------- build ELK graph ----------
+
+//   const elkGraph = {
+//     id: 'root',
+//     layoutOptions: { 'elk.direction': rankdir === 'LR' ? 'RIGHT' : 'DOWN', 'elk.spacing.nodeNode': '50' },
+//     children: nodes.map(n => ({ id: n.id, width: n.width, height: n.height })),
+//     edges: edges.map(e => ({ id: e.id, sources: [e.source], targets: [e.target] })),
+//   };
+
+//   const layout = await elk.layout(elkGraph);
+
+//   // ---------- assign positions ----------
+//   const nodePositions = new Map<string, { x: number; y: number }>();
+//   layout.children?.forEach(n => {
+//     if (!n.x || !n.y) return;
+//     nodePositions.set(n.id, { x: n.x, y: n.y });
+//   });
+
+//   const positionedNodes = nodes.map(n => ({
+//     ...n,
+//     position: nodePositions.get(n.id) || { x: 0, y: 0 },
+//   }));
+
+//   return { nodes: positionedNodes, edges };
+// }

@@ -41,6 +41,8 @@
     "allotment": "^1.20.4",
     "d3": "^7.9.0",
     "d3-graphviz": "^5.6.0",
+    "dagre": "^0.8.5",
+    "elkjs": "^0.11.0",
     "express": "^5.1.0",
     "http-server": "^14.1.1",
     "js-yaml": "^4.1.0",

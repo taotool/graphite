@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createTheme, ThemeProvider, useMediaQuery } from "@mui/material";
 import './Graphite.css';
-import { useParams } from 'react-router-dom';
+// import { useParams } from 'react-router-dom';
 import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
@@ -21,33 +21,14 @@ import DataObjectIcon from '@mui/icons-material/DataObject';
 import * as d3 from 'd3';
 import "d3-graphviz";
 import { parse } from "jsonc-parser";
-
+import {oneDetaiBasedOnField} from "./functions"
+import type { GraphData } from "./interfaces";
 console.log("######### Graphite.tsx ");
 
 // ------------------ Types ------------------
 
-interface GraphNode {
-    id: string;
-    name: string;
-    type: string;
-    value: string;
-}
 
-interface GraphEdge {
-    source: string;
-    target: string;
-    label?: string;
-}
 
-interface GraphData {
-    type?: string;
-    direction?: "vertical" | "horizontal";
-    graph?: { rankdir: string; title?: string };
-    node?: { shape: string };
-    metadata?: { showDetails?: boolean };
-    nodes: GraphNode[];
-    edges: GraphEdge[];
-}
 export interface GraphiteProps {
     jsonString?: string;
 }
@@ -63,8 +44,7 @@ interface TrackedListener {
 
 export const Graphite: React.FC<GraphiteProps> = (props) => {
     console.log("--------- Graphite render ");
-    const { id } = useParams<{ id: string }>();
-    const app = id;
+    // const { id } = useParams<{ id: string }>();
 
     // Event listener tracking
     const eventListenersMap = useRef(new WeakMap<Element, TrackedListener[]>()).current;
@@ -96,7 +76,7 @@ export const Graphite: React.FC<GraphiteProps> = (props) => {
     };
 
     // ------------------ Refs & State ------------------
-    const appRef = useRef<string>("");
+  
     const tableRef = useRef<string>("");
     const panZoomRef = useRef<any>(null); // refine if you use svg-pan-zoom
     const editorRef = useRef<any>(null);
@@ -122,265 +102,28 @@ export const Graphite: React.FC<GraphiteProps> = (props) => {
         () => createTheme({ palette: { mode: prefersDarkMode ? "dark" : "light" } }),
         [prefersDarkMode]
     );
-
-    // ------------------ Helpers ------------------
     const setGraphData = (gd: GraphData) => {
         graphDataRef.current = gd;
     }
-    const getCategoryEntity = (id: string): string | null => {
-        const parts = id.split('.');
-        return parts.length >= 2 ? `${parts[0]}.${parts[1]}` : null;
-    }
 
-    const createTableHeader = (category: string, entity: string) => {
-        return `<table border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"><tr><td width="100">${category}</td></tr><tr><td>${entity}</td></tr></table>`;
-    }
-
-    const createTableFields = (
-        category: string,
-        entity: string,
-        fields: GraphNode[]
-    ) => {
-        const tableHeader = `<tr><td ><FONT >${category}</FONT></td></tr><tr><td ><FONT >${entity}</FONT></td></tr>`;
-        if (fields.length === 0) fields.push({ id: 'Id', name: "Name", type: 'String', value: 'Value' });
-
-        const fieldRows = fields
-            .map(({ id, name, type, value }) => {
-                let tgt = type, tt = type;
-                if (type.includes('|')) {
-                    const t = type.split('|');
-                    tt = t[0];
-                    const target = t[1].split(".");
-                    tgt = target[0] + "." + target[1];
-                }
-                return `<tr>
-            <td ALIGN="LEFT" width="10" PORT="IN_${category}.${entity}.${id}" ><FONT >${name || id} </FONT></td>
-            <td ALIGN="LEFT" width="10">
-              ${tt}
-            </td>
-            <td BALIGN="LEFT" PORT="OUT_${category}.${entity}.${id}" ${type.includes('|') ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
-               ${type.includes('|') ? `<FONT >${value}</FONT>` : `<FONT >${value}</FONT>`}
-            </td>
-          </tr>`;
-            }).join('');
-
-        return `<table bgcolor="aliceblue" color="coral" border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="0">
-              ${tableHeader}
-              <tr><td>
-                <table border="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" >
-                  ${fieldRows}
-                </table>
-              </td></tr>
-            </table>`;
-    }
-
-    // ------------------ Graph Load ------------------
-
-    const loadApp = async (app?: string) => {
-        // let gd: GraphData = { nodes: [], edges: [] };
-        if (app) {
-            appRef.current = app;
-        //     const response = await fetch(`/apps/${app}.json`);
-        //     const jsonString = await response.text();
-        //     setGraphData(JSON.parse(jsonString));
-        //     setGraphJson(jsonString);
-        // } else if (props.jsonString) {
-        //     gd = parse(props.jsonString);
-        //     setGraphData(gd);
-        //     setGraphJson(props.jsonString);
+    
+    const showApp = (fieldGraph: GraphData) => {
+        if (!fieldGraph) return;
+        // let dot = '';
+        // if (gd.node?.shape) {
+        //     dot = shapeDetail(gd);
+        // } else if (gd.metadata?.showDetails) {
+        //     dot = allDetail(gd);
         // } else {
-        //     let jsonString = localStorage.getItem("graphite.json") || `{ "type": "er", "nodes": [], "edges": [] }`;
-        //     try {
-        //         setGraphData(parse(jsonString));
-        //         localStorage.setItem("graphite.json", jsonString);
-        //         setGraphJson(jsonString);
-        //     } catch {
-        //         localStorage.removeItem("graphite.json");
-        //     }
-        }
-        // showApp(gd);
-    };
+        //     dot = oneDetail(gd, tableRef.current);
+        // }
+        // const entityGraph = toEntityGraph(fieldGraph);
+        // const dot = oneDetail(entityGraph, tableRef.current);
 
-    // ------------------ DOT Builders ------------------
-
-    const allDetail = (gd: GraphData) => {
-        const direction = gd.direction === "vertical" ? "TD" : "LR";
-        let dot = `digraph "tt" {\n node [shape=plaintext margin=0]\n edge[arrowhead="open"]\n tooltip=""\n rankdir=${direction}\n`;
-
-        const nodes: Record<string, GraphNode[]> = {};
-
-        gd.nodes.forEach(node => {
-            const cat = getCategoryEntity(node.id);
-            if (!cat) return;
-            if (!nodes[cat]) nodes[cat] = [];
-            nodes[cat].push({ id: node.id.split('.').pop()!, name: "a", type: node.type || "", value: node.value || "" });
-        });
-
-        gd.edges.forEach(edge => {
-            const source = getCategoryEntity(edge.source);
-            const target = getCategoryEntity(edge.target);
-            if (!source || !target) return;
-            if (!nodes[source]) nodes[source] = [{ id: source, name: "a", type: "node.type", value: "node.value" }];
-            if (!nodes[target]) nodes[target] = [{ id: target, name: "a", type: "node.type", value: "node.value" }];
-        });
-
-        Object.entries(nodes).forEach(([nodeId, fields]) => {
-            const [category, entity] = nodeId.split('.');
-            const label = createTableFields(category, entity, fields);
-            dot += `  "${nodeId}" [label=<${label}>] [class="graph_node_table_with_fields"]\n`;
-        });
-
-        gd.edges.forEach(edge => {
-            const src = getCategoryEntity(edge.source);
-            const tgt = getCategoryEntity(edge.target);
-            if (!src || !tgt) return;
-            dot += `  "${src}" -> "${tgt}" [label="${edge.label}" tooltip="" ] [class="graph_label"]\n`;
-        });
-
-        dot += `}`;
-        return dot;
-    };
-
-    function oneDetail(gd: GraphData, highlightEntity?: string): string {
-        // ---------------- Build nodes dictionary ----------------
-        const nodes: Record<string, { id: string }> = {};
-        gd.nodes.forEach((node) => {
-            const categoryEntity = getCategoryEntity(node.id);
-            if (categoryEntity && !nodes[categoryEntity]) {
-                nodes[categoryEntity] = { id: categoryEntity };
-            }
-        });
-
-        // ---------------- Build adjacency lists ----------------
-        const adjForward: Record<string, string[]> = {};
-        const adjBackward: Record<string, string[]> = {};
-        gd.edges.forEach((edge) => {
-            const source = getCategoryEntity(edge.source);
-            const target = getCategoryEntity(edge.target);
-            if (source && target) {
-                if (!adjForward[source]) adjForward[source] = [];
-                if (!adjBackward[target]) adjBackward[target] = [];
-                adjForward[source].push(target);
-                adjBackward[target].push(source);
-
-                // Ensure nodes exist
-                if (!nodes[source]) nodes[source] = { id: source };
-                if (!nodes[target]) nodes[target] = { id: target };
-            }
-        });
-
-        // ---------------- BFS helper ----------------
-        function bfs(start: string, adj: Record<string, string[]>): Set<string> {
-            const visited = new Set<string>();
-            const queue: string[] = [start];
-            while (queue.length) {
-                const node = queue.shift()!;
-                if (!visited.has(node)) {
-                    visited.add(node);
-                    (adj[node] || []).forEach((next) => {
-                        if (!visited.has(next)) queue.push(next);
-                    });
-                }
-            }
-            return visited;
-        }
-
-        // ---------------- Collect highlights ----------------
-        const allHighlights = new Set<string>();
-        if (highlightEntity) {
-            const upstream = bfs(highlightEntity, adjBackward);
-            const downstream = bfs(highlightEntity, adjForward);
-            [highlightEntity, ...upstream, ...downstream].forEach((item) =>
-                allHighlights.add(item)
-            );
-        }
-
-        // ---------------- Build edge labels ----------------
-        const edgeLabels: GraphEdge[] = [];
-        gd.edges.forEach((edge) => {
-            const source = getCategoryEntity(edge.source);
-            const target = getCategoryEntity(edge.target);
-            if (source && target && source !== target) {
-                edgeLabels.push({ source, target, label: edge.label || "" });
-            }
-        });
-
-        const direction = gd.direction === "vertical" ? "TD" : "LR";
-
-        // ---------------- Gather detailed fields ----------------
-        const detailedFields =
-            highlightEntity
-                ? gd.nodes
-                    .filter(({ id }) => id.startsWith(`${highlightEntity}.`))
-                    .map(({ id, name, type, value }) => {
-                        const field = id.split(".").pop()!;
-                        console.log("check fk for "+id);
-                        const fk = gd.edges.find((e) => e.source === id)?.target || "Unknown";
-                        const tp = fk === "Unknown" ? type : `${type}|${fk}`;
-                        return { id: field, name, type: tp, value };
-                    })
-                : [];
-
-        // ---------------- Build DOT ----------------
-        let dot = `digraph {\n`;
-        dot += `  node [shape=plaintext margin=0]\n\n`;
-        dot += `  edge[arrowhead="open"]\n  tooltip=""\n  rankdir=${direction} \n overlap = scale \n splines = true \n`;
-
-        // ---------------- Render nodes ----------------
-        Object.values(nodes).forEach(({ id: nodeId }) => {
-            const [category, entity] = nodeId.split(".");
-            const nodeClass = `graph_node_table ${allHighlights.has(nodeId) ? "highlight " : ""}${nodeId.replace(
-                /\W/g,
-                "_"
-            )}`;
-
-            if (nodeId === highlightEntity) {
-                const label = createTableFields(category, entity, detailedFields);
-                dot += `  "${nodeId}" [label=<${label}> class="graph_node_table_with_fields highlight ${nodeId.replace(
-                    /\W/g,
-                    "_"
-                )}" ]\n`;
-            } else if (category.startsWith("[") && category.endsWith("]")) {
-                dot += `  "${nodeId}" [label="+" shape="circle" class="${nodeClass}" ]\n`;
-            } else {
-                const label = createTableHeader(category, entity);
-                dot += `  "${nodeId}" [label=<${label}> class="${nodeClass}" ]\n`;
-            }
-        });
-
-        // ---------------- Render edges ----------------
-        edgeLabels.forEach(({ source, target, label }) => {
-            const highlight = allHighlights.has(source) ? "highlight" : "";
-            dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label ${source.replace(
-                /\W/g,
-                "_"
-            )}_to_${target.replace(/\W/g, "_")} ${highlight}"]\n`;
-        });
-
-        dot += `}`;
-        return dot;
+        const dot = oneDetaiBasedOnField(graphDataRef.current, tableRef.current);
+        renderGraph(dot);
     }
 
-
-    const shapeDetail = (gd: GraphData) => {
-        // Full original shapeDetail logic
-        let dot = `digraph "tt" {\n graph [rankdir=${gd.graph?.rankdir} label=${gd.graph?.title} labelloc=t]\n node [shape=${gd.node?.shape} width=0.2 height=0.2 margin=0 fontsize=8]\n edge[arrowhead="open" fontsize=6]\n`;
-        gd.nodes.forEach(({ id, name }) => {
-            dot += `  "${id}" [xlabel=<${name || id}> label="" class="graph_node"]\n`;
-        });
-        gd.edges.forEach(({ source, target, label }) => {
-            dot += `  "${source}" -> "${target}" [xlabel="${label}"]\n`;
-        });
-        dot += `}`;
-        return dot;
-    };
-
-
-    const fetchTable = async (table: string) => {
-        //lazy load table data
-        const dot = oneDetail(graphDataRef.current, table);
-        return dot;
-    }
 
     const showNode = async (node: string) => {
         console.log(node)
@@ -389,8 +132,10 @@ export const Graphite: React.FC<GraphiteProps> = (props) => {
         tableRef.current = table;
         const parts = table.split(".");
         if (parts.length === 2) {
-            const data = await fetchTable(table)
-            renderGraph(data);
+            // const entityGraph = toEntityGraph(graphDataRef.current);
+            // const dot = oneDetail(entityGraph, table);
+            const dot = oneDetaiBasedOnField(graphDataRef.current, tableRef.current);
+            renderGraph(dot);
         }
     }
 
@@ -399,18 +144,6 @@ export const Graphite: React.FC<GraphiteProps> = (props) => {
         // const parts = relation.split('->')[1];
         // const downstream = getDownstream(globalGraphData, parts);
         // toggleCollapsed(downstream);
-    }
-    const showApp = (gd: GraphData) => {
-        if (!gd) return;
-        let dot = '';
-        if (gd.node?.shape) {
-            dot = shapeDetail(gd);
-        } else if (gd.metadata?.showDetails) {
-            dot = allDetail(gd);
-        } else {
-            dot = oneDetail(gd, tableRef.current);
-        }
-        renderGraph(dot);
     }
 
     // ------------------ Graph Rendering ------------------
@@ -593,7 +326,6 @@ export const Graphite: React.FC<GraphiteProps> = (props) => {
 
     // ------------------ Effects ------------------
     useEffect(() => {
-        loadApp(app);
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
