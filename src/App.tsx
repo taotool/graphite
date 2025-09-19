@@ -2,6 +2,7 @@ import "./App.css"
 import "./pages/Graphite.css"
 import { JsonGraphite } from "./pages/JsonGraphite";
 import { Flowite } from "./pages/Flowite";
+import { JsonFlowite } from "./pages/JsonFlowite";
 
 // const entityGraph = `
 // {
@@ -593,12 +594,13 @@ function App() {
   return (
     <div style={{ display: "flex", height: "90vh", width: "96vw" }} >
       {/* <JsonGraphite jsonString={jsonString} options={{"arr": true, "keys": [["seller_id"], ["item_id"], ["order_id", "orderId"], ["buyerId", "buyer_id"]]}} /> */}
+      <JsonFlowite jsonString={jsonString} options={{"arr": true, "keys": [["seller_id"], ["item_id"], ["order_id", "orderId"], ["buyerId", "buyer_id"]]}} />
       {/* <OpenApiGraph yamls={[yaml1, yaml2]} /> */}
       {/* <JsonGraph jsonstr={jsonString} /> */}
       {/* <OpenApiGraphite yamls={[yaml1, yaml2]} />  */}
       {/* <Graphite jsonString={graphJsonString} />  */}
 
-      <Flowite jsonstr={jsonString} />
+      {/* <Flowite jsonstr={jsonString} /> */}
     </div>
   );
 }

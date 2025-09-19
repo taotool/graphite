@@ -10,14 +10,14 @@ import { jsonToFieldGraph, toEntityGraph, toEntityGraphFlow } from "./functions"
 // import type { GraphNode, GraphData } from "./interfaces";
 
 
-interface JsonGraphProps {
+interface JsonFlowiteProps {
   jsonstr: string; // list of YAML strings
 }
 export interface GraphFlow {
   nodes: Node[];
   edges: Edge[];
 }
-export const Flowite: React.FC<JsonGraphProps> = ({ jsonstr }) => {
+export const Flowite: React.FC<JsonFlowiteProps> = ({ jsonstr }) => {
 const [highlightEntity, setHighlightEntity] = useState<string | undefined>(undefined);
 
   // Convert merged spec to GraphData
@@ -34,10 +34,12 @@ const [graphData, setGraphData] = useState<{nodes: Node[]; edges: Edge[]}>({node
 
 useEffect(() => {
   (async () => {
-    const fieldGraph = jsonToFieldGraph(JSON.parse(jsonstr), true, [["order_id", "orderId"]]);
-    const entityGraph = toEntityGraph(fieldGraph);
-    const data = await toEntityGraphFlow(entityGraph, highlightEntity, 'LR');
-    setGraphData(data);
+    // const fieldGraph = jsonToFieldGraph(JSON.parse(jsonstr), true, [["order_id", "orderId"]]);
+    // const entityGraph = toEntityGraph(fieldGraph);
+    const entityGraph = JSON.parse(jsonstr);
+    const gd = await toEntityGraphFlow(entityGraph, highlightEntity, 'LR');
+    setGraphData(gd);
+
   })();
 }, [jsonstr, highlightEntity]);
 
