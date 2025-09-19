@@ -17,7 +17,7 @@ export interface GraphFlow {
   nodes: Node[];
   edges: Edge[];
 }
-export const JsonGraphFlow: React.FC<JsonGraphProps> = ({ jsonstr }) => {
+export const Flowite: React.FC<JsonGraphProps> = ({ jsonstr }) => {
 const [highlightEntity, setHighlightEntity] = useState<string | undefined>(undefined);
 
   // Convert merged spec to GraphData
@@ -51,9 +51,9 @@ useEffect(() => {
           setHighlightEntity(node.id); // set clicked node as highlighted
         }}
         fitView>
-        <MiniMap />
-        <Controls />
-        <Background gap={16} color="#aaa" />
+        {/* <MiniMap /> */}
+        {/* <Controls /> */}
+        {/* <Background gap={16} color="#aaa" /> */}
       </ReactFlow>
     </div>
   );
