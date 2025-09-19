@@ -6,7 +6,7 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import type { Node, Edge } from "reactflow";
-import { jsonToFieldGraph, toEntityGraph, toEntityGraphFlow } from "./functions"
+import { toEntityGraphFlow } from "./functions"
 // import type { GraphNode, GraphData } from "./interfaces";
 
 
@@ -18,34 +18,26 @@ export interface GraphFlow {
   edges: Edge[];
 }
 export const Flowite: React.FC<JsonFlowiteProps> = ({ jsonstr }) => {
-const [highlightEntity, setHighlightEntity] = useState<string | undefined>(undefined);
+  console.log("--------- Flowite render "+jsonstr);
+  const [highlightEntity, setHighlightEntity] = useState<string | undefined>(undefined);
 
-  // Convert merged spec to GraphData
-  // const graphData: GraphFlow = useMemo( () => {
 
-  //   const fieldGraph = jsonToFieldGraph(JSON.parse(jsonstr));
-  //   const entityGraph = toEntityGraph(fieldGraph);
+  const [graphData, setGraphData] = useState<{ nodes: Node[]; edges: Edge[] }>({ nodes: [], edges: [] });
 
-  //   const a =  toEntityGraphFlow(entityGraph, highlightEntity, "LR");
+  useEffect(() => {
+    (async () => {
+      // const fieldGraph = jsonToFieldGraph(JSON.parse(jsonstr), true, [["order_id", "orderId"]]);
+      // const entityGraph = toEntityGraph(fieldGraph);
+      const entityGraph = JSON.parse(jsonstr);
+      const gd = await toEntityGraphFlow(entityGraph, highlightEntity, 'LR');
+      setGraphData(gd);
 
-  //   return a;
-  // }, [jsonstr, highlightEntity]);
-const [graphData, setGraphData] = useState<{nodes: Node[]; edges: Edge[]}>({nodes: [], edges: []});
-
-useEffect(() => {
-  (async () => {
-    // const fieldGraph = jsonToFieldGraph(JSON.parse(jsonstr), true, [["order_id", "orderId"]]);
-    // const entityGraph = toEntityGraph(fieldGraph);
-    const entityGraph = JSON.parse(jsonstr);
-    const gd = await toEntityGraphFlow(entityGraph, highlightEntity, 'LR');
-    setGraphData(gd);
-
-  })();
-}, [jsonstr, highlightEntity]);
+    })();
+  }, [jsonstr, highlightEntity]);
 
 
   return (
-    <div style={{ border:"1px solid var(--border-color)", width: "100%", height: "600px" }}>
+    <div style={{ border: "1px solid var(--border-color)", width: "100%", height: "100%" }}>
 
       <ReactFlow nodes={graphData.nodes} edges={graphData.edges}
         onNodeClick={(_, node) => {

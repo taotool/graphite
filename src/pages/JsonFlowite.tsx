@@ -14,8 +14,12 @@ export const JsonFlowite: React.FC<JsonGraphiteProps> = (props) => {
   console.log("--------- JsonFlowite render ");
   // const keys = [["seller_id"], ["item_id"], ["order_id", "orderId"], ["buyerId","buyer_id"]]
   const [rawJson, setRawJson] = useState(props.jsonString); // rawJson as state
-  const [graphJson, setGraphJson] = useState(() =>
-    JSON.stringify(toEntityGraph(jsonToFieldGraph(JSON.parse(props.jsonString), props.options.arr, props.options.keys)), null, 2)
+  const [graphJson, setGraphJson] = useState(() => {
+      const fieldGraphData = jsonToFieldGraph(JSON.parse(props.jsonString), props.options.arr, props.options.keys)
+      const entityGraphData = toEntityGraph(fieldGraphData);  
+      const graphJson = JSON.stringify(entityGraphData, null, 2);
+      return graphJson;
+    }
   );
   const [dividerX, setDividerX] = useState(40); // left panel width in %
   const [isDragging, setIsDragging] = useState(false);
@@ -41,9 +45,13 @@ export const JsonFlowite: React.FC<JsonGraphiteProps> = (props) => {
 
     // try updating graph only if JSON is valid
     try {
-      const parsed = JSON.parse(value);
-      const updatedGraph = jsonToFieldGraph(parsed, props.options.arr, props.options.keys);
-      const graphJson = JSON.stringify(updatedGraph, null, 2);
+      // const parsed = JSON.parse(value);
+      // const updatedGraph = jsonToFieldGraph(parsed, props.options.arr, props.options.keys);
+
+      const fieldGraphData = jsonToFieldGraph(JSON.parse(value), props.options.arr, props.options.keys)
+      const entityGraphData = toEntityGraph(fieldGraphData);  
+      const graphJson = JSON.stringify(entityGraphData, null, 2)
+
       setGraphJson(graphJson);
       console.log("Graph updated ");
     } catch (err) {
