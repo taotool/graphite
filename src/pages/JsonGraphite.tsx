@@ -18,7 +18,7 @@ export const JsonGraphite: React.FC<JsonGraphiteProps> = (props) => {
   const [graphJson, setGraphJson] = useState(() =>
     JSON.stringify(jsonToFieldGraph(JSON.parse(props.jsonString), props.options.arr, props.options.keys), null, 2)
   );
-  const [dividerX, setDividerX] = useState(40); // left panel width in %
+  const [dividerX, setDividerX] = useState(30); // left panel width in %
   const [isDragging, setIsDragging] = useState(false);
   const editorRef = useRef<any>(null);
 

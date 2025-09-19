@@ -18,7 +18,7 @@ export interface GraphFlow {
   edges: Edge[];
 }
 export const Flowite: React.FC<JsonFlowiteProps> = ({ jsonstr }) => {
-  console.log("--------- Flowite render "+jsonstr);
+  console.log("--------- Flowite render ");
   const [highlightEntity, setHighlightEntity] = useState<string | undefined>(undefined);
 
 
@@ -39,15 +39,20 @@ export const Flowite: React.FC<JsonFlowiteProps> = ({ jsonstr }) => {
   return (
     <div style={{ border: "1px solid var(--border-color)", width: "100%", height: "100%" }}>
 
-      <ReactFlow nodes={graphData.nodes} edges={graphData.edges}
-        onNodeClick={(_, node) => {
-          console.log(node.id)
-          setHighlightEntity(node.id); // set clicked node as highlighted
-        }}
-        fitView>
+      <ReactFlow 
+          nodes={graphData.nodes}
+          edges={graphData.edges}
+          onNodeClick={(_, node) => {
+            console.log(node.id)
+            setHighlightEntity(node.id); // set clicked node as highlighted
+          }}
+          fitView
+          proOptions={{ hideAttribution: true }}
+        >
         {/* <MiniMap /> */}
         {/* <Controls /> */}
         {/* <Background gap={16} color="#aaa" /> */}
+
       </ReactFlow>
     </div>
   );

@@ -2,8 +2,11 @@ import type { GraphNode, GraphEdge, GraphData } from "./interfaces";
 
 import type { Node, Edge } from "reactflow";
 import { Position } from "reactflow";
-import ELK from 'elkjs/lib/elk.bundled.js';
+
 import ElkPort from 'elkjs/lib/elk.bundled.js';
+import ELK from 'elkjs/lib/elk.bundled.js';
+
+
 
 // import dagre from "dagre";
 
@@ -295,7 +298,7 @@ export function toEntityGraph(gd: GraphData): GraphData {
     };
 }
 
-export function oneDetail(
+export function oneDetailEntity(
     entityGraph: GraphData,
     highlightEntity?: string
 ): string {
@@ -752,160 +755,194 @@ export function toEntityGraphFlow2(
     console.log(entityGraph);
     console.log(highlightEntity);
     console.log(rankdir);
-    const nodes : Node[]= [];
-    // const edges : Edge[]= [];
+    const nodes: Node[] = [];
+    const edges : Edge[]= [];
     return { nodes, edges };
 }
 
 
-const elk = new ELK();
 
 export async function toEntityGraphFlow(
-  entityGraph: GraphData,
-  highlightEntity?: string,
-  rankdir: 'TB' | 'LR' = 'LR'
+    entityGraph: GraphData,
+    highlightEntity?: string,
+    rankdir: 'TB' | 'LR' = 'LR'
 ): Promise<{ nodes: Node[]; edges: Edge[] }> {
-  // ---------- BFS helper for highlighting ----------
-  function bfs(start: string, adj: Record<string, string[]>): Set<string> {
-    const visited = new Set<string>();
-    const queue: string[] = [start];
-    while (queue.length) {
-      const node = queue.shift()!;
-      if (!visited.has(node)) {
-        visited.add(node);
-        (adj[node] || []).forEach((next) => {
-          if (!visited.has(next)) queue.push(next);
-        });
-      }
-    }
-    return visited;
-  }
-
-  // ---------- adjacency ----------
-  const adjForward: Record<string, string[]> = {};
-  const adjBackward: Record<string, string[]> = {};
-  entityGraph.edges.forEach(({ source, target }) => {
-    if (!adjForward[source]) adjForward[source] = [];
-    if (!adjBackward[target]) adjBackward[target] = [];
-    adjForward[source].push(target);
-    adjBackward[target].push(source);
-  });
-
-  const allHighlights = new Set<string>();
-  if (highlightEntity) {
-    const upstream = bfs(highlightEntity, adjBackward);
-    const downstream = bfs(highlightEntity, adjForward);
-    [highlightEntity, ...upstream, ...downstream].forEach(id =>
-      allHighlights.add(id)
-    );
-  }
-
-  const defaultWidth = 180;
-  const defaultHeight = 20;
-
-  // ---------- build nodes ----------
-  const nodes: Node[] = entityGraph.nodes.map(n => {
-    const [category, entity] = n.id.split('.');
-    const isHighlighted = allHighlights.has(n.id);
-    const isDetailNode = n.id === highlightEntity && n.fields?.length;
-
-    const width = defaultWidth;
-    const height = isDetailNode ? defaultHeight + n.fields!.length * 25 : defaultHeight;
-
-    let label: React.ReactNode;
-    if (isDetailNode) {
-      label = (
-        <div className="text-xs">
-          <div className="font-semibold mb-1">{entity} ({category})</div>
-          <table className="border-collapse border border-gray-300">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="border border-gray-300 px-1">Field</th>
-                <th className="border border-gray-300 px-1">Type</th>
-                <th className="border border-gray-300 px-1">Value</th>
-              </tr>
-            </thead>
-            <tbody>
-              {n.fields!.map(f => (
-                <tr key={f.id}>
-                  <td className="border border-gray-300 px-1">{f.name}</td>
-                  <td className="border border-gray-300 px-1">{f.type}</td>
-                  <td className="border border-gray-300 px-1">{f.value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
-    } else {
-      label = (
-        <div className="font-medium">
-          {entity} <span className="text-gray-500">({category})</span>
-        </div>
-      );
+    // ---------- BFS helper for highlighting ----------
+    function bfs(start: string, adj: Record<string, string[]>): Set<string> {
+        const visited = new Set<string>();
+        const queue: string[] = [start];
+        while (queue.length) {
+            const node = queue.shift()!;
+            if (!visited.has(node)) {
+                visited.add(node);
+                (adj[node] || []).forEach((next) => {
+                    if (!visited.has(next)) queue.push(next);
+                });
+            }
+        }
+        return visited;
     }
 
-    return {
-      id: n.id,
-      data: { label },
-      style: {
-        border: isHighlighted ? '2px solid #1976d2' : '1px solid #888',
-        borderRadius: '12px',
-        padding: '8px',
-        background: isHighlighted ? '#E3F2FD' : '#FFF',
-        minWidth: width,
-        minHeight: height,
-      },
-      width,
-      height,
-      sourcePosition: rankdir === 'LR' ? Position.Right : Position.Bottom,
-      targetPosition: rankdir === 'LR' ? Position.Left : Position.Top,
-      position: { x: 0, y: 0 }, // Add default position as required by Node type
+    // ---------- adjacency ----------
+    const adjForward: Record<string, string[]> = {};
+    const adjBackward: Record<string, string[]> = {};
+    entityGraph.edges.forEach(({ source, target }) => {
+        if (!adjForward[source]) adjForward[source] = [];
+        if (!adjBackward[target]) adjBackward[target] = [];
+        adjForward[source].push(target);
+        adjBackward[target].push(source);
+    });
+
+    const allHighlights = new Set<string>();
+    if (highlightEntity) {
+        const upstream = bfs(highlightEntity, adjBackward);
+        const downstream = bfs(highlightEntity, adjForward);
+        [highlightEntity, ...upstream, ...downstream].forEach(id =>
+            allHighlights.add(id)
+        );
+    }
+
+    const defaultWidth = 200;
+    const defaultHeight = 40;
+
+    // ---------- build nodes ----------
+    const nodes: Node[] = entityGraph.nodes.map(n => {
+        const [category, entity] = n.id.split('.');
+        const isHighlighted = allHighlights.has(n.id);
+        const isDetailNode = n.id === highlightEntity && n.fields?.length;
+
+        const width = defaultWidth;
+        const height = isDetailNode ? defaultHeight + n.fields!.length * 25 : defaultHeight;
+
+        let label: React.ReactNode;
+        if (isDetailNode) {
+            label = (
+                <div className="font-medium">
+                    <div className="font-semibold mb-1">{category}</div>
+                    <div className="font-semibold mb-1">{entity}</div>
+                    <table width={"100%"} className="border-collapse border border-gray-300">
+                        <thead>
+                            <tr className="bg-gray-100">
+                                <th className="border border-gray-300 px-1">Field</th>
+                                <th className="border border-gray-300 px-1">Type</th>
+                                <th className="border border-gray-300 px-1">Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {n.fields!.map(f => (
+                                <tr key={f.id}>
+                                    <td className="border border-gray-300 px-1">{f.name}</td>
+                                    <td className="border border-gray-300 px-1">{f.type}</td>
+                                    <td className="border border-gray-300 px-1">{f.value}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            );
+        } else if (category.startsWith('[') && category.endsWith(']')) {
+            label = (
+                <div style={{ cursor: "pointer", background:"lightgray" }}  className="font-medium">
+                    <div className="font-semibold mb-1">{category}</div>
+                    <div className="font-semibold mb-1">{entity}</div>
+                </div>
+            );
+            // label = (
+            //  <div
+            //     style={{
+            //         width: 80,
+            //         height: 80,
+            //         borderRadius: '50%',        // makes it circular
+            //         border: '2px solid #4f46e5', // example border color
+            //         display: 'flex',
+            //         alignItems: 'center',
+            //         justifyContent: 'center',
+            //         textAlign: 'center',
+            //         cursor: 'pointer',
+            //     }}
+            //     onClick={() => console.log('Clicked circle node:', entity)}
+            //     >
+            //     <div className="font-medium">{category}</div>
+            //     </div>
+            // );
+        } else {
+            label = (
+                <div style={{ cursor: "pointer" }}  className="font-medium">
+                    <div className="font-semibold mb-1">{category}</div>
+                    <div className="font-semibold mb-1">{entity}</div>
+                </div>
+            );
+        }
+
+        return {
+            id: n.id,
+            data: { label },
+            style: {
+                border: isHighlighted ? '2px solid #1976d2' : '1px solid #888',
+                borderRadius: '8px',
+                padding: '8px',
+                background: isHighlighted ? '#E3F2FD' : '#FFF',
+                minWidth: width,
+                minHeight: height,
+            },
+            width,
+            height,
+            sourcePosition: rankdir === 'LR' ? Position.Right : Position.Bottom,
+            targetPosition: rankdir === 'LR' ? Position.Left : Position.Top,
+            position: { x: 0, y: 0 }, // Add default position as required by Node type
+        };
+    });
+
+    // ---------- merge edges ----------
+    const edgeMap = new Map<string, { source: string; target: string; labels: Set<string> }>();
+    entityGraph.edges.forEach(e => {
+        const key = `${e.source}|${e.target}`;
+        if (!edgeMap.has(key)) edgeMap.set(key, { source: e.source, target: e.target, labels: new Set() });
+        if (e.label) edgeMap.get(key)!.labels.add(e.label);
+    });
+    const edges: Edge[] = Array.from(edgeMap.values()).map(({ source, target, labels }, i) => ({
+        id: `edge-${i}`,
+        source,
+        target,
+        label: Array.from(labels).join(', '),
+        animated: true,
+        style: { stroke: allHighlights.has(source) ? '#1976d2' : '#555' },
+    }));
+
+    // ---------- build ELK graph ----------
+
+    const elkGraph = {
+        id: 'root',
+        layoutOptions: { 
+                'elk.algorithm': 'layered',
+    'elk.direction': rankdir === 'LR' ? 'RIGHT' : 'DOWN',
+    'elk.spacing.nodeNode': '50',
+'elk.layered.spacing.nodeNodeBetweenLayers': '80', // more explicit for layered layout
+
+'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED'
+
+        },
+        children: nodes.map(n => ({
+            id: n.id,
+    width: n.width ?? 100,
+    height: n.height ?? 50,
+        })),
+        edges: edges.map(e => ({ id: e.id, sources: [e.source], targets: [e.target] })),
     };
-  });
+    const elk = new ELK();
+    const layout = await elk.layout(elkGraph);
 
-  // ---------- merge edges ----------
-  const edgeMap = new Map<string, { source: string; target: string; labels: Set<string> }>();
-  entityGraph.edges.forEach(e => {
-    const key = `${e.source}|${e.target}`;
-    if (!edgeMap.has(key)) edgeMap.set(key, { source: e.source, target: e.target, labels: new Set() });
-    if (e.label) edgeMap.get(key)!.labels.add(e.label);
-  });
-  const edges: Edge[] = Array.from(edgeMap.values()).map(({ source, target, labels }, i) => ({
-    id: `edge-${i}`,
-    source,
-    target,
-    label: Array.from(labels).join(', '),
-    animated: true,
-    style: { stroke: allHighlights.has(source) ? '#1976d2' : '#555' },
-  }));
+    // ---------- assign positions ----------
+    const nodePositions = new Map<string, { x: number; y: number }>();
+    layout.children?.forEach(n => {
+        if (!n.x || !n.y) return;
+        nodePositions.set(n.id, { x: n.x, y: n.y });
+    });
 
-  // ---------- build ELK graph ----------
+    const positionedNodes = nodes.map(n => ({
+        ...n,
+        position: nodePositions.get(n.id) || { x: 0, y: 0 },
+    }));
 
-  const elkGraph = {
-    id: 'root',
-    layoutOptions: { 'elk.direction': rankdir === 'LR' ? 'RIGHT' : 'DOWN', 'elk.spacing.nodeNode': '50' },
-    children: nodes.map(n => ({
-      id: n.id,
-      width: n.width == null ? undefined : n.width,
-      height: n.height == null ? undefined : n.height,
-    })),
-    edges: edges.map(e => ({ id: e.id, sources: [e.source], targets: [e.target] })),
-  };
-
-  const layout = await elk.layout(elkGraph);
-
-  // ---------- assign positions ----------
-  const nodePositions = new Map<string, { x: number; y: number }>();
-  layout.children?.forEach(n => {
-    if (!n.x || !n.y) return;
-    nodePositions.set(n.id, { x: n.x, y: n.y });
-  });
-
-  const positionedNodes = nodes.map(n => ({
-    ...n,
-    position: nodePositions.get(n.id) || { x: 0, y: 0 },
-  }));
-
-  return { nodes: positionedNodes, edges };
+    return { nodes: positionedNodes, edges };
 }

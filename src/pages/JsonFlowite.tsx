@@ -21,7 +21,7 @@ export const JsonFlowite: React.FC<JsonGraphiteProps> = (props) => {
       return graphJson;
     }
   );
-  const [dividerX, setDividerX] = useState(40); // left panel width in %
+  const [dividerX, setDividerX] = useState(30); // left panel width in %
   const [isDragging, setIsDragging] = useState(false);
   const editorRef = useRef<any>(null);
 
