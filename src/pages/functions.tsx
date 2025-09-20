@@ -623,21 +623,27 @@ const createTableFields = (
     if (fields.length === 0) fields.push({ id: 'Id', name: "Name", type: 'String', value: 'Value' });
 
     const fieldRows = fields
-        .map(({ id, name, type, value }) => {
-            let tgt = type, tt = type;
-            if (type.includes('|')) {
-                const t = type.split('|');
-                tt = t[0];
-                const target = t[1].split(".");
+        .map(({ id, name, type, value, to }) => {
+            let tgt = type;
+            // , tt = type;
+            // if (type.includes('|')) {
+            //     const t = type.split('|');
+            //     tt = t[0];
+            //     const target = t[1].split(".");
+            //     tgt = target[0] + "." + target[1];
+            // }
+
+            if (to && to!=="Unknown") {
+                const target = to.split(".");
                 tgt = target[0] + "." + target[1];
             }
             return `<tr>
             <td ALIGN="LEFT" width="10" PORT="IN_${category}.${entity}.${id}" ><FONT >${name || id} </FONT></td>
             <td ALIGN="LEFT" width="10">
-              ${tt}
+              ${type}
             </td>
-            <td BALIGN="LEFT" PORT="OUT_${category}.${entity}.${id}" ${type.includes('|') ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
-               ${type.includes('|') ? `<FONT >${value}</FONT>` : `<FONT >${value}</FONT>`}
+            <td BALIGN="LEFT" PORT="OUT_${category}.${entity}.${id}" ${(to && to!=="Unknown") ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
+               ${to ? `<FONT >${value}</FONT>` : `<FONT >${value}</FONT>`}
             </td>
           </tr>`;
         }).join('');
@@ -788,10 +794,11 @@ export function oneDetaiBasedOnField(gd: GraphData, highlightEntity?: string): s
                 .filter(({ id }) => id.startsWith(`${highlightEntity}.`))
                 .map(({ id, name, type, value }) => {
                     const field = id.split(".").pop()!;
-                    console.log("check fk for " + id);
-                    const fk = gd.edges.find((e) => e.source === id)?.target || "Unknown";
-                    const tp = fk === "Unknown" ? type : `${type}|${fk}`;
-                    return { id: field, name, type: tp, value };
+                    // console.log("check fk for " + id);
+                    const child = gd.edges.find((e) => e.source === id)?.target || "Unknown";
+                    const parent = gd.edges.find((e) => e.target === id)?.target || "Unknown";
+                    // const tp = child === "Unknown" ? type : `${type}|${child}`;
+                    return { id: field, name, type: type, value, from: parent, to: child };
                 })
             : [];
 

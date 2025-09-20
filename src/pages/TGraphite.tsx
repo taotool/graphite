@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Graphite } from "./Graphite";
+import { Flowite } from "./Flowite";
+
 import "./Graphite.css"
 import Editor from "@monaco-editor/react";
 import { useMediaQuery } from "@mui/material";
 import type { OnMount } from "@monaco-editor/react";
-import { yamlToFieldGraph, graphqlToFieldGraph, openapiToFieldGraph, jsonToFieldGraph } from "./functions"
+import { yamlToFieldGraph, graphqlToFieldGraph, openapiToFieldGraph, jsonToFieldGraph, toEntityGraph } from "./functions"
 
 export interface TGraphiteProps {
   source: string;
@@ -13,23 +15,27 @@ export interface TGraphiteProps {
 export const TGraphite: React.FC<TGraphiteProps> = (props) => {
 
   console.log("--------- JsonGraph render ");
-  
+
 
   const convertToFieldGraph = (str: string) => {
     if (!props.options.type || props.options.type === 'json') {
-      return JSON.stringify(jsonToFieldGraph(JSON.parse(str), props.options.arr, props.options.keys), null, 2);
+      const fieldGraphData = jsonToFieldGraph(JSON.parse(str), props.options.arr, props.options.keys)
+      return props.options.engine === 'flowite' ? JSON.stringify(toEntityGraph(fieldGraphData), null, 2) : JSON.stringify(fieldGraphData, null, 2);
     }
 
     if (props.options.type === 'graphql') {
-      return JSON.stringify(graphqlToFieldGraph(str), null, 2);
+      const fieldGraphData = graphqlToFieldGraph(str);
+      return props.options.engine === 'flowite' ? JSON.stringify(toEntityGraph(fieldGraphData), null, 2) : JSON.stringify(fieldGraphData, null, 2);
     }
 
     if (props.options.type === 'yaml') {
-      return JSON.stringify(yamlToFieldGraph(JSON.parse(str), props.options.arr, props.options.keys), null, 2);
+      const fieldGraphData = yamlToFieldGraph(JSON.parse(str), props.options.arr, props.options.keys);
+      return props.options.engine === 'flowite' ? JSON.stringify(toEntityGraph(fieldGraphData), null, 2) : JSON.stringify(fieldGraphData, null, 2);
     }
 
     if (props.options.type === 'openapi') {
-      return JSON.stringify(openapiToFieldGraph(JSON.parse(str), props.options.arr, props.options.keys), null, 2);
+      const fieldGraphData = openapiToFieldGraph(JSON.parse(str), props.options.arr, props.options.keys);
+      return props.options.engine === 'flowite' ? JSON.stringify(toEntityGraph(fieldGraphData), null, 2) : JSON.stringify(fieldGraphData, null, 2);
     }
   }
   // const keys = [["seller_id"], ["item_id"], ["order_id", "orderId"], ["buyerId","buyer_id"]]
@@ -85,42 +91,50 @@ export const TGraphite: React.FC<TGraphiteProps> = (props) => {
 
   //
   return (
-    <div style={{ display: "flex", height: "90vh", width: "96vw" }} >
+    <div>
+      <div style={{ border: "1px solid red" }}>head</div>
+      <div style={{ display: "flex", height: "90vh", width: "96vw" }} >
 
 
-      {/* Right panel: JSON editor */}
-      <div style={{ border: "1px solid #ccc", width: `${dividerX}%` }}>
-        <Editor
-          height="100%"
-          defaultLanguage={props.options.type}
-          value={rawJson}
-          onChange={handleEditorChange}
-          onMount={handleEditorMount}
-          theme={prefersDarkMode ? "vs-dark" : "light"}
-          options={{
-            scrollbar: {
-              vertical: "auto",      // "auto" | "visible" | "hidden"
-              horizontal: "auto",
-              verticalScrollbarSize: 4, // <-- width of vertical scrollbar (px)
-              horizontalScrollbarSize: 4, // <-- height of horizontal scrollbar (px)
-              arrowSize: 12,             // optional, size of arrows
-            }
+        {/* Right panel: JSON editor */}
+        <div style={{ border: "1px solid #ccc", width: `${dividerX}%` }}>
+          <Editor
+            height="100%"
+            defaultLanguage={props.options.type}
+            value={rawJson}
+            onChange={handleEditorChange}
+            onMount={handleEditorMount}
+            theme={prefersDarkMode ? "vs-dark" : "light"}
+            options={{
+              scrollbar: {
+                vertical: "auto",      // "auto" | "visible" | "hidden"
+                horizontal: "auto",
+                verticalScrollbarSize: 4, // <-- width of vertical scrollbar (px)
+                horizontalScrollbarSize: 4, // <-- height of horizontal scrollbar (px)
+                arrowSize: 12,             // optional, size of arrows
+              }
+            }}
+          />
+        </div>
+        {/* Divider */}
+        <div
+          onPointerDown={handleMouseDown}
+          style={{
+            width: "4px", cursor: "col-resize",
+            borderStyle: "solid none",
+            border: "1px solid #ccc",
+            backgroundColor: "var(--border-color)"
           }}
         />
-      </div>
-      {/* Divider */}
-      <div
-        onPointerDown={handleMouseDown}
-        style={{
-          width: "4px", cursor: "col-resize",
-          borderStyle: "solid none",
-          border: "1px solid #ccc",
-          backgroundColor: "var(--border-color)"
-        }}
-      />
-      {/* Left panel: Graph */}
-      <div style={{ border: "1px solid #ccc", width: `${100 - dividerX}%` }}>
-        <Graphite jsonString={graphJson} />
+        {/* Left panel: Graph */}
+        <div style={{ border: "1px solid #ccc", width: `${100 - dividerX}%` }}>
+          {
+            props.options.engine === 'flowite'
+              ? <Flowite jsonstr={graphJson || ""} />
+              : <Graphite jsonString={graphJson} />
+          }
+
+        </div>
       </div>
     </div>
   );
