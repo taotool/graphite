@@ -803,17 +803,11 @@ export function oneDetaiBasedOnField(gd: GraphData, highlightEntity?: string): s
     // ---------------- Render nodes ----------------
     Object.values(nodes).forEach(({ id: nodeId }) => {
         const [category, entity] = nodeId.split(".");
-        const nodeClass = `graph_node_table ${allHighlights.has(nodeId) ? "highlight " : ""}${nodeId.replace(
-            /\W/g,
-            "_"
-        )}`;
+        const nodeClass = `graph_node_table ${allHighlights.has(nodeId) ? "highlight " : ""}`;
 
         if (nodeId === highlightEntity) {
             const label = createTableFields(category, entity, detailedFields);
-            dot += `  "${nodeId}" [label=<${label}> class="graph_node_table_with_fields highlight ${nodeId.replace(
-                /\W/g,
-                "_"
-            )}" ]\n`;
+            dot += `  "${nodeId}" [label=<${label}> class="graph_node_table_with_fields highlight" ]\n`;
         } else if (category.startsWith("[") && category.endsWith("]")) {
             dot += `  "${nodeId}" [label="+" shape="circle" class="${nodeClass}" ]\n`;
         } else {
@@ -825,10 +819,7 @@ export function oneDetaiBasedOnField(gd: GraphData, highlightEntity?: string): s
     // ---------------- Render edges ----------------
     edgeLabels.forEach(({ source, target, label }) => {
         const highlight = allHighlights.has(source) ? "highlight" : "";
-        dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label ${source.replace(
-            /\W/g,
-            "_"
-        )}_to_${target.replace(/\W/g, "_")} ${highlight}"]\n`;
+        dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label ${highlight}"]\n`;
     });
 
     dot += `}`;
