@@ -106,8 +106,11 @@ export const JsonFlowite: React.FC<JsonGraphiteProps> = (props) => {
           width: "4px", cursor: "col-resize",
           borderStyle: "solid none",
           border: "1px solid #ccc",
-          backgroundColor: "var(--border-color)"
+          backgroundColor: "var(--border-color)",
+          
         }}
+          className="w-1 cursor-col-resize border border-gray-300 bg-[var(--border-color)] hover:bg-blue-500"
+
       />
       {/* Left panel: Graph */}
       <div style={{ border: "1px solid #ccc", width: `${100 - dividerX}%` }}>

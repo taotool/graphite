@@ -1,6 +1,6 @@
 import "./App.css"
 import "./pages/Graphite.css"
-import { JsonGraphite } from "./pages/JsonGraphite";
+import { TGraphite } from "./pages/TGraphite";
 import { Flowite } from "./pages/Flowite";
 import { JsonFlowite } from "./pages/JsonFlowite";
 
@@ -516,7 +516,7 @@ import { JsonFlowite } from "./pages/JsonFlowite";
 //   ]
 // }
 // `;
-const jsonString = `
+const json = `
 {
   "user": {
     "id": "User123",
@@ -590,11 +590,97 @@ const jsonString = `
 }
 `;
 
+// Example usage with your schema
+const graphql: string = `
+  # Custom scalar for DateTime
+scalar DateTime
+
+# Enum for post status
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+# User type
+type User {
+  id: ID!
+  name: String!
+  email: String!
+  posts: [Post!]!
+  createdAt: DateTime!
+}
+
+# Post type
+type Post {
+  id: ID!
+  title: String!
+  content: String
+  author: User!
+  status: PostStatus!
+  createdAt: DateTime!
+}
+
+# Input type for creating a new post
+input CreatePostInput {
+  title: String!
+  content: String
+  authorId: ID!
+  status: PostStatus = DRAFT
+}
+
+# Input type for updating a post
+input UpdatePostInput {
+  title: String
+  content: String
+  status: PostStatus
+}
+
+# Root Query type
+type Query {
+  # Fetch all users
+  users: [User!]!
+
+  # Fetch a single user by ID
+  user(id: ID!): User
+
+  # Fetch all posts (optional filter by status)
+  posts(status: PostStatus): [Post!]!
+
+  # Fetch a single post by ID
+  post(id: ID!): Post
+}
+
+# Root Mutation type
+type Mutation {
+  # Create a new user
+  createUser(name: String!, email: String!): User!
+
+  # Create a new post
+  createPost(input: CreatePostInput!): Post!
+
+  # Update an existing post
+  updatePost(id: ID!, input: UpdatePostInput!): Post!
+
+  # Delete a post by ID
+  deletePost(id: ID!): Boolean!
+}
+
+# Schema definition (optional in modern GraphQL servers)
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+`;
+
+
 function App() {
   return (
     <div style={{ display: "flex", height: "90vh", width: "96vw" }} >
       {/* <JsonGraphite jsonString={jsonString} options={{"arr": true, "keys": [["seller_id"], ["item_id"], ["order_id", "orderId"], ["buyerId", "buyer_id"]]}} /> */}
-      <JsonFlowite jsonString={jsonString} options={{"arr": true, "keys": [["seller_id"], ["item_id"], ["order_id", "orderId"], ["buyerId", "buyer_id"]]}} />
+      <TGraphite source={graphql} options={{ type: 'graphql' }} />
+      {/* <JsonFlowite jsonString={jsonString} options={{"arr": true, "keys": [["seller_id"], ["item_id"], ["order_id", "orderId"], ["buyerId", "buyer_id"]]}} /> */}
       {/* <OpenApiGraph yamls={[yaml1, yaml2]} /> */}
       {/* <JsonGraph jsonstr={jsonString} /> */}
       {/* <OpenApiGraphite yamls={[yaml1, yaml2]} />  */}

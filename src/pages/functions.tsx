@@ -7,8 +7,248 @@ import ElkPort from 'elkjs/lib/elk.bundled.js';
 import ELK from 'elkjs/lib/elk.bundled.js';
 
 
+import {
+    buildSchema,
+    GraphQLSchema,
+    GraphQLObjectType,
+    GraphQLList,
+    isListType,
+    isNonNullType,
+    isScalarType,
+    isObjectType,
+    isInterfaceType,
+    isEnumType,
+} from 'graphql';
+import type { GraphQLNamedType, GraphQLType } from 'graphql';
 
-// import dagre from "dagre";
+
+
+/**
+ * Parses a GraphQL schema string and generates a JSON graph format.
+ * @param schemaString The GraphQL schema definition language (SDL) as a string.
+ * @returns A JSON object containing nodes and edges representing the schema.
+ */
+export function graphqlToFieldGraph(schemaString: string): GraphData {
+    const BUILT_IN_SCALARS = new Set(['String', 'Int', 'Float', 'ID', 'Boolean']);
+
+    let graphQLSchema: GraphQLSchema;
+    try {
+        graphQLSchema = buildSchema(schemaString);
+    } catch (error) {
+        console.error('Failed to parse schema:', error);
+        throw error;
+    }
+
+    const nodes: GraphNode[] = [];
+    const edges: GraphEdge[] = [];
+    const processedNodeIds = new Set<string>();
+
+    // Helper function to get the base type, handling lists and non-nulls
+    const getBaseType = (type: any): GraphQLNamedType => {
+        if (isListType(type) || isNonNullType(type)) {
+            return getBaseType(type.ofType);
+        }
+        return type;
+    };
+    // New helper function to get the full type name, including wrappers
+    const getFieldTypeName = (type: GraphQLType): string => {
+        if (isListType(type)) {
+            return `[${getFieldTypeName(type.ofType)}]`;
+        }
+        if (isNonNullType(type)) {
+            return `${getFieldTypeName(type.ofType)}!`;
+        }
+        return type.name;
+    };
+    // Process queries, associating them with the Query type
+    const queryType = graphQLSchema.getQueryType();
+    if (queryType) {
+        // const queryNodeId = `QUERY.${queryType.name}`;
+        // nodes.push({
+        //     id: queryNodeId,
+        //     name: queryType.name,
+        //     type: 'root_query',
+        //     value: '{...}'
+        // });
+        // processedNodeIds.add(queryNodeId);
+
+        const queryFields = queryType.getFields();
+        for (const fieldName in queryFields) {
+            const field = queryFields[fieldName];
+            const fieldType = getBaseType(field.type);
+            const fieldTypeName = getFieldTypeName(field.type);
+            const fieldValue = isScalarType(fieldType) ? ` ` :(isListType(field.type)? '[...]': '{...}');
+            const fieldNodeId = `QUERY.${queryType.name}.${fieldName}`;
+            nodes.push({
+                id: fieldNodeId,
+                name: fieldName,
+                type: fieldTypeName,
+                value: fieldValue
+            });
+            processedNodeIds.add(fieldNodeId);
+
+            // Edge from Query type to query field
+            // edges.push({
+            //     source: queryNodeId,
+            //     target: fieldNodeId,
+            //     label: fieldName
+            // });
+
+            // Edge from query field to its return type
+            if (isObjectType(fieldType)) {
+                const targetTypeId = `TYPE.${fieldType.name}.IDT`;
+                edges.push({
+                    source: fieldNodeId,
+                    target: targetTypeId,
+                    label: `returns: ${fieldType.name}`
+                });
+            }
+        }
+    }
+
+    // --- Process mutations ---
+    const mutationType = graphQLSchema.getMutationType();
+    if (mutationType) {
+        // const mutationNodeId = `MUTATION.${mutationType.name}`;
+        // nodes.push({
+        //     id: mutationNodeId,
+        //     name: mutationType.name,
+        //     type: 'root_mutation',
+        //     value: '{...}'
+        // });
+        // processedNodeIds.add(mutationNodeId);
+
+        const mutationFields = mutationType.getFields();
+        for (const fieldName in mutationFields) {
+            const field = mutationFields[fieldName];
+            const fieldType = getBaseType(field.type);
+            const fieldTypeName = getFieldTypeName(field.type);
+
+            const fieldNodeId = `MUTATION.${mutationType.name}.${fieldName}`;
+            nodes.push({
+                id: fieldNodeId,
+                name: fieldName,
+                type: 'mutation_field',
+                value: fieldTypeName
+            });
+            processedNodeIds.add(fieldNodeId);
+
+            // Edge from Mutation type to mutation field
+            // edges.push({
+            //     source: mutationNodeId,
+            //     target: fieldNodeId,
+            //     label: fieldName
+            // });
+
+            // Edge from mutation field to its return type
+            if (isObjectType(fieldType)) {
+                const targetTypeId = `TYPE.${fieldType.name}.IDM`;
+                edges.push({
+                    source: fieldNodeId,
+                    target: targetTypeId,
+                    label: `returns: ${fieldType.name}`
+                });
+            }
+        }
+    }
+
+    // Process all other types
+    const typeMap = graphQLSchema.getTypeMap();
+    for (const typeName in typeMap) {
+        const type = typeMap[typeName];
+
+        // Filter out built-in types, introspection types, and the Query type
+        if (typeName.startsWith('__') || typeName === 'Query' || typeName === 'Mutation' || (isScalarType(type) && ['String', 'Int', 'Float', 'ID', 'Boolean'].includes(typeName))) {
+            continue;
+        }
+        if (isEnumType(type)) {
+            const typeNodeId = `ENUM.${typeName}.IDS`;
+            if (!processedNodeIds.has(typeNodeId)) {
+                nodes.push({
+                    id: typeNodeId,
+                    name: typeName,
+                    type: 'enum',
+                    value: type.description || ' '
+                });
+                processedNodeIds.add(typeNodeId);
+            }
+        } else if (isScalarType(type)) {
+            const typeNodeId = `SCALAR.${typeName}.IDS`;
+            if (!processedNodeIds.has(typeNodeId)) {
+                nodes.push({
+                    id: typeNodeId,
+                    name: typeName,
+                    type: 'scalar',
+                    value: type.description || ' '
+                });
+                processedNodeIds.add(typeNodeId);
+            }
+        } else if (isObjectType(type) || isInterfaceType(type)) {
+            // const typeNodeId = `TYPE.${typeName}`;
+            // if (!processedNodeIds.has(typeNodeId)) {
+            //     nodes.push({
+            //         id: typeNodeId,
+            //         name: typeName,
+            //         type: type.name,
+            //         value: '{...}'
+            //     });
+            //     processedNodeIds.add(typeNodeId);
+            // }
+
+            // Process fields of the object type
+            const typeFields = type.getFields();
+            for (const fieldName in typeFields) {
+                const field = typeFields[fieldName];
+                const fieldType = getBaseType(field.type);
+                const fieldTypeName = getFieldTypeName(field.type);
+                // *** CHANGE HERE: Use TYPE prefix for nested fields ***
+                const fieldNodeId = `TYPE.${typeName}.${fieldName}`;
+
+                const fieldValue = (isScalarType(field.type) && !BUILT_IN_SCALARS.has(fieldType.name)) ? ` ` : '{...}';
+                
+                const fieldTypeLabel = isListType(field.type) ? `[${fieldType.name}]` : fieldType.name;
+
+                nodes.push({
+                    id: fieldNodeId,
+                    name: fieldName,
+                    type: fieldTypeName,
+                    value: fieldValue
+                });
+                processedNodeIds.add(fieldNodeId);
+
+                // Edge from object type to its field
+                // edges.push({
+                //     source: typeNodeId,
+                //     target: fieldNodeId,
+                //     label: `${fieldName}: ${fieldTypeLabel}`
+                // });
+
+                // Edge from field to its return type if it's another custom object
+                if (isObjectType(fieldType) || isInterfaceType(fieldType)) {
+                    edges.push({
+                        source: fieldNodeId,
+                        target: `TYPE.${fieldType.name}.IDY`,
+                        label: `returns: ${fieldType.name}`
+                    });
+                } else  if (isEnumType(fieldType)) {
+                    edges.push({
+                        source: fieldNodeId,
+                        target: `ENUM.${fieldType.name}.IDS`,
+                        label: `returns: ${fieldType.name}`
+                    });
+                } else if (isScalarType(fieldType) && !BUILT_IN_SCALARS.has(fieldType.name)) {
+                    edges.push({
+                        source: fieldNodeId,
+                        target: `SCALAR.${fieldType.name}.IDS`,
+                        label: `returns: ${fieldType.name}`
+                    });
+                }
+            }
+        }
+    }
+
+    return { nodes, edges };
+}
 
 export function jsonToFieldGraph(jsonObj: Record<string, any>, separateNodeForArray = true, linkedFields = [[""]]): GraphData {
     const result: GraphData = { nodes: [], edges: [] };
@@ -231,9 +471,13 @@ export function jsonToFieldGraph(jsonObj: Record<string, any>, separateNodeForAr
     return updatedGraph;
 }
 
+export function openapiToFieldGraph(jsonObj: Record<string, any>, separateNodeForArray = true, linkedFields = [[""]]): GraphData {
+    return jsonToFieldGraph(jsonObj, separateNodeForArray, linkedFields);
+}
 
-
-
+export function yamlToFieldGraph(jsonObj: Record<string, any>, separateNodeForArray = true, linkedFields = [[""]]): GraphData {
+    return jsonToFieldGraph(jsonObj, separateNodeForArray, linkedFields);
+}
 
 const getCategoryEntity = (id: string): string | null => {
     const parts = id.split('.');
@@ -756,7 +1000,7 @@ export function toEntityGraphFlow2(
     console.log(highlightEntity);
     console.log(rankdir);
     const nodes: Node[] = [];
-    const edges : Edge[]= [];
+    const edges: Edge[] = [];
     return { nodes, edges };
 }
 
@@ -802,8 +1046,8 @@ export async function toEntityGraphFlow(
         );
     }
 
-    const defaultWidth = 200;
-    const defaultHeight = 40;
+    const defaultWidth = 80;
+    const defaultHeight = 10;
 
     // ---------- build nodes ----------
     const nodes: Node[] = entityGraph.nodes.map(n => {
@@ -811,29 +1055,24 @@ export async function toEntityGraphFlow(
         const isHighlighted = allHighlights.has(n.id);
         const isDetailNode = n.id === highlightEntity && n.fields?.length;
 
-        const width = defaultWidth;
+        const width = isDetailNode ? defaultWidth + 125 : defaultWidth;
         const height = isDetailNode ? defaultHeight + n.fields!.length * 25 : defaultHeight;
 
         let label: React.ReactNode;
         if (isDetailNode) {
             label = (
-                <div className="font-medium">
+                <div className="graph_node_table_with_fields font-medium " >
                     <div className="font-semibold mb-1">{category}</div>
                     <div className="font-semibold mb-1">{entity}</div>
+                    <br />
                     <table width={"100%"} className="border-collapse border border-gray-300">
-                        <thead>
-                            <tr className="bg-gray-100">
-                                <th className="border border-gray-300 px-1">Field</th>
-                                <th className="border border-gray-300 px-1">Type</th>
-                                <th className="border border-gray-300 px-1">Value</th>
-                            </tr>
-                        </thead>
+
                         <tbody>
                             {n.fields!.map(f => (
                                 <tr key={f.id}>
-                                    <td className="border border-gray-300 px-1">{f.name}</td>
-                                    <td className="border border-gray-300 px-1">{f.type}</td>
-                                    <td className="border border-gray-300 px-1">{f.value}</td>
+                                    <td align="left" className="border border-gray-300 px-1">{f.name}</td>
+                                    <td align="left" className="border border-gray-300 px-1">{f.type}</td>
+                                    <td align="right" className="border border-gray-300 px-1">{f.value}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -842,7 +1081,7 @@ export async function toEntityGraphFlow(
             );
         } else if (category.startsWith('[') && category.endsWith(']')) {
             label = (
-                <div style={{ cursor: "pointer", background:"lightgray" }}  className="font-medium">
+                <div className="graph_node_table font-medium ">
                     <div className="font-semibold mb-1">{category}</div>
                     <div className="font-semibold mb-1">{entity}</div>
                 </div>
@@ -867,7 +1106,7 @@ export async function toEntityGraphFlow(
             // );
         } else {
             label = (
-                <div style={{ cursor: "pointer" }}  className="font-medium">
+                <div className="font-medium graph_node_table">
                     <div className="font-semibold mb-1">{category}</div>
                     <div className="font-semibold mb-1">{entity}</div>
                 </div>
@@ -878,9 +1117,9 @@ export async function toEntityGraphFlow(
             id: n.id,
             data: { label },
             style: {
-                border: isHighlighted ? '2px solid #1976d2' : '1px solid #888',
+                border: isHighlighted ? '2px solid #1976d2' : '2px solid #000',
                 borderRadius: '8px',
-                padding: '8px',
+                padding: '0px',
                 background: isHighlighted ? '#E3F2FD' : '#FFF',
                 minWidth: width,
                 minHeight: height,
@@ -906,26 +1145,26 @@ export async function toEntityGraphFlow(
         target,
         label: Array.from(labels).join(', '),
         animated: true,
-        style: { stroke: allHighlights.has(source) ? '#1976d2' : '#555' },
+        style: { stroke: allHighlights.has(source) ? '#1976d2' : '#000' },
     }));
 
     // ---------- build ELK graph ----------
 
     const elkGraph = {
         id: 'root',
-        layoutOptions: { 
-                'elk.algorithm': 'layered',
-    'elk.direction': rankdir === 'LR' ? 'RIGHT' : 'DOWN',
-    'elk.spacing.nodeNode': '50',
-'elk.layered.spacing.nodeNodeBetweenLayers': '80', // more explicit for layered layout
+        layoutOptions: {
+            'elk.algorithm': 'layered',
+            'elk.direction': rankdir === 'LR' ? 'RIGHT' : 'DOWN',
+            'elk.spacing.nodeNode': '50',
+            'elk.layered.spacing.nodeNodeBetweenLayers': '160', // more explicit for layered layout
 
-'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED'
+            'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED'
 
         },
         children: nodes.map(n => ({
             id: n.id,
-    width: n.width ?? 100,
-    height: n.height ?? 50,
+            width: n.width ?? 100,
+            height: n.height ?? 50,
         })),
         edges: edges.map(e => ({ id: e.id, sources: [e.source], targets: [e.target] })),
     };
@@ -946,3 +1185,4 @@ export async function toEntityGraphFlow(
 
     return { nodes: positionedNodes, edges };
 }
+

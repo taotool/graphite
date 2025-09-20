@@ -1,0 +1,11 @@
+/*没有子段的表格，整个表格*/
+.graph_node_table  {
+    padding: 4px;
+    cursor: "pointer";
+    border: "1px solid red";
+}
+
+.graph_node_table_with_fields {
+    padding: 4px;
+    border: "1px solid red";
+}
