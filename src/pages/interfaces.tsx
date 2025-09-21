@@ -4,8 +4,8 @@ export interface GraphNode {
     name?: string;
     type: string;
     value?: string;
-    from?: string;
-    to?: string;
+    from?: [string];
+    to?: [string];
     fields?: {
         id: string;    // full field id: category.entity.field
         name: string;

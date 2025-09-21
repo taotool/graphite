@@ -18,9 +18,9 @@ export interface GraphFlow {
   edges: Edge[];
 }
 export const Flowite: React.FC<JsonFlowiteProps> = ({ jsonstr }) => {
-
+   console.log("--------- Flowite render start ---------");
   const highlightEntity = useRef<string>(undefined);
-  console.log("--------- Flowite render " + highlightEntity.current);
+ 
   const setHighlightEntity = async (hid: string) => {
     highlightEntity.current = hid;
     const entityGraph = JSON.parse(jsonstr);
@@ -40,7 +40,7 @@ export const Flowite: React.FC<JsonFlowiteProps> = ({ jsonstr }) => {
     })();
   }, [jsonstr]);
 
-
+  console.log("--------- Flowite render end ---------");
   return (
     <div style={{ border: "1px solid var(--border-color)", width: "100%", height: "100%" }}>
 

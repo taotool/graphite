@@ -5,6 +5,7 @@ import { Position } from "reactflow";
 
 import ElkPort from 'elkjs/lib/elk.bundled.js';
 import ELK from 'elkjs/lib/elk.bundled.js';
+import * as yaml from 'js-yaml';
 
 
 import {
@@ -29,6 +30,7 @@ import type { GraphQLNamedType, GraphQLType } from 'graphql';
  * @returns A JSON object containing nodes and edges representing the schema.
  */
 export function graphqlToFieldGraph(schemaString: string): GraphData {
+    const TARGET_FAKE_ID = '_id'; // Use a constant fake ID for target nodes
     const BUILT_IN_SCALARS = new Set(['String', 'Int', 'Float', 'ID', 'Boolean']);
 
     let graphQLSchema: GraphQLSchema;
@@ -77,7 +79,7 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
             const field = queryFields[fieldName];
             const fieldType = getBaseType(field.type);
             const fieldTypeName = getFieldTypeName(field.type);
-            const fieldValue = isScalarType(fieldType) ? ` ` :(isListType(field.type)? '[...]': '{...}');
+            const fieldValue = isScalarType(fieldType) ? ` ` : (isListType(field.type) ? '[...]' : '{...}');
             const fieldNodeId = `QUERY.${queryType.name}.${fieldName}`;
             nodes.push({
                 id: fieldNodeId,
@@ -96,7 +98,7 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
 
             // Edge from query field to its return type
             if (isObjectType(fieldType)) {
-                const targetTypeId = `TYPE.${fieldType.name}.IDT`;
+                const targetTypeId = `TYPE.${fieldType.name}.${TARGET_FAKE_ID}`;
                 edges.push({
                     source: fieldNodeId,
                     target: targetTypeId,
@@ -142,7 +144,7 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
 
             // Edge from mutation field to its return type
             if (isObjectType(fieldType)) {
-                const targetTypeId = `TYPE.${fieldType.name}.IDM`;
+                const targetTypeId = `TYPE.${fieldType.name}.${TARGET_FAKE_ID}`;
                 edges.push({
                     source: fieldNodeId,
                     target: targetTypeId,
@@ -162,7 +164,7 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
             continue;
         }
         if (isEnumType(type)) {
-            const typeNodeId = `ENUM.${typeName}.IDS`;
+            const typeNodeId = `ENUM.${typeName}.${TARGET_FAKE_ID}`;
             if (!processedNodeIds.has(typeNodeId)) {
                 nodes.push({
                     id: typeNodeId,
@@ -173,7 +175,7 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
                 processedNodeIds.add(typeNodeId);
             }
         } else if (isScalarType(type)) {
-            const typeNodeId = `SCALAR.${typeName}.IDS`;
+            const typeNodeId = `SCALAR.${typeName}.${TARGET_FAKE_ID}`;
             if (!processedNodeIds.has(typeNodeId)) {
                 nodes.push({
                     id: typeNodeId,
@@ -196,6 +198,13 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
             // }
 
             // Process fields of the object type
+            // nodes.push({
+            //     id: `TYPE.${typeName}._id`,
+
+            //     type: "xx",
+            //     value: "xxx"
+            // });
+
             const typeFields = type.getFields();
             for (const fieldName in typeFields) {
                 const field = typeFields[fieldName];
@@ -204,8 +213,8 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
                 // *** CHANGE HERE: Use TYPE prefix for nested fields ***
                 const fieldNodeId = `TYPE.${typeName}.${fieldName}`;
 
-                const fieldValue = (isScalarType(field.type) && !BUILT_IN_SCALARS.has(fieldType.name)) ? ` ` : '{...}';
-                
+                const fieldValue = BUILT_IN_SCALARS.has(fieldType.name) ? " " : '{...}';
+
                 const fieldTypeLabel = isListType(field.type) ? `[${fieldType.name}]` : fieldType.name;
 
                 nodes.push({
@@ -227,19 +236,19 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
                 if (isObjectType(fieldType) || isInterfaceType(fieldType)) {
                     edges.push({
                         source: fieldNodeId,
-                        target: `TYPE.${fieldType.name}.IDY`,
+                        target: `TYPE.${fieldType.name}.${TARGET_FAKE_ID}`,
                         label: `returns: ${fieldType.name}`
                     });
-                } else  if (isEnumType(fieldType)) {
+                } else if (isEnumType(fieldType)) {
                     edges.push({
                         source: fieldNodeId,
-                        target: `ENUM.${fieldType.name}.IDS`,
+                        target: `ENUM.${fieldType.name}.${TARGET_FAKE_ID}`,
                         label: `returns: ${fieldType.name}`
                     });
                 } else if (isScalarType(fieldType) && !BUILT_IN_SCALARS.has(fieldType.name)) {
                     edges.push({
                         source: fieldNodeId,
-                        target: `SCALAR.${fieldType.name}.IDS`,
+                        target: `SCALAR.${fieldType.name}.${TARGET_FAKE_ID}`,
                         label: `returns: ${fieldType.name}`
                     });
                 }
@@ -470,14 +479,104 @@ export function jsonToFieldGraph(jsonObj: Record<string, any>, separateNodeForAr
     const updatedGraph = connectNodesWithSameValue(result, linkedFields);
     return updatedGraph;
 }
+export function yamlToFieldGraph(yamlString: string, separateNodeForArray = true, linkedFields: [string, string][] = []): GraphData {
+    let yamlObj: Record<string, any>;
 
+    try {
+        yamlObj = yaml.load(yamlString) as Record<string, any>;
+    } catch (error) {
+        console.error('Failed to parse YAML:', error);
+        throw error;
+    }
+
+    const nodes: GraphNode[] = [];
+    const edges: GraphEdge[] = [];
+    const processedNodeIds = new Set<string>();
+
+    const traverse = (data: any, parentId: string, path: string): void => {
+        if (data === null || typeof data !== 'object') {
+            return;
+        }
+
+        Object.keys(data).forEach((key, index) => {
+            const value = data[key];
+            const currentPath = path ? `${path}.${key}` : key;
+            const currentId = `${parentId}.${key}`;
+
+            const addNode = (nodeId: string, nodeName: string, nodeType: string, nodeValue: string) => {
+                if (!processedNodeIds.has(nodeId)) {
+                    nodes.push({
+                        id: nodeId,
+                        name: nodeName,
+                        type: nodeType,
+                        value: nodeValue,
+                    });
+                    processedNodeIds.add(nodeId);
+                }
+            };
+
+            const addEdge = (source: string, target: string, label: string) => {
+                edges.push({ source, target, label });
+            };
+
+            if (Array.isArray(value)) {
+                if (separateNodeForArray) {
+                    addNode(currentId, key, 'array_field', '[]');
+                    addEdge(parentId, currentId, key);
+
+                    value.forEach((item: any, i) => {
+                        const itemPath = `${currentPath}[${i}]`;
+                        const itemId = `${currentId}.${i}`;
+                        const itemType = typeof item === 'object' ? 'object' : typeof item;
+
+                        addNode(itemId, `${key}[${i}]`, itemType, JSON.stringify(item));
+                        addEdge(currentId, itemId, `${i}`);
+
+                        if (typeof item === 'object') {
+                            traverse(item, itemId, itemPath);
+                        }
+                    });
+                } else {
+                    traverse(value, parentId, currentPath);
+                }
+            } else if (typeof value === 'object') {
+                addNode(currentId, key, 'object_field', '{...}');
+                addEdge(parentId, currentId, key);
+                traverse(value, currentId, currentPath);
+            } else {
+                addNode(currentId, key, 'field', JSON.stringify(value));
+                addEdge(parentId, currentId, key);
+
+                // Handle linked fields
+                linkedFields.forEach(([sourceField, targetField]) => {
+                    if (key === sourceField) {
+                        const targetId = `TYPE.${targetField}`;
+                        if (processedNodeIds.has(targetId)) {
+                            addEdge(currentId, targetId, `links to ${targetField}`);
+                        }
+                    }
+                });
+            }
+        });
+    };
+
+    // Start traversal from the root object
+    const rootId = 'ROOT.json';
+    nodes.push({
+        id: rootId,
+        name: 'root',
+        type: 'root_object',
+        value: '{...}',
+    });
+    processedNodeIds.add(rootId);
+    traverse(yamlObj, rootId, '');
+
+    return { nodes, edges };
+}
 export function openapiToFieldGraph(jsonObj: Record<string, any>, separateNodeForArray = true, linkedFields = [[""]]): GraphData {
     return jsonToFieldGraph(jsonObj, separateNodeForArray, linkedFields);
 }
 
-export function yamlToFieldGraph(jsonObj: Record<string, any>, separateNodeForArray = true, linkedFields = [[""]]): GraphData {
-    return jsonToFieldGraph(jsonObj, separateNodeForArray, linkedFields);
-}
 
 const getCategoryEntity = (id: string): string | null => {
     const parts = id.split('.');
@@ -623,7 +722,7 @@ const createTableFields = (
     if (fields.length === 0) fields.push({ id: 'Id', name: "Name", type: 'String', value: 'Value' });
 
     const fieldRows = fields
-        .map(({ id, name, type, value, to }) => {
+        .map(({ id, name, type, value, from, to }) => {
             let tgt = type;
             // , tt = type;
             // if (type.includes('|')) {
@@ -633,18 +732,73 @@ const createTableFields = (
             //     tgt = target[0] + "." + target[1];
             // }
 
-            if (to && to!=="Unknown") {
-                const target = to.split(".");
+            if (to && to.length > 0) {
+                const target = to[0].split(".");
                 tgt = target[0] + "." + target[1];
+            }
+            // let froms = "";
+            // if (from && from.length > 0) {
+            //     froms += "<table border='1' CELLBORDER='0' CELLSPACING='0' CELLPADDING='0'>";
+            //     for (const f of from) {
+            //         const t = f.split(".");
+            //         froms += `<tr><td>aaa</td></tr>`;
+            //     }
+            //     froms += "</table>";
+            // }
+            // let tos = "";
+            // if (to && to.length > 0) {
+            //     tos += "<table>";
+            //     for (const f of to) {
+            //         const t = f.split(".");
+            //         tos += `<tr><td>← ${t[1]}</td></tr>`;
+            //     }
+            //     tos += "</table>";
+            // }
+            let froms = "";
+            if (from && from.length > 0) {
+                for (const f of from) {
+                    const t = f.split(".");
+                    froms += t[1] + " ";
+                }
+                
+            }
+            if(from && from.length > 0 && to && to.length > 0) {
+                froms += `|`;
+            }
+
+            let tos = "";
+            if (to && to.length > 0) {
+                for (const f of to) {
+                    const t = f.split(".");
+                    tos += t[1] + " ";
+                }
+            }
+            let cell = ""
+            if(froms && froms.length > 0 ) {
+                cell = `
+                <td ALIGN="LEFT" ${to && to.length > 0 ? `TITLE="${tgt}" TARGET="${tgt}"` : ''}>
+
+                    ${froms}
+
+                    </td>
+                `;
+            }
+            if(tos && tos.length > 0 ) {
+                cell += `
+
+                <td ALIGN="LEFT" ${to && to.length > 0 ? `TITLE="${tgt}" TARGET="${tgt}"` : ''}>
+
+                    ${tos}
+                    </td>
+                `;
             }
             return `<tr>
             <td ALIGN="LEFT" width="10" PORT="IN_${category}.${entity}.${id}" ><FONT >${name || id} </FONT></td>
             <td ALIGN="LEFT" width="10">
               ${type}
             </td>
-            <td BALIGN="LEFT" PORT="OUT_${category}.${entity}.${id}" ${(to && to!=="Unknown") ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
-               ${to ? `<FONT >${value}</FONT>` : `<FONT >${value}</FONT>`}
-            </td>
+${cell}
+            
           </tr>`;
         }).join('');
 
@@ -795,10 +949,16 @@ export function oneDetaiBasedOnField(gd: GraphData, highlightEntity?: string): s
                 .map(({ id, name, type, value }) => {
                     const field = id.split(".").pop()!;
                     // console.log("check fk for " + id);
-                    const child = gd.edges.find((e) => e.source === id)?.target || "Unknown";
-                    const parent = gd.edges.find((e) => e.target === id)?.target || "Unknown";
+                    const children = gd.edges
+                        .filter((e) => e.source === id)   // keep only edges from this node
+                        .map((e) => e.target);            // extract the target values
+
+                    const parents = gd.edges
+                        .filter((e) => e.target === id)   // keep only edges from this node
+                        .map((e) => e.source);            // extract the target values
+
                     // const tp = child === "Unknown" ? type : `${type}|${child}`;
-                    return { id: field, name, type: type, value, from: parent, to: child };
+                    return { id: field, name, type: type, value, from: parents, to: children };
                 })
             : [];
 

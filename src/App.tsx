@@ -1,8 +1,6 @@
 import "./App.css"
 import "./pages/Graphite.css"
-import { TGraphite } from "./pages/TGraphite";
-import { Flowite } from "./pages/Flowite";
-import { JsonFlowite } from "./pages/JsonFlowite";
+import { DataO } from "./pages/DataO";
 
 // const entityGraph = `
 // {
@@ -592,7 +590,7 @@ const json = `
 
 // Example usage with your schema
 const graphql: string = `
-  # Custom scalar for DateTime
+# Custom scalar for DateTime
 scalar DateTime
 
 # Enum for post status
@@ -674,12 +672,68 @@ schema {
 
 `;
 
+const yaml = `
+---
+# This is a sample YAML configuration file
+# Comments are denoted by a hash symbol (#)
+
+# Scalar values (strings, numbers, booleans)
+name: John Doe
+age: 30
+isStudent: false
+pi: 3.14159
+
+# Lists/Sequences (items prefixed with a hyphen and space)
+skills:
+  - Python
+  - JavaScript
+  - YAML
+hobbies:
+  - reading
+  - hiking
+  - coding
+
+# Mappings/Dictionaries (key-value pairs)
+address:
+  street: 123 Main St
+  city: Anytown
+  zipCode: 12345
+
+# Nested structures
+company:
+  name: Tech Solutions Inc.
+  departments:
+    - sales
+    - engineering
+    - marketing
+  employees:
+    manager:
+      firstName: Jane
+      lastName: Smith
+    staff:
+      - firstName: Bob
+        lastName: Johnson
+      - firstName: Alice
+        lastName: Williams
+
+# Multi-line string (using the | literal style)
+description: |
+  This is a multi-line string.
+  Each line will be preserved,
+  including the line breaks.
+
+# Folded multi-line string (using the > folded style)
+message: >
+  This is a folded multi-line string.
+  Newlines are replaced with spaces,
+  unless explicitly indented.
+`;
 
 function App() {
   return (
     <div style={{ display: "flex", height: "90vh", width: "96vw" }} >
       {/* <JsonGraphite jsonString={jsonString} options={{"arr": true, "keys": [["seller_id"], ["item_id"], ["order_id", "orderId"], ["buyerId", "buyer_id"]]}} /> */}
-      <TGraphite source={json} options={{ type: 'json', engine:"graphite"}} />
+      <DataO data={graphql} options={{ type: 'graphql', engine:"graphite"}} />
       {/* <JsonFlowite jsonString={jsonString} options={{"arr": true, "keys": [["seller_id"], ["item_id"], ["order_id", "orderId"], ["buyerId", "buyer_id"]]}} /> */}
       {/* <OpenApiGraph yamls={[yaml1, yaml2]} /> */}
       {/* <JsonGraph jsonstr={jsonString} /> */}

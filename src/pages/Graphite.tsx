@@ -43,7 +43,7 @@ interface TrackedListener {
 // ------------------ Component ------------------
 
 export const Graphite: React.FC<GraphiteProps> = (props) => {
-    console.log("--------- Graphite render ");
+    console.log("--------- Graphite render start ---------");
     // const { id } = useParams<{ id: string }>();
 
     // Event listener tracking
@@ -329,7 +329,9 @@ export const Graphite: React.FC<GraphiteProps> = (props) => {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
+
     // ------------------ Render ------------------
+    console.log("--------- Graphite render end ---------");
 
     return (
         <div style={{ width: "100%", height: "100%", position: "relative" }}>
