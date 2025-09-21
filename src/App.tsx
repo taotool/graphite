@@ -590,86 +590,77 @@ const json = `
 
 // Example usage with your schema
 const graphql: string = `
-# Custom scalar for DateTime
 scalar DateTime
+scalar JSON
 
-# Enum for post status
-enum PostStatus {
-  DRAFT
-  PUBLISHED
-  ARCHIVED
+# Enum
+enum Role {
+  ADMIN
+  USER
+  GUEST
 }
 
-# User type
-type User {
+# Interface
+interface Node {
   id: ID!
-  name: String!
-  email: String!
-  posts: [Post!]!
   createdAt: DateTime!
 }
 
-# Post type
-type Post {
+# Types
+type User implements Node {
   id: ID!
+  createdAt: DateTime!
+  name: String!
+  role: Role!
+  posts(limit: Int, offset: Int): [Post!]!  # <-- Query args on field
+  resume: JSON
+}
+
+type Post implements Node {
+  id: ID!
+  createdAt: DateTime!
   title: String!
   content: String
   author: User!
-  status: PostStatus!
-  createdAt: DateTime!
 }
 
-# Input type for creating a new post
+# Union
+union SearchResult = User | Post
+
+# Input
+input CreateUserInput {
+  name: String!
+  role: Role!
+}
+
 input CreatePostInput {
   title: String!
   content: String
   authorId: ID!
-  status: PostStatus = DRAFT
 }
 
-# Input type for updating a post
-input UpdatePostInput {
-  title: String
-  content: String
-  status: PostStatus
+input UserFilter {
+  role: Role
+  nameContains: String
 }
 
-# Root Query type
+# Queries with args
 type Query {
-  # Fetch all users
-  users: [User!]!
-
-  # Fetch a single user by ID
-  user(id: ID!): User
-
-  # Fetch all posts (optional filter by status)
-  posts(status: PostStatus): [Post!]!
-
-  # Fetch a single post by ID
-  post(id: ID!): Post
+  user(id: ID!): User!                     # <-- Input arg
+  users(filter: UserFilter, limit: Int): [User!]!  # <-- InputObject + Scalar args
+  search(term: String!): [SearchResult!]!
 }
 
-# Root Mutation type
+# Mutations with input objects
 type Mutation {
-  # Create a new user
-  createUser(name: String!, email: String!): User!
-
-  # Create a new post
+  createUser(input: CreateUserInput!): User!
   createPost(input: CreatePostInput!): Post!
-
-  # Update an existing post
-  updatePost(id: ID!, input: UpdatePostInput!): Post!
-
-  # Delete a post by ID
-  deletePost(id: ID!): Boolean!
 }
 
-# Schema definition (optional in modern GraphQL servers)
-schema {
-  query: Query
-  mutation: Mutation
+# Subscriptions
+type Subscription {
+  newPost: Post!
 }
-
 `;
 
 const yaml = `
