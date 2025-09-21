@@ -641,216 +641,6 @@ export function toEntityGraph(gd: GraphData): GraphData {
     };
 }
 
-export function oneDetailEntity(
-    entityGraph: GraphData,
-    highlightEntity?: string
-): string {
-    // ---------------- BFS highlighting ----------------
-    const adjForward: Record<string, string[]> = {};
-    const adjBackward: Record<string, string[]> = {};
-    entityGraph.edges.forEach((edge) => {
-        if (!adjForward[edge.source]) adjForward[edge.source] = [];
-        if (!adjBackward[edge.target]) adjBackward[edge.target] = [];
-        adjForward[edge.source].push(edge.target);
-        adjBackward[edge.target].push(edge.source);
-    });
-
-    function bfs(start: string, adj: Record<string, string[]>): Set<string> {
-        const visited = new Set<string>();
-        const queue: string[] = [start];
-        while (queue.length) {
-            const node = queue.shift()!;
-            if (!visited.has(node)) {
-                visited.add(node);
-                (adj[node] || []).forEach((next) => {
-                    if (!visited.has(next)) queue.push(next);
-                });
-            }
-        }
-        return visited;
-    }
-
-    const allHighlights = new Set<string>();
-    if (highlightEntity) {
-        const upstream = bfs(highlightEntity, adjBackward);
-        const downstream = bfs(highlightEntity, adjForward);
-        [highlightEntity, ...upstream, ...downstream].forEach((item) => allHighlights.add(item));
-    }
-
-    // ---------------- Build DOT ----------------
-    let dot = `digraph {\n`;
-    dot += `  node [shape=plaintext margin=0]\n\n`;
-    dot += `  edge[arrowhead="open"]\n  tooltip=""\n  rankdir=${entityGraph.direction === "vertical" ? "TD" : "LR"} \n overlap = scale \n splines = true \n`;
-
-    // nodes
-    entityGraph.nodes.forEach((node) => {
-        const [category, entity] = node.id.split(".");
-        const nodeClass = `graph_node_table ${allHighlights.has(node.id) ? "highlight " : ""}`;
-
-        if (node.id === highlightEntity && node.fields && node.fields.length > 0) {
-            const label = createTableFields(category, entity, node.fields);
-            dot += `  "${node.id}" [label=<${label}> class="graph_node_table_with_fields highlight" ]\n`;
-        } else if (category.startsWith("[") && category.endsWith("]")) {
-            dot += `  "${node.id}" [label="+" shape="circle" class="${nodeClass}" ]\n`;
-        } else {
-            const label = createTableHeader(category, entity);
-            dot += `  "${node.id}" [label=<${label}> class="${nodeClass}" ]\n`;
-        }
-    });
-
-    // edges
-    entityGraph.edges.forEach(({ source, target, label }) => {
-        const highlight = allHighlights.has(source) ? "highlight" : "";
-        dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label ${highlight}"]\n`;
-    });
-
-    dot += `}`;
-    return dot;
-}
-
-
-const createTableHeader = (category: string, entity: string) => {
-    return `<table border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"><tr><td width="100">${category}</td></tr><tr><td>${entity}</td></tr></table>`;
-}
-
-const createTableFields = (
-    category: string,
-    entity: string,
-    fields: GraphNode[]
-) => {
-    const tableHeader = `<tr><td ><FONT >${category}</FONT></td></tr><tr><td ><FONT >${entity}</FONT></td></tr>`;
-    if (fields.length === 0) fields.push({ id: 'Id', name: "Name", type: 'String', value: 'Value' });
-
-    const fieldRows = fields
-        .map(({ id, name, type, value, from, to }) => {
-            let tgt = type;
-            // , tt = type;
-            // if (type.includes('|')) {
-            //     const t = type.split('|');
-            //     tt = t[0];
-            //     const target = t[1].split(".");
-            //     tgt = target[0] + "." + target[1];
-            // }
-
-            if (to && to.length > 0) {
-                const target = to[0].split(".");
-                tgt = target[0] + "." + target[1];
-            }
-            // let froms = "";
-            // if (from && from.length > 0) {
-            //     froms += "<table border='1' CELLBORDER='0' CELLSPACING='0' CELLPADDING='0'>";
-            //     for (const f of from) {
-            //         const t = f.split(".");
-            //         froms += `<tr><td>aaa</td></tr>`;
-            //     }
-            //     froms += "</table>";
-            // }
-            // let tos = "";
-            // if (to && to.length > 0) {
-            //     tos += "<table>";
-            //     for (const f of to) {
-            //         const t = f.split(".");
-            //         tos += `<tr><td>← ${t[1]}</td></tr>`;
-            //     }
-            //     tos += "</table>";
-            // }
-            let froms = "";
-            if (from && from.length > 0) {
-                for (const f of from) {
-                    const t = f.split(".");
-                    froms += t[1] + " ";
-                }
-                
-            }
-            if(from && from.length > 0 && to && to.length > 0) {
-                froms += `|`;
-            }
-
-            let tos = "";
-            if (to && to.length > 0) {
-                for (const f of to) {
-                    const t = f.split(".");
-                    tos += t[1] + " ";
-                }
-            }
-            let cell = ""
-            if(froms && froms.length > 0 ) {
-                cell = `
-                <td ALIGN="LEFT" ${to && to.length > 0 ? `TITLE="${tgt}" TARGET="${tgt}"` : ''}>
-
-                    ${froms}
-
-                    </td>
-                `;
-            }
-            if(tos && tos.length > 0 ) {
-                cell += `
-
-                <td ALIGN="LEFT" ${to && to.length > 0 ? `TITLE="${tgt}" TARGET="${tgt}"` : ''}>
-
-                    ${tos}
-                    </td>
-                `;
-            }
-            return `<tr>
-            <td ALIGN="LEFT" width="10" PORT="IN_${category}.${entity}.${id}" ><FONT >${name || id} </FONT></td>
-            <td ALIGN="LEFT" width="10">
-              ${type}
-            </td>
-${cell}
-            
-          </tr>`;
-        }).join('');
-
-    return `<table bgcolor="aliceblue" color="coral" border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="0">
-              ${tableHeader}
-              <tr><td>
-                <table border="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" >
-                  ${fieldRows}
-                </table>
-              </td></tr>
-            </table>`;
-}
-
-// ------------------ DOT Builders ------------------
-
-// const allDetail = (gd: GraphData) => {
-//     const direction = gd.direction === "vertical" ? "TD" : "LR";
-//     let dot = `digraph "tt" {\n node [shape=plaintext margin=0]\n edge[arrowhead="open"]\n tooltip=""\n rankdir=${direction}\n`;
-
-//     const nodes: Record<string, GraphNode[]> = {};
-
-//     gd.nodes.forEach(node => {
-//         const cat = getCategoryEntity(node.id);
-//         if (!cat) return;
-//         if (!nodes[cat]) nodes[cat] = [];
-//         nodes[cat].push({ id: node.id.split('.').pop()!, name: "a", type: node.type || "", value: node.value || "" });
-//     });
-
-//     gd.edges.forEach(edge => {
-//         const source = getCategoryEntity(edge.source);
-//         const target = getCategoryEntity(edge.target);
-//         if (!source || !target) return;
-//         if (!nodes[source]) nodes[source] = [{ id: source, name: "a", type: "node.type", value: "node.value" }];
-//         if (!nodes[target]) nodes[target] = [{ id: target, name: "a", type: "node.type", value: "node.value" }];
-//     });
-
-//     Object.entries(nodes).forEach(([nodeId, fields]) => {
-//         const [category, entity] = nodeId.split('.');
-//         const label = createTableFields(category, entity, fields);
-//         dot += `  "${nodeId}" [label=<${label}>] [class="graph_node_table_with_fields"]\n`;
-//     });
-
-//     gd.edges.forEach(edge => {
-//         const src = getCategoryEntity(edge.source);
-//         const tgt = getCategoryEntity(edge.target);
-//         if (!src || !tgt) return;
-//         dot += `  "${src}" -> "${tgt}" [label="${edge.label}" tooltip="" ] [class="graph_label"]\n`;
-//     });
-
-//     dot += `}`;
-//     return dot;
-// };
 
 export function oneDetaiBasedOnField(gd: GraphData, highlightEntity?: string): string {
     // ---------------- Build nodes dictionary ----------------
@@ -942,29 +732,29 @@ export function oneDetaiBasedOnField(gd: GraphData, highlightEntity?: string): s
     const direction = gd.direction === "vertical" ? "TD" : "LR";
 
     // ---------------- Gather detailed fields ----------------
-    const detailedFields =
+    const detailedFields: GraphNode[] =
         highlightEntity
             ? gd.nodes
                 .filter(({ id }) => id.startsWith(`${highlightEntity}.`))
                 .map(({ id, name, type, value }) => {
                     const field = id.split(".").pop()!;
                     // console.log("check fk for " + id);
-                    const children = gd.edges
+                    const children: string[] = gd.edges
                         .filter((e) => e.source === id)   // keep only edges from this node
                         .map((e) => e.target);            // extract the target values
 
-                    const parents = gd.edges
+                    const parents: string[] = gd.edges
                         .filter((e) => e.target === id)   // keep only edges from this node
                         .map((e) => e.source);            // extract the target values
 
                     // const tp = child === "Unknown" ? type : `${type}|${child}`;
-                    return { id: field, name, type: type, value, from: parents, to: children };
+                    return { id: field, name, type: type, value, from: parents, to: children } as GraphNode;
                 })
             : [];
 
     // ---------------- Build DOT ----------------
     let dot = `digraph {\n`;
-    dot += `  node [shape=plaintext margin=0]\n\n`;
+    dot += `  node [shape=Record style=rounded]\n\n`;
     dot += `  edge[arrowhead="open"]\n  tooltip=""\n  rankdir=${direction} \n overlap = scale \n splines = true \n`;
 
     // ---------------- Render nodes ----------------
@@ -980,6 +770,7 @@ export function oneDetaiBasedOnField(gd: GraphData, highlightEntity?: string): s
         } else {
             const label = createTableHeader(category, entity);
             dot += `  "${nodeId}" [label=<${label}> class="${nodeClass}" ]\n`;
+
         }
     });
 
@@ -993,6 +784,227 @@ export function oneDetaiBasedOnField(gd: GraphData, highlightEntity?: string): s
     return dot;
 }
 
+export function oneDetailEntity(
+    entityGraph: GraphData,
+    highlightEntity?: string
+): string {
+    // ---------------- BFS highlighting ----------------
+    const adjForward: Record<string, string[]> = {};
+    const adjBackward: Record<string, string[]> = {};
+    entityGraph.edges.forEach((edge) => {
+        if (!adjForward[edge.source]) adjForward[edge.source] = [];
+        if (!adjBackward[edge.target]) adjBackward[edge.target] = [];
+        adjForward[edge.source].push(edge.target);
+        adjBackward[edge.target].push(edge.source);
+    });
+
+    function bfs(start: string, adj: Record<string, string[]>): Set<string> {
+        const visited = new Set<string>();
+        const queue: string[] = [start];
+        while (queue.length) {
+            const node = queue.shift()!;
+            if (!visited.has(node)) {
+                visited.add(node);
+                (adj[node] || []).forEach((next) => {
+                    if (!visited.has(next)) queue.push(next);
+                });
+            }
+        }
+        return visited;
+    }
+
+    const allHighlights = new Set<string>();
+    if (highlightEntity) {
+        const upstream = bfs(highlightEntity, adjBackward);
+        const downstream = bfs(highlightEntity, adjForward);
+        [highlightEntity, ...upstream, ...downstream].forEach((item) => allHighlights.add(item));
+    }
+
+    // ---------------- Build DOT ----------------
+    let dot = `digraph {\n`;
+    dot += `  node [shape=plaintext margin=0]\n\n`;
+    dot += `  edge[arrowhead="open"]\n  tooltip=""\n  rankdir=${entityGraph.direction === "vertical" ? "TD" : "LR"} \n overlap = scale \n splines = true \n`;
+
+    // nodes
+    entityGraph.nodes.forEach((node) => {
+        const [category, entity] = node.id.split(".");
+        const nodeClass = `graph_node_table ${allHighlights.has(node.id) ? "highlight " : ""}`;
+
+        if (node.id === highlightEntity && node.fields && node.fields.length > 0) {
+            const label = createTableFields(category, entity, node.fields);
+            dot += `  "${node.id}" [label=<${label}> class="graph_node_table_with_fields highlight" ]\n`;
+        } else if (category.startsWith("[") && category.endsWith("]")) {
+            dot += `  "${node.id}" [label="+" shape="circle" class="${nodeClass}" ]\n`;
+        } else {
+            const label = createTableHeader(category, entity);
+            dot += `  "${node.id}" [label=<${label}> class="${nodeClass}" ]\n`;
+        }
+    });
+
+    // edges
+    entityGraph.edges.forEach(({ source, target, label }) => {
+        const highlight = allHighlights.has(source) ? "highlight" : "";
+        dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label ${highlight}"]\n`;
+    });
+
+    dot += `}`;
+    return dot;
+}
+
+
+// const createTableHeader = (category: string, entity: string) => {
+//     return `&nbsp;&nbsp;${category}&nbsp;&nbsp;| <f1>  ${entity}  `;
+// }
+const createTableHeader = (category: string, entity: string) => {
+    return `<table border="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4"><tr><td width="100"><B>${category}</B></td></tr><tr><td>${entity}</td></tr></table>`;
+}
+const createTableFields = (
+    category: string,
+    entity: string,
+    fields: GraphNode[]
+) => {
+    const tableHeader = `<tr><td width="100"><FONT ><B>${category}</B></FONT></td></tr><tr><td ><FONT >${entity}</FONT><BR/><BR/></td></tr>`;
+    if (fields.length === 0) fields.push({ id: 'Id', name: "Name", type: 'String', value: 'Value' });
+
+    const fieldRows = fields
+        .map(({ id, name, type, value, from, to }) => {
+            let tgt = type;
+            // , tt = type;
+            // if (type.includes('|')) {
+            //     const t = type.split('|');
+            //     tt = t[0];
+            //     const target = t[1].split(".");
+            //     tgt = target[0] + "." + target[1];
+            // }
+
+            if (to && to.length > 0) {
+                const target = to[0].split(".");
+                tgt = target[0] + "." + target[1];
+            }
+            let froms = "";
+            if (from && from.length > 0) {
+                froms += "<table border='1' CELLBORDER='0' CELLSPACING='0' CELLPADDING='0'>";
+                for (const f of from) {
+                    const t = f.split(".");
+                    froms += `<tr><td>aaa</td></tr>`;
+                }
+                froms += "</table>";
+            }
+            let tos = "";
+            if (to && to.length > 0) {
+                // tos += "<table border='1' CELLBORDER='0' CELLSPACING='0' CELLPADDING='0'>";
+                // tos += "<tr><td>x</td></tr>";
+                // // for (const f of to) {
+                // //     const t = f.split(".");
+                // //     tos += `<tr><td>← ${t[1]}</td></tr>`;
+                // // }
+                // tos += "</table>";
+                tos += to[0].split(".")[1];
+            }
+            // let froms = "";
+            // if (from && from.length > 0) {
+            //     for (const f of from) {
+            //         const t = f.split(".");
+            //         froms += t[1] + " ";
+            //     }
+                
+            // }
+            // if(from && from.length > 0 && to && to.length > 0) {
+            //     froms += `|`;
+            // }
+
+            // let tos = "";
+            // if (to && to.length > 0) {
+            //     for (const f of to) {
+            //         const t = f.split(".");
+            //         tos += t[1] + " ";
+            //     }
+            // }
+            // let cell = ""
+            // if(froms && froms.length > 0 ) {
+            //     cell = `
+            //     <td ALIGN="LEFT" ${to && to.length > 0 ? `TITLE="${tgt}" TARGET="${tgt}"` : ''}>
+
+            //         ${froms}
+
+            //         </td>
+            //     `;
+            // }
+            // if(tos && tos.length > 0 ) {
+            //     cell += `
+
+            //     <td ALIGN="LEFT" ${to && to.length > 0 ? `TITLE="${tgt}" TARGET="${tgt}"` : ''}>
+
+            //         ${tos}
+            //         </td>
+            //     `;
+            // }
+
+            // if(cell && cell.length == 0 ) {
+            //     cell = `<td>→</td>`;
+            // }
+            return `<tr>
+            <td ALIGN="LEFT" width="10" PORT="IN_${category}.${entity}.${id}" ><FONT >${name || id} </FONT></td>
+            <td ALIGN="LEFT" width="10">
+              ${type}
+            </td>
+            <td BALIGN="LEFT" PORT="OUT_${category}.${entity}.${id}" ${(to && to.length>0) ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
+
+              ${tos}
+            </td>
+            
+          </tr>`;
+        }).join('');
+
+    return `<table border="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0">
+              ${tableHeader}
+              <tr><td>
+                <table border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" >
+                  ${fieldRows}
+                </table>
+              </td></tr>
+            </table>`;
+}
+
+// ------------------ DOT Builders ------------------
+
+// const allDetail = (gd: GraphData) => {
+//     const direction = gd.direction === "vertical" ? "TD" : "LR";
+//     let dot = `digraph "tt" {\n node [shape=plaintext margin=0]\n edge[arrowhead="open"]\n tooltip=""\n rankdir=${direction}\n`;
+
+//     const nodes: Record<string, GraphNode[]> = {};
+
+//     gd.nodes.forEach(node => {
+//         const cat = getCategoryEntity(node.id);
+//         if (!cat) return;
+//         if (!nodes[cat]) nodes[cat] = [];
+//         nodes[cat].push({ id: node.id.split('.').pop()!, name: "a", type: node.type || "", value: node.value || "" });
+//     });
+
+//     gd.edges.forEach(edge => {
+//         const source = getCategoryEntity(edge.source);
+//         const target = getCategoryEntity(edge.target);
+//         if (!source || !target) return;
+//         if (!nodes[source]) nodes[source] = [{ id: source, name: "a", type: "node.type", value: "node.value" }];
+//         if (!nodes[target]) nodes[target] = [{ id: target, name: "a", type: "node.type", value: "node.value" }];
+//     });
+
+//     Object.entries(nodes).forEach(([nodeId, fields]) => {
+//         const [category, entity] = nodeId.split('.');
+//         const label = createTableFields(category, entity, fields);
+//         dot += `  "${nodeId}" [label=<${label}>] [class="graph_node_table_with_fields"]\n`;
+//     });
+
+//     gd.edges.forEach(edge => {
+//         const src = getCategoryEntity(edge.source);
+//         const tgt = getCategoryEntity(edge.target);
+//         if (!src || !tgt) return;
+//         dot += `  "${src}" -> "${tgt}" [label="${edge.label}" tooltip="" ] [class="graph_label"]\n`;
+//     });
+
+//     dot += `}`;
+//     return dot;
+// };
 
 // const shapeDetail = (gd: GraphData) => {
 //     // Full original shapeDetail logic
