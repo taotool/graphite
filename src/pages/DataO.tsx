@@ -172,9 +172,9 @@ export const DataO: React.FC<DataOProps> = (props) => {
         {/* Left panel: Graph */}
         <div style={{ border: "1px solid #ccc", width: `${100 - dividerX}%` }}>
           {engine === "flowite" ? (
-            <Flowite jsonstr={graphJson || ""} />
+            <Flowite data={graphJson || ""} />
           ) : (
-            <Graphite jsonString={graphJson} />
+            <Graphite data={graphJson} />
           )}
         </div>
       </div>

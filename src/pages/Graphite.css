@@ -236,6 +236,31 @@ css notes:
   --fill: var(--back-color-highlight);
 }
 
+/*upstream*/
+.graphCanvas svg g .graph_label.highlight-upstream ellipse {
+  stroke: blue;
+}
+
+.graphCanvas svg g .graph_label.highlight-upstream path {
+  stroke: blue;
+}
+
+.graphCanvas svg g .graph_label.highlight-upstream polygon {
+  stroke: blue;
+}
+
+/*downstream*/
+.graphCanvas svg g .graph_label.highlight-downstream ellipse {
+  stroke: greenyellow;
+}
+
+.graphCanvas svg g .graph_label.highlight-downstream path {
+  stroke: greenyellow;
+}
+
+.graphCanvas svg g .graph_label.highlight-downstream polygon {
+  stroke: greenyellow;
+}
 
 .collapsed {
   color: transparent;

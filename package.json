@@ -14,7 +14,8 @@
       "import": "./dist/graphite.es.js",
       "require": "./dist/graphite.umd.js"
     },
-    "./graphite.css": "./dist/graphite.css"
+    "./graphite.css": "./dist/graphite.css",
+    "./flowite.css": "./dist/flowite.css"
   },
   "files": [
     "dist",

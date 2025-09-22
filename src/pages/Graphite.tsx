@@ -30,7 +30,7 @@ console.log("######### Graphite.tsx ");
 
 
 export interface GraphiteProps {
-    jsonString?: string;
+    data?: string;
 }
 
 // Event listener tracking
@@ -316,13 +316,13 @@ export const Graphite: React.FC<GraphiteProps> = (props) => {
     // ------------------ Effects ------------------
     useEffect(() => {
 
-        if (props.jsonString) {
-            setGraphJson(props.jsonString); // update internal state
-            const gd = parse(props.jsonString);
+        if (props.data) {
+            setGraphJson(props.data); // update internal state
+            const gd = parse(props.data);
             setGraphData(gd); //Got it 👍 — this is the classic async state update problem in React. React doesn’t update graph Data immediately. It marks it as “stale” and re-renders later.
             showApp(gd); // call renderGraph indirectly So the very next line still sees the old graph Data value.
         }
-    }, [props.jsonString]);
+    }, [props.data]);
 
     // ------------------ Effects ------------------
     useEffect(() => {

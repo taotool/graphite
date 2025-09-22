@@ -1,7 +1,7 @@
 import "./App.css"
 import "./pages/Graphite.css"
 import { DataO } from "./pages/DataO";
-import {json, graphql} from "./pages/samples";
+import {graphql} from "./pages/samples";
 function App() {
   return (
     <div style={{ display: "flex", height: "90vh", width: "96vw" }} >

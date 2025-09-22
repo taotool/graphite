@@ -3,7 +3,7 @@ import type { GraphNode, GraphEdge, GraphData } from "./interfaces";
 import type { Node, Edge } from "reactflow";
 import { Position } from "reactflow";
 
-import ElkPort from 'elkjs/lib/elk.bundled.js';
+// import ElkPort from 'elkjs/lib/elk.bundled.js';
 import ELK from 'elkjs/lib/elk.bundled.js';
 import * as yaml from 'js-yaml';
 
@@ -27,13 +27,7 @@ import {
     buildSchema,
     GraphQLSchema,
     GraphQLObjectType,
-    GraphQLInputObjectType,
-    GraphQLUnionType,
-    GraphQLInterfaceType,
-    GraphQLScalarType,
     GraphQLEnumType,
-    GraphQLList,
-    GraphQLNonNull,
     isListType,
     isNonNullType,
     isScalarType,
@@ -93,7 +87,7 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
 
             const fieldNodeId = `${kind}.${rootType.name}.${fieldName}`;
             const argsStr = field.args.map(a => `${a.name}: ${getFieldTypeName(a.type)}`).join(", ");
-      
+
 
             nodes.push({
                 id: fieldNodeId,
@@ -128,7 +122,7 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
                     target: `SCALAR.${fieldType.name}.${TARGET_FAKE_ID}`,
                     label: `returns: ${fieldType.name}`,
                 });
-            
+
 
             }
 
@@ -136,7 +130,6 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
             const args = field.args;
             for (const arg of args) {
                 const argBaseType = getBaseType(arg.type);
-                const argTypeName = getFieldTypeName(arg.type);
 
                 if (isInputObjectType(argBaseType)) {
                     const inputTypeNodeId = `INPUT.${argBaseType.name}.${TARGET_FAKE_ID}`;
@@ -173,9 +166,9 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
 
 
     // --- Queries, Mutations, Subscriptions ---
-    processRootType(graphQLSchema.getQueryType(), "QUERY");
-    processRootType(graphQLSchema.getMutationType(), "MUTATION");
-    processRootType(graphQLSchema.getSubscriptionType(), "SUBSCRIPTION");
+    processRootType(graphQLSchema.getQueryType() || null, "QUERY");
+    processRootType(graphQLSchema.getMutationType() || null, "MUTATION");
+    processRootType(graphQLSchema.getSubscriptionType() || null, "SUBSCRIPTION");
 
     // --- Process all types ---
     const typeMap = graphQLSchema.getTypeMap();
@@ -216,17 +209,17 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
             }
         } else if (isUnionType(type)) {
             const typeNodeId = `UNION.${typeName}.${TARGET_FAKE_ID}`;
-            
+
             if (!processedNodeIds.has(typeNodeId)) {
-                type.getTypes().forEach((t)=>{
+                type.getTypes().forEach((t) => {
                     nodes.push({
-                        id:  `UNION.${typeName}.${t}`,
+                        id: `UNION.${typeName}.${t}`,
                         name: typeName,
                         type: `${t}`,
                         value: `${t}`,
                     });
                 })
-                
+
                 processedNodeIds.add(typeNodeId);
             }
 
@@ -610,7 +603,7 @@ export function yamlToFieldGraph(yamlString: string, separateNodeForArray = true
             return;
         }
 
-        Object.keys(data).forEach((key, index) => {
+        Object.keys(data).forEach((key) => {
             const value = data[key];
             const currentPath = path ? `${path}.${key}` : key;
             const currentId = `${parentId}.${key}`;
@@ -799,47 +792,49 @@ export function oneDetaiBasedOnField(gd: GraphData, highlightEntity?: string): s
     }
 
     // ---------------- Collect highlights ----------------
+    let upstream = new Set<string>();
+    let downstream = new Set<string>();
     const allHighlights = new Set<string>();
     if (highlightEntity) {
-        const upstream = bfs(highlightEntity, adjBackward);
-        const downstream = bfs(highlightEntity, adjForward);
+        upstream = bfs(highlightEntity, adjBackward);
+        downstream = bfs(highlightEntity, adjForward);
         [highlightEntity, ...upstream, ...downstream].forEach((item) =>
             allHighlights.add(item)
         );
     }
 
     // ---------------- Build edge labels ----------------
-    // const edgeLabels: GraphEdge[] = [];
-    // gd.edges.forEach((edge) => {
-    //     const source = getCategoryEntity(edge.source);
-    //     const target = getCategoryEntity(edge.target);
-    //     if (source && target && source !== target) {
-    //         edgeLabels.push({ source, target, label: edge.label || "" });
-    //     }
-    // });
-
-    // ---------------- Build merged edge labels ----------------
-    const edgeMap = new Map<string, { source: string; target: string; labels: Set<string> }>();
-
+    const edgeLabels: GraphEdge[] = [];
     gd.edges.forEach((edge) => {
         const source = getCategoryEntity(edge.source);
         const target = getCategoryEntity(edge.target);
         if (source && target && source !== target) {
-            const key = `${source}|${target}`;
-            if (!edgeMap.has(key)) {
-                edgeMap.set(key, { source, target, labels: new Set() });
-            }
-            if (edge.label) {
-                edgeMap.get(key)!.labels.add(edge.label);
-            }
+            edgeLabels.push({ source, target, label: edge.label || "" });
         }
     });
 
-    const edgeLabels = Array.from(edgeMap.values()).map(({ source, target, labels }) => ({
-        source,
-        target,
-        label: Array.from(labels).join(", "),
-    }));
+    // ---------------- Build merged edge labels ----------------
+    // const edgeMap = new Map<string, { source: string; target: string; labels: Set<string> }>();
+
+    // gd.edges.forEach((edge) => {
+    //     const source = getCategoryEntity(edge.source);
+    //     const target = getCategoryEntity(edge.target);
+    //     if (source && target && source !== target) {
+    //         const key = `${source}|${target}`;
+    //         if (!edgeMap.has(key)) {
+    //             edgeMap.set(key, { source, target, labels: new Set() });
+    //         }
+    //         if (edge.label) {
+    //             edgeMap.get(key)!.labels.add(edge.label);
+    //         }
+    //     }
+    // });
+    //
+    // const edgeLabels = Array.from(edgeMap.values()).map(({ source, target, labels }) => ({
+    //     source,
+    //     target,
+    //     label: Array.from(labels).join(", "),
+    // }));
 
     const direction = gd.direction === "vertical" ? "TD" : "LR";
 
@@ -888,9 +883,23 @@ export function oneDetaiBasedOnField(gd: GraphData, highlightEntity?: string): s
 
     // ---------------- Render edges ----------------
     edgeLabels.forEach(({ source, target, label }) => {
-        const highlight = allHighlights.has(source) ? "highlight" : "";
+        const highlight = allHighlights.has(source) && allHighlights.has(target) ? "highlight" : "";
         dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label ${highlight}"]\n`;
     });
+
+    // edgeLabels.forEach(({ source, target, label }) => {
+    //     let edgeClass = "";
+
+    //     if (upstream.has(source) && upstream.has(target)) {
+    //         edgeClass = "highlight-upstream";   // e.g. red
+    //     } else if (downstream.has(source) && downstream.has(target)) {
+    //         edgeClass = "highlight-downstream"; // e.g. green
+    //     } else if (allHighlights.has(source) && allHighlights.has(target)) {
+    //         edgeClass = "highlight";            // e.g. yellow
+    //     }
+
+    //     dot += `  "${source}" -> "${target}" [label="${label}" class="graph_label ${edgeClass}"]\n`;
+    // });
 
     dot += `}`;
     return dot;
@@ -979,7 +988,7 @@ const createTableFields = (
     if (fields.length === 0) fields.push({ id: 'Id', name: "Name", type: 'String', value: 'Value' });
 
     const fieldRows = fields
-        .map(({ id, name, type, value, from, to }) => {
+        .map(({ id, name, type,  from, to }) => {
             let tgt = type;
             // , tt = type;
             // if (type.includes('|')) {
@@ -996,10 +1005,9 @@ const createTableFields = (
             let froms = "";
             if (from && from.length > 0) {
                 froms += "<table border='1' CELLBORDER='0' CELLSPACING='0' CELLPADDING='0'>";
-                for (const f of from) {
-                    const t = f.split(".");
-                    froms += `<tr><td>aaa</td></tr>`;
-                }
+                // for (const f of from) {
+                //     froms += `<tr><td>aaa</td></tr>`;
+                // }
                 froms += "</table>";
             }
             let tos = "";

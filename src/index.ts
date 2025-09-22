@@ -16,5 +16,8 @@ import { MyComponent } from "my-lib";
 export type { GraphiteProps } from "./pages/Graphite";
 export { Graphite } from "./pages/Graphite";
 
-export type { JsonGraphiteProps } from "./pages/DataO";
-export { JsonGraphite } from "./pages/DataO";
+export type { FlowiteProps } from "./pages/Flowite";
+export { Flowite } from "./pages/Flowite";
+
+export type { DataOProps } from "./pages/DataO";
+export { DataO } from "./pages/DataO";

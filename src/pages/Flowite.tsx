@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import ReactFlow, {
-  Background,
-  Controls,
-  MiniMap,
+  // Background,
+  // Controls,
+  // MiniMap,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import type { Node, Edge } from "reactflow";
@@ -10,20 +10,20 @@ import { toEntityGraphFlow } from "./functions"
 // import type { GraphNode, GraphData } from "./interfaces";
 import './Flowite.css';
 
-interface JsonFlowiteProps {
-  jsonstr: string; // list of YAML strings
+export interface FlowiteProps {
+  data: string; // list of YAML strings
 }
 export interface GraphFlow {
   nodes: Node[];
   edges: Edge[];
 }
-export const Flowite: React.FC<JsonFlowiteProps> = ({ jsonstr }) => {
+export const Flowite: React.FC<FlowiteProps> = ({ data }) => {
    console.log("--------- Flowite render start ---------");
   const highlightEntity = useRef<string>(undefined);
  
   const setHighlightEntity = async (hid: string) => {
     highlightEntity.current = hid;
-    const entityGraph = JSON.parse(jsonstr);
+    const entityGraph = JSON.parse(data);
     const gd = await toEntityGraphFlow(entityGraph, hid, 'LR');
     setGraphData(gd);
   }
@@ -33,12 +33,12 @@ export const Flowite: React.FC<JsonFlowiteProps> = ({ jsonstr }) => {
   useEffect(() => {
     (async () => {
 
-      const entityGraph = JSON.parse(jsonstr);
+      const entityGraph = JSON.parse(data);
       const gd = await toEntityGraphFlow(entityGraph, highlightEntity.current, 'LR');
       setGraphData(gd);
 
     })();
-  }, [jsonstr]);
+  }, [data]);
 
   console.log("--------- Flowite render end ---------");
   return (
