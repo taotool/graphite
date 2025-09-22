@@ -92,16 +92,13 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
             const fieldTypeName = getFieldTypeName(field.type);
 
             const fieldNodeId = `${kind}.${rootType.name}.${fieldName}`;
-        const argsStr = field.args.map(a => `${a.name}: ${getFieldTypeName(a.type)}`).join(", ");
-        console.log(`${fieldNodeId}: ${fieldTypeName}(${argsStr})`);
-        for(const arg of field.args){
-            console.log(arg.name, arg.type);
-        }
+            const argsStr = field.args.map(a => `${a.name}: ${getFieldTypeName(a.type)}`).join(", ");
+      
 
             nodes.push({
                 id: fieldNodeId,
-                name: fieldName,
-                type: `(${argsStr})`, // query_field / mutation_field / subscription_field
+                name: `${fieldName}(${argsStr})`,
+                type: fieldTypeName, // query_field / mutation_field / subscription_field
                 value: fieldTypeName,
             });
             processedNodeIds.add(fieldNodeId);
@@ -119,12 +116,20 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
                     target: `ENUM.${fieldType.name}.${TARGET_FAKE_ID}`,
                     label: `returns: ${fieldType.name}`,
                 });
+            } else if (isUnionType(fieldType)) {
+                edges.push({
+                    source: fieldNodeId,
+                    target: `UNION.${fieldType.name}.${TARGET_FAKE_ID}`,
+                    label: `returns: ${fieldType.name}`,
+                });
             } else if (isScalarType(fieldType) && !BUILT_IN_SCALARS.has(fieldType.name)) {
                 edges.push({
                     source: fieldNodeId,
                     target: `SCALAR.${fieldType.name}.${TARGET_FAKE_ID}`,
                     label: `returns: ${fieldType.name}`,
                 });
+            
+
             }
 
             // --- Arguments (applies to Query, Mutation, Subscription) ---
@@ -136,15 +141,7 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
                 if (isInputObjectType(argBaseType)) {
                     const inputTypeNodeId = `INPUT.${argBaseType.name}.${TARGET_FAKE_ID}`;
 
-                    if (!processedNodeIds.has(inputTypeNodeId)) {
-                        nodes.push({
-                            id: inputTypeNodeId,
-                            name: argBaseType.name,
-                            type: "input",
-                            value: "input object",
-                        });
-                        processedNodeIds.add(inputTypeNodeId);
-                    }
+
 
                     edges.push({
                         source: fieldNodeId,
@@ -160,15 +157,7 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
                 } else if (isScalarType(argBaseType)) {
                     if (!BUILT_IN_SCALARS.has(argBaseType.name)) {
                         const scalarNodeId = `SCALAR.${argBaseType.name}.${TARGET_FAKE_ID}`;
-                        if (!processedNodeIds.has(scalarNodeId)) {
-                            nodes.push({
-                                id: scalarNodeId,
-                                name: argBaseType.name,
-                                type: "scalar",
-                                value: argBaseType.description || " ",
-                            });
-                            processedNodeIds.add(scalarNodeId);
-                        }
+
                         edges.push({
                             source: fieldNodeId,
                             target: scalarNodeId,
@@ -177,7 +166,8 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
                     }
                     // Built-in scalars (String, Int, etc.) don’t get nodes
                 }
-            }
+            }//args
+
         }
     };
 
@@ -226,19 +216,23 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
             }
         } else if (isUnionType(type)) {
             const typeNodeId = `UNION.${typeName}.${TARGET_FAKE_ID}`;
+            
             if (!processedNodeIds.has(typeNodeId)) {
-                nodes.push({
-                    id: typeNodeId,
-                    name: typeName,
-                    type: "union",
-                    value: "union",
-                });
+                type.getTypes().forEach((t)=>{
+                    nodes.push({
+                        id:  `UNION.${typeName}.${t}`,
+                        name: typeName,
+                        type: `${t}`,
+                        value: `${t}`,
+                    });
+                })
+                
                 processedNodeIds.add(typeNodeId);
             }
 
             for (const member of type.getTypes()) {
                 edges.push({
-                    source: typeNodeId,
+                    source: `UNION.${typeName}.${member}`,
                     target: `TYPE.${member.name}.${TARGET_FAKE_ID}`,
                     label: `member: ${member.name}`,
                 });
@@ -279,15 +273,15 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
             }
         } else if (isInputObjectType(type)) {
             const typeNodeId = `INPUT.${typeName}.${TARGET_FAKE_ID}`;
-            if (!processedNodeIds.has(typeNodeId)) {
-                nodes.push({
-                    id: typeNodeId,
-                    name: typeName,
-                    type: "input",
-                    value: "input object",
-                });
-                processedNodeIds.add(typeNodeId);
-            }
+            // if (!processedNodeIds.has(typeNodeId)) {
+            //     nodes.push({
+            //         id: typeNodeId,
+            //         name: TARGET_FAKE_ID,
+            //         type: "input",
+            //         value: "input object",
+            //     });
+            //     processedNodeIds.add(typeNodeId);
+            // }
 
             const inputFields = type.getFields();
             for (const fieldName in inputFields) {
@@ -368,241 +362,6 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
                         source: fieldNodeId,
                         target: `SCALAR.${fieldType.name}.${TARGET_FAKE_ID}`,
                         label: `returns: ${fieldType.name}`,
-                    });
-                }
-            }
-        }
-    }
-
-    return { nodes, edges };
-}
-
-/**
- * Parses a GraphQL schema string and generates a JSON graph format.
- * @param schemaString The GraphQL schema definition language (SDL) as a string.
- * @returns A JSON object containing nodes and edges representing the schema.
- */
-export function graphqlToFieldGraph2(schemaString: string): GraphData {
-    const TARGET_FAKE_ID = '_id'; // Use a constant fake ID for target nodes
-    const BUILT_IN_SCALARS = new Set(['String', 'Int', 'Float', 'ID', 'Boolean']);
-
-    let graphQLSchema: GraphQLSchema;
-    try {
-        graphQLSchema = buildSchema(schemaString);
-    } catch (error) {
-        console.error('Failed to parse schema:', error);
-        throw error;
-    }
-
-    const nodes: GraphNode[] = [];
-    const edges: GraphEdge[] = [];
-    const processedNodeIds = new Set<string>();
-
-    // Helper function to get the base type, handling lists and non-nulls
-    const getBaseType = (type: any): GraphQLNamedType => {
-        if (isListType(type) || isNonNullType(type)) {
-            return getBaseType(type.ofType);
-        }
-        return type;
-    };
-    // New helper function to get the full type name, including wrappers
-    const getFieldTypeName = (type: GraphQLType): string => {
-        if (isListType(type)) {
-            return `[${getFieldTypeName(type.ofType)}]`;
-        }
-        if (isNonNullType(type)) {
-            return `${getFieldTypeName(type.ofType)}!`;
-        }
-        return type.name;
-    };
-    // Process queries, associating them with the Query type
-    const queryType = graphQLSchema.getQueryType();
-    if (queryType) {
-        // const queryNodeId = `QUERY.${queryType.name}`;
-        // nodes.push({
-        //     id: queryNodeId,
-        //     name: queryType.name,
-        //     type: 'root_query',
-        //     value: '{...}'
-        // });
-        // processedNodeIds.add(queryNodeId);
-
-        const queryFields = queryType.getFields();
-        for (const fieldName in queryFields) {
-            const field = queryFields[fieldName];
-            const fieldType = getBaseType(field.type);
-            const fieldTypeName = getFieldTypeName(field.type);
-            const fieldValue = isScalarType(fieldType) ? ` ` : (isListType(field.type) ? '[...]' : '{...}');
-            const fieldNodeId = `QUERY.${queryType.name}.${fieldName}`;
-            nodes.push({
-                id: fieldNodeId,
-                name: fieldName,
-                type: fieldTypeName,
-                value: fieldValue
-            });
-            processedNodeIds.add(fieldNodeId);
-
-            // Edge from Query type to query field
-            // edges.push({
-            //     source: queryNodeId,
-            //     target: fieldNodeId,
-            //     label: fieldName
-            // });
-
-            // Edge from query field to its return type
-            if (isObjectType(fieldType)) {
-                const targetTypeId = `TYPE.${fieldType.name}.${TARGET_FAKE_ID}`;
-                edges.push({
-                    source: fieldNodeId,
-                    target: targetTypeId,
-                    label: `returns: ${fieldType.name}`
-                });
-            }
-        }
-    }
-
-    // --- Process mutations ---
-    const mutationType = graphQLSchema.getMutationType();
-    if (mutationType) {
-        // const mutationNodeId = `MUTATION.${mutationType.name}`;
-        // nodes.push({
-        //     id: mutationNodeId,
-        //     name: mutationType.name,
-        //     type: 'root_mutation',
-        //     value: '{...}'
-        // });
-        // processedNodeIds.add(mutationNodeId);
-
-        const mutationFields = mutationType.getFields();
-        for (const fieldName in mutationFields) {
-            const field = mutationFields[fieldName];
-            const fieldType = getBaseType(field.type);
-            const fieldTypeName = getFieldTypeName(field.type);
-
-            const fieldNodeId = `MUTATION.${mutationType.name}.${fieldName}`;
-            nodes.push({
-                id: fieldNodeId,
-                name: fieldName,
-                type: 'mutation_field',
-                value: fieldTypeName
-            });
-            processedNodeIds.add(fieldNodeId);
-
-            // Edge from Mutation type to mutation field
-            // edges.push({
-            //     source: mutationNodeId,
-            //     target: fieldNodeId,
-            //     label: fieldName
-            // });
-
-            // Edge from mutation field to its return type
-            if (isObjectType(fieldType)) {
-                const targetTypeId = `TYPE.${fieldType.name}.${TARGET_FAKE_ID}`;
-                edges.push({
-                    source: fieldNodeId,
-                    target: targetTypeId,
-                    label: `returns: ${fieldType.name}`
-                });
-            }
-        }
-    }
-
-    // Process all other types
-    const typeMap = graphQLSchema.getTypeMap();
-    for (const typeName in typeMap) {
-        const type = typeMap[typeName];
-
-        // Filter out built-in types, introspection types, and the Query type
-        if (typeName.startsWith('__') || typeName === 'Query' || typeName === 'Mutation' || (isScalarType(type) && ['String', 'Int', 'Float', 'ID', 'Boolean'].includes(typeName))) {
-            continue;
-        }
-        if (isEnumType(type)) {
-            const typeNodeId = `ENUM.${typeName}.${TARGET_FAKE_ID}`;
-            if (!processedNodeIds.has(typeNodeId)) {
-                nodes.push({
-                    id: typeNodeId,
-                    name: typeName,
-                    type: 'enum',
-                    value: type.description || ' '
-                });
-                processedNodeIds.add(typeNodeId);
-            }
-        } else if (isScalarType(type)) {
-            const typeNodeId = `SCALAR.${typeName}.${TARGET_FAKE_ID}`;
-            if (!processedNodeIds.has(typeNodeId)) {
-                nodes.push({
-                    id: typeNodeId,
-                    name: typeName,
-                    type: 'scalar',
-                    value: type.description || ' '
-                });
-                processedNodeIds.add(typeNodeId);
-            }
-        } else if (isObjectType(type) || isInterfaceType(type)) {
-            // const typeNodeId = `TYPE.${typeName}`;
-            // if (!processedNodeIds.has(typeNodeId)) {
-            //     nodes.push({
-            //         id: typeNodeId,
-            //         name: typeName,
-            //         type: type.name,
-            //         value: '{...}'
-            //     });
-            //     processedNodeIds.add(typeNodeId);
-            // }
-
-            // Process fields of the object type
-            // nodes.push({
-            //     id: `TYPE.${typeName}._id`,
-
-            //     type: "xx",
-            //     value: "xxx"
-            // });
-
-            const typeFields = type.getFields();
-            for (const fieldName in typeFields) {
-                const field = typeFields[fieldName];
-                const fieldType = getBaseType(field.type);
-                const fieldTypeName = getFieldTypeName(field.type);
-                // *** CHANGE HERE: Use TYPE prefix for nested fields ***
-                const fieldNodeId = `TYPE.${typeName}.${fieldName}`;
-
-                const fieldValue = BUILT_IN_SCALARS.has(fieldType.name) ? " " : '{...}';
-
-                const fieldTypeLabel = isListType(field.type) ? `[${fieldType.name}]` : fieldType.name;
-
-                nodes.push({
-                    id: fieldNodeId,
-                    name: fieldName,
-                    type: fieldTypeName,
-                    value: fieldValue
-                });
-                processedNodeIds.add(fieldNodeId);
-
-                // Edge from object type to its field
-                // edges.push({
-                //     source: typeNodeId,
-                //     target: fieldNodeId,
-                //     label: `${fieldName}: ${fieldTypeLabel}`
-                // });
-
-                // Edge from field to its return type if it's another custom object
-                if (isObjectType(fieldType) || isInterfaceType(fieldType)) {
-                    edges.push({
-                        source: fieldNodeId,
-                        target: `TYPE.${fieldType.name}.${TARGET_FAKE_ID}`,
-                        label: `returns: ${fieldType.name}`
-                    });
-                } else if (isEnumType(fieldType)) {
-                    edges.push({
-                        source: fieldNodeId,
-                        target: `ENUM.${fieldType.name}.${TARGET_FAKE_ID}`,
-                        label: `returns: ${fieldType.name}`
-                    });
-                } else if (isScalarType(fieldType) && !BUILT_IN_SCALARS.has(fieldType.name)) {
-                    edges.push({
-                        source: fieldNodeId,
-                        target: `SCALAR.${fieldType.name}.${TARGET_FAKE_ID}`,
-                        label: `returns: ${fieldType.name}`
                     });
                 }
             }

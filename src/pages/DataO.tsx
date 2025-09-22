@@ -7,214 +7,13 @@ import Editor from "@monaco-editor/react";
 import { useMediaQuery } from "@mui/material";
 import type { OnMount } from "@monaco-editor/react";
 import { yamlToFieldGraph, graphqlToFieldGraph, openapiToFieldGraph, jsonToFieldGraph, toEntityGraph } from "./functions"
+import { json, graphql, yaml, openapi } from "./samples";
 
 export interface DataOProps {
   data: string;
   options: Record<string, any>
 }
 
-const json = `
-{
-  "user": {
-    "id": "User123",
-    "addresses": [
-      {
-        "type": "home",
-        "street": "123 Main St",
-        "city": "Anytown",
-        "zipCode": "12345"
-      },
-      {
-        "type": "work",
-        "street": "456 Business Ave",
-        "city": "Metropolis",
-        "zipCode": "67890"
-      }
-    ],
-    "preferences": {
-      "newsletter": true,
-      "notifications": {
-        "email": true,
-        "sms": false
-      }
-    },
-    "orderHistory": [
-      {
-        "orderId": "ORD001"
-      },
-      {
-        "orderId": "ORD002"
-      }
-    ]
-  },
-  "orders": [
-    {
-      "orderId": "ORD001",
-      "date": "2025-08-15",
-      "items": [
-        {
-          "id": "ITEM001",
-          "productId": "PROD001",
-          "name": "Laptop",
-          "quantity": 1,
-          "price": 1200
-        },
-        {
-          "id": "ITEM002",
-          "productId": "PROD003",
-          "name": "Mouse",
-          "quantity": 2,
-          "price": 25
-        }
-      ],
-      "totalAmount": 1250
-    },
-    {
-      "orderId": "ORD002",
-      "date": "2025-09-01",
-      "items": [
-        {
-          "id": "ITEM003",
-          "productId": "PROD005",
-          "name": "Keyboard",
-          "quantity": 1,
-          "price": 75
-        }
-      ],
-      "totalAmount": 75
-    }
-  ]
-}
-`;
-// Example usage with your schema
-const graphql: string = `
-# Scalars
-scalar DateTime
-scalar JSON
-
-# Enum
-enum Role {
-  ADMIN
-  USER
-  GUEST
-}
-
-# Interface
-interface Node {
-  id: ID!
-  createdAt: DateTime!
-}
-
-# Types
-type User implements Node {
-  id: ID!
-  createdAt: DateTime!
-  name: String!
-  role: Role!
-  posts: [Post!]!
-  
-  resume: JSON
-}
-
-type Post implements Node {
-  id: ID!
-  createdAt: DateTime!
-  title: String!
-  content: String
-  author: User!
-}
-
-# Union
-union SearchResult = User | Post
-
-# Input
-input CreateUserInput {
-  name: String!
-  role: Role!
-}
-
-input CreatePostInput {
-  title: String!
-  content: String
-  authorId: ID!
-}
-
-# Queries
-type Query {
-  users: [User!]!
-  posts: [Post!]!
-  search(term: String!): [SearchResult!]!
-}
-
-# Mutations
-type Mutation {
-  createUser(input: CreateUserInput!): User!
-  createPost(input: CreatePostInput!): Post!
-}
-
-# Subscriptions
-type Subscription {
-  newPost: Post!
-}
-
-`;
-
-const yaml = `
----
-# This is a sample YAML configuration file
-# Comments are denoted by a hash symbol (#)
-
-# Scalar values (strings, numbers, booleans)
-name: John Doe
-age: 30
-isStudent: false
-pi: 3.14159
-
-# Lists/Sequences (items prefixed with a hyphen and space)
-skills:
-  - Python
-  - JavaScript
-  - YAML
-hobbies:
-  - reading
-  - hiking
-  - coding
-
-# Mappings/Dictionaries (key-value pairs)
-address:
-  street: 123 Main St
-  city: Anytown
-  zipCode: 12345
-
-# Nested structures
-company:
-  name: Tech Solutions Inc.
-  departments:
-    - sales
-    - engineering
-    - marketing
-  employees:
-    manager:
-      firstName: Jane
-      lastName: Smith
-    staff:
-      - firstName: Bob
-        lastName: Johnson
-      - firstName: Alice
-        lastName: Williams
-
-# Multi-line string (using the | literal style)
-description: |
-  This is a multi-line string.
-  Each line will be preserved,
-  including the line breaks.
-
-# Folded multi-line string (using the > folded style)
-message: >
-  This is a folded multi-line string.
-  Newlines are replaced with spaces,
-  unless explicitly indented.
-`;
 export const DataO: React.FC<DataOProps> = (props) => {
   const [data, setData] = useState(props.data); // rawJson as state
   const [type, setType] = useState(props.options.type || "json");
@@ -264,27 +63,19 @@ export const DataO: React.FC<DataOProps> = (props) => {
     if (!value) return;
     setData(value);
   };
-  // const handleEditorChange = (value: string | undefined) => {
-  //   console.log("Editor changed");
-  //   if (!value) return;
-  //   setRawJson(value);
 
-  // // try updating graph only if JSON is valid
-  // try {
-  //   const graphJson = convertToFieldGraph(value);
-  //   // const parsed = JSON.parse(value);
-  //   // const updatedGraph = jsonToFieldGraph(parsed, props.options.arr, props.options.keys);
-  //   // const graphJson = JSON.stringify(updatedFieldGraph, null, 2);
-  //   setGraphJson(graphJson);
-  //   console.log("Graph updated ");
-  // } catch (err) {
-  //   // invalid JSON, ignore for now
-  // }
-  // };
   // Handle dropdown changes
   const handleTypeChange = (e: any) => {
     setType(e.target.value);
-    setData(e.target.value === "json" ? json : e.target.value === "graphql" ? graphql : yaml);
+    if (e.target.value === "json") {
+      setData(json);
+    } else if (e.target.value === "graphql") {
+      setData(graphql);
+    } else if (e.target.value === "yaml") {
+      setData(yaml);
+    } else if (e.target.value === "openapi") {
+      setData(openapi);
+    }
 
   };
 
@@ -330,6 +121,7 @@ export const DataO: React.FC<DataOProps> = (props) => {
             <option value="json">JSON</option>
             <option value="graphql">GraphQL</option>
             <option value="yaml">YAML</option>
+            <option value="openapi">OpenAPI</option>
           </select>
         </label>
 
