@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Graphite } from "./Graphite";
+import { Graphite  } from "./Graphite";
+import type { GraphiteRef } from "./Graphite";
 import { Flowite } from "./Flowite";
 
 import "./Graphite.css"
@@ -8,19 +9,20 @@ import { useMediaQuery } from "@mui/material";
 import type { OnMount } from "@monaco-editor/react";
 import { yamlToFieldGraph, graphqlToFieldGraph, openapiToFieldGraph, jsonToFieldGraph, toEntityGraph } from "./functions"
 import { json, graphql, yaml, openapi } from "./samples";
-
+import * as jsonc from "jsonc-parser";
+import { parse } from "graphql";
 export interface DataOProps {
   data: string;
   options: Record<string, any>
 }
 
 export const DataO: React.FC<DataOProps> = (props) => {
+  const graphiteRef = useRef<GraphiteRef>(null);
+
   const [data, setData] = useState(props.data); // rawJson as state
   const [type, setType] = useState(props.options.type || "json");
   const [engine, setEngine] = useState(props.options.engine || "flowite");
-  console.log("--------- DataO render start ---------");
-
-
+  const disposeRef = useRef<any>(null);
   const convertToFieldGraph = (data: string, type: string, engine: string) => {
     if (!type || type === 'json') {
       const fieldGraphData = jsonToFieldGraph(JSON.parse(data), props.options.arr, props.options.keys)
@@ -47,6 +49,76 @@ export const DataO: React.FC<DataOProps> = (props) => {
   const [dividerX, setDividerX] = useState(30); // left panel width in %
   const [isDragging, setIsDragging] = useState(false);
   const editorRef = useRef<any>(null);
+  console.log("--------- DataO render start ---------");
+
+  function findGraphQLNodeAt(astNode: any, offset: number): any {
+    if (!astNode?.loc) return null;
+    if (offset < astNode.loc.start || offset > astNode.loc.end) return null;
+
+    for (const key in astNode) {
+      const value = astNode[key];
+      if (Array.isArray(value)) {
+        for (const child of value) {
+          const found = findGraphQLNodeAt(child, offset);
+          if (found) return found;
+        }
+      } else if (typeof value === "object" && value?.loc) {
+        // const found = findGraphQLNodeAt(value, offset);
+        // if (found) return found;
+        return value;
+      }
+    }
+    return astNode;
+  }
+
+  /**
+   * Attach AST node detection to a Monaco editor instance.
+   */
+  function attachAstNodeListener(
+    editor: any,
+    mode: "json" | "graphql",
+    onNodeChange: (node: any | null) => void
+  ) {
+    if (!editor) return;
+
+    const model = editor.getModel();
+
+    function handlePositionChange(position: any) {
+      const offset = model.getOffsetAt(position);
+      const text = model.getValue();
+
+      try {
+        if (mode === "json") {
+          const root = jsonc.parseTree(text);
+          const node = jsonc.findNodeAtOffset(root!, offset);
+          onNodeChange(node ?? null);
+        } else if (mode === "graphql") {
+          const ast = parse(text, { noLocation: false });
+          const node = findGraphQLNodeAt(ast, offset);
+          onNodeChange(node ?? null);
+        }
+      } catch (err) {
+        console.error("AST parse error:", err);
+        onNodeChange(null);
+      }
+    }
+
+    const sub1 = editor.onDidChangeCursorPosition((e: any) =>
+      handlePositionChange(e.position)
+    );
+    // const sub2 = editor.onMouseDown((e: any) => {
+    //   if (e.target.position) {
+    //     handlePositionChange(e.target.position);
+    //   }
+    // });
+
+    return () => {
+      sub1.dispose();
+      // sub2.dispose();
+    };
+  }
+
+
 
   const handleMouseDown = () => setIsDragging(true);
   const handleMouseUp = () => setIsDragging(false);
@@ -66,6 +138,9 @@ export const DataO: React.FC<DataOProps> = (props) => {
 
   // Handle dropdown changes
   const handleTypeChange = (e: any) => {
+      // dispose old listener first
+  disposeRef.current?.();
+
     setType(e.target.value);
     if (e.target.value === "json") {
       setData(json);
@@ -82,10 +157,25 @@ export const DataO: React.FC<DataOProps> = (props) => {
   const handleEngineChange = (e: any) => {
     setEngine(e.target.value);
   };
+  function handleNodeChange(node: any | null) {
+    console.log("Current node:", node.value + " type: " + type);
+          graphiteRef.current?.doSomething(node.value);
 
+    // 👇 Do whatever you want here
+    if (type.toLowerCase() === "json" && node) {
+      console.log("JSON path:", jsonc.getNodePath(node));
+    }
+  }
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
   const handleEditorMount: OnMount = (editor) => {
     editorRef.current = editor;
+
+    // attach the initial listener immediately
+    disposeRef.current = attachAstNodeListener(
+      editor,
+      type.toLowerCase(),
+      handleNodeChange
+    );
   };
 
 
@@ -105,6 +195,21 @@ export const DataO: React.FC<DataOProps> = (props) => {
       const graphJson = convertToFieldGraph(data, type, engine);
       setGraphJson(graphJson);
       console.log("Graph updated ");
+      if (!editorRef.current) return;
+
+      // re-attach whenever type/engine/data changes
+      disposeRef.current?.(); // cleanup old
+      disposeRef.current = attachAstNodeListener(
+        editorRef.current,
+        type.toLowerCase(),
+        handleNodeChange
+      );
+
+      // cleanup when effect re-runs or component unmounts
+      return () => {
+        disposeRef.current?.();
+      };
+      
     } catch (err) {
       setGraphJson(""); // invalid JSON → no graph
     }
@@ -172,9 +277,11 @@ export const DataO: React.FC<DataOProps> = (props) => {
         {/* Left panel: Graph */}
         <div style={{ border: "1px solid #ccc", width: `${100 - dividerX}%` }}>
           {engine === "flowite" ? (
-            <Flowite data={graphJson || ""} />
+            <Flowite data={graphJson} />
           ) : (
-            <Graphite data={graphJson} />
+            <Graphite ref={graphiteRef} data={graphJson} onHighlightTable={(id: string)=>{
+              console.log("DataO: Highlight table:", id);
+            }} />
           )}
         </div>
       </div>

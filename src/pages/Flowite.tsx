@@ -11,7 +11,7 @@ import { toEntityGraphFlow } from "./functions"
 import './Flowite.css';
 
 export interface FlowiteProps {
-  data: string; // list of YAML strings
+  data?: string; // list of YAML strings
 }
 export interface GraphFlow {
   nodes: Node[];
@@ -23,7 +23,7 @@ export const Flowite: React.FC<FlowiteProps> = ({ data }) => {
  
   const setHighlightEntity = async (hid: string) => {
     highlightEntity.current = hid;
-    const entityGraph = JSON.parse(data);
+    const entityGraph = JSON.parse(data||'{}');
     const gd = await toEntityGraphFlow(entityGraph, hid, 'LR');
     setGraphData(gd);
   }

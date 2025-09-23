@@ -1,5 +1,6 @@
 // pages/Graphite.tsx
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, forwardRef, useImperativeHandle } from 'react';
+
 import { createTheme, ThemeProvider, useMediaQuery } from "@mui/material";
 import './Graphite.css';
 // import { useParams } from 'react-router-dom';
@@ -23,6 +24,7 @@ import "d3-graphviz";
 import { parse } from "jsonc-parser";
 import {oneDetaiBasedOnField} from "./functions"
 import type { GraphData } from "./interfaces";
+
 console.log("######### Graphite.tsx ");
 
 // ------------------ Types ------------------
@@ -31,8 +33,13 @@ console.log("######### Graphite.tsx ");
 
 export interface GraphiteProps {
     data?: string;
+    onHighlightTable?: (tableId: string) => void;
+    onHighlightRelation?: (relationId: string) => void;
 }
-
+export interface GraphiteRef {
+  doSomething: (id: string) => void;
+  reset: () => void;
+}
 // Event listener tracking
 interface TrackedListener {
     type: keyof GlobalEventHandlersEventMap;
@@ -42,9 +49,34 @@ interface TrackedListener {
 
 // ------------------ Component ------------------
 
-export const Graphite: React.FC<GraphiteProps> = (props) => {
+// export const Graphite: React.FC<GraphiteProps> = (props) => {
+
+export const Graphite = forwardRef<GraphiteRef, GraphiteProps>(
+  (props, ref) => {
     console.log("--------- Graphite render start ---------");
-    // const { id } = useParams<{ id: string }>();
+    // Expose methods to parent via the ref
+    useImperativeHandle(ref, () => ({
+      doSomething(id) {
+        console.log("Graphite is doing something!");
+        let iddd = "";
+
+        for(const n of graphDataRef.current?.nodes) {
+            const idd = n.id.split(".");
+            if (idd[1] === id) {
+                console.log("Found node:", n);
+                iddd =idd[0]+"."+idd[1];
+                break;
+            }
+        }
+        if(iddd!=="") {
+            showTable(iddd);
+        }
+      },
+      reset() {
+        console.log("Graphite reset!");
+      
+      }
+    }));
 
     // Event listener tracking
     const eventListenersMap = useRef(new WeakMap<Element, TrackedListener[]>()).current;
@@ -136,6 +168,7 @@ export const Graphite: React.FC<GraphiteProps> = (props) => {
             // const dot = oneDetail(entityGraph, table);
             const dot = oneDetaiBasedOnField(graphDataRef.current, tableRef.current);
             renderGraph(dot);
+            props.onHighlightTable?.(table);
         }
     }
 
@@ -380,4 +413,5 @@ export const Graphite: React.FC<GraphiteProps> = (props) => {
             </ThemeProvider>
         </div>
     );
-};
+}
+);//forwardRef
