@@ -40,8 +40,12 @@ export const DataO: React.FC<DataOProps> = (props) => {
     }
 
     if (type === 'openapi') {
-      const fieldGraphData = openapiToFieldGraph(JSON.parse(data), props.options.arr, props.options.keys);
-      return engine === 'flowite' ? JSON.stringify(toEntityGraph(fieldGraphData), null, 2) : JSON.stringify(fieldGraphData, null, 2);
+      // const fieldGraphData = openapiToFieldGraph(data);
+      (async () => {
+  const fieldGraphData = await openapiToFieldGraph(data);
+  return engine === 'flowite' ? JSON.stringify(toEntityGraph(fieldGraphData), null, 2) : JSON.stringify(fieldGraphData, null, 2);
+
+})();
     }
   }
   // const keys = [["seller_id"], ["item_id"], ["order_id", "orderId"], ["buyerId","buyer_id"]]
@@ -159,11 +163,16 @@ export const DataO: React.FC<DataOProps> = (props) => {
   };
   function handleNodeChange(node: any | null) {
     console.log("Current node:", node.value + " type: " + type);
-          graphiteRef.current?.doSomething(node.value);
+          
 
     // 👇 Do whatever you want here
     if (type.toLowerCase() === "json" && node) {
+      graphiteRef.current?.doSomething(JSON.stringify(jsonc.getNodePath(node)));
+
       console.log("JSON path:", jsonc.getNodePath(node));
+    } else if (type.toLowerCase() === "graphql" && node) {
+      graphiteRef.current?.doSomething(node.value);
+      console.log("GraphQL node kind:", node.kind);
     }
   }
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
@@ -245,7 +254,7 @@ export const DataO: React.FC<DataOProps> = (props) => {
         <div style={{ border: "1px solid #ccc", width: `${dividerX}%` }}>
           <Editor
             height="100%"
-            language={type.toLowerCase()}
+            language={type.toLowerCase()==="json"?"json":type.toLowerCase()==="yaml"?"yaml":"yaml"}
             value={data}
             onChange={handleEditorChange}
             onMount={handleEditorMount}

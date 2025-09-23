@@ -18,12 +18,12 @@ export interface GraphFlow {
   edges: Edge[];
 }
 export const Flowite: React.FC<FlowiteProps> = ({ data }) => {
-   console.log("--------- Flowite render start ---------");
+  console.log("--------- Flowite render start ---------");
   const highlightEntity = useRef<string>(undefined);
- 
+
   const setHighlightEntity = async (hid: string) => {
     highlightEntity.current = hid;
-    const entityGraph = JSON.parse(data||'{}');
+    const entityGraph = JSON.parse(data || '{}');
     const gd = await toEntityGraphFlow(entityGraph, hid, 'LR');
     setGraphData(gd);
   }
@@ -32,11 +32,11 @@ export const Flowite: React.FC<FlowiteProps> = ({ data }) => {
 
   useEffect(() => {
     (async () => {
-
-      const entityGraph = JSON.parse(data);
-      const gd = await toEntityGraphFlow(entityGraph, highlightEntity.current, 'LR');
-      setGraphData(gd);
-
+      if (data) {
+        const entityGraph = JSON.parse(data);
+        const gd = await toEntityGraphFlow(entityGraph, highlightEntity.current, 'LR');
+        setGraphData(gd);
+      }
     })();
   }, [data]);
 

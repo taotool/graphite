@@ -7,6 +7,8 @@ export interface GraphNode {
     value?: string;
     from?: [string];
     to?: [string];
+    path?: (string | number)[]; // 👈 JSONC path
+
     fields?: {
         id: string;    // full field id: category.entity.field
         name: string;

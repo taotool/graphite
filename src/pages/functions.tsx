@@ -6,8 +6,8 @@ import { Position } from "reactflow";
 // import ElkPort from 'elkjs/lib/elk.bundled.js';
 import ELK from 'elkjs/lib/elk.bundled.js';
 import * as yaml from 'js-yaml';
-
-
+// import SwaggerParser from "@apidevtools/swagger-parser";
+import SwaggerClient from "swagger-client";
 // import {
 //     buildSchema,
 //     GraphQLSchema,
@@ -363,8 +363,214 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
 
     return { nodes, edges };
 }
+export function jsonToFieldGraph(
+    jsonObj: Record<string, any>,
+    separateNodeForArray = true,
+    linkedFields: string[][] = [[""]]
+): GraphData {
+    const result: GraphData = { nodes: [], edges: [] };
 
-export function jsonToFieldGraph(jsonObj: Record<string, any>, separateNodeForArray = true, linkedFields = [[""]]): GraphData {
+    function makeNode(
+        entity: string,
+        entityId: string,
+        id: string,
+        type: string,
+        value: string,
+        path: (string | number)[]
+    ) {
+        result.nodes.push({
+            id: `${entity}.${entityId}.${id}`,
+            name: id,
+            type,
+            value,
+            path,
+        });
+    }
+
+    function processEntity(
+        entity: string,
+        entityId: string,
+        obj: Record<string, any>,
+        currentPath: (string | number)[]
+    ) {
+        // ✅ early exit if obj is not a plain object
+        if (typeof obj !== "object" || obj === null || Array.isArray(obj)) {
+            makeNode(entity, entityId, "obj", typeof obj, String(obj), currentPath);
+            return;
+        }
+
+        for (const [key, value] of Object.entries(obj)) {
+            if (value === null || value === undefined) continue;
+
+            if (typeof value !== "object") {
+                // primitive field
+                makeNode(
+                    entity,
+                    entityId,
+                    key,
+                    typeof value,
+                    String(value),
+                    [...currentPath, key]
+                );
+            } else if (Array.isArray(value)) {
+                // array node
+                makeNode(
+                    entity,
+                    entityId,
+                    key,
+                    "array",
+                    "[...]",
+                    [...currentPath, key]
+                );
+
+                if (separateNodeForArray) {
+                    let linkedToArray = false;
+                    value.forEach((item, idx) => {
+                        const childEntity = key.toUpperCase();
+                        const childId = (item as any).id || `${childEntity}[${idx}]`;
+
+                        let v = "";
+                        if (typeof item !== "object") {
+                            v = String(item);
+                        } else if (Array.isArray(item)) {
+                            v = "[...]";
+                        } else {
+                            v = "{...}";
+                        }
+
+                        makeNode(
+                            `[${childEntity}]`,
+                            entityId,
+                            childId,
+                            typeof item,
+                            v,
+                            [...currentPath, key, idx]
+                        );
+
+                        if (!linkedToArray) {
+                            result.edges.push({
+                                source: `${entity}.${entityId}.${key}`,
+                                target: `[${childEntity}].${entityId}.${childId}`,
+                                label: `${key}[]`,
+                            });
+                            linkedToArray = true;
+                        }
+                    });
+                }
+
+                value.forEach((item, idx) => {
+                    const childEntity = key.toUpperCase();
+                    const childId = (item as any).id || `${childEntity}[${idx}]`;
+
+                    if (separateNodeForArray) {
+                        result.edges.push({
+                            source: `[${childEntity}].${entityId}.${childId}`,
+                            target: `${childEntity}.${childId}.id`,
+                            label: childId,
+                        });
+                    } else {
+                        result.edges.push({
+                            source: `${entity}.${entityId}.${key}`,
+                            target: `${childEntity}.${childId}.id`,
+                            label: childId,
+                        });
+                    }
+
+                    processEntity(childEntity, childId, item, [...currentPath, key, idx]);
+                });
+            } else {
+                // nested object
+                makeNode(entity, entityId, key, "object", "{...}", [
+                    ...currentPath,
+                    key,
+                ]);
+
+                const childEntity = key.toUpperCase();
+                const childId = (value as any).id || `${key}Id`;
+
+                result.edges.push({
+                    source: `${entity}.${entityId}.${key}`,
+                    target: `${childEntity}.${childId}.id`,
+                    label: key,
+                });
+
+                processEntity(childEntity, childId, value, [...currentPath, key]);
+            }
+        }
+    }
+
+    function connectNodesWithSameValue(
+        graph: GraphData,
+        fieldGroups: string[][]
+    ): GraphData {
+        const { nodes, edges } = graph;
+        const fieldToGroup = new Map<string, number>();
+
+        fieldGroups.forEach((group, idx) => {
+            for (const field of group) {
+                fieldToGroup.set(field, idx);
+            }
+        });
+
+        const valueMap = new Map<string, string[]>();
+
+        for (const node of nodes) {
+            if (!node.value) continue;
+
+            const fieldName = node.id.split(".")[2];
+            const groupId = fieldToGroup.get(fieldName);
+
+            if (groupId !== undefined) {
+                const key = `${groupId}::${node.value}`;
+                if (!valueMap.has(key)) valueMap.set(key, []);
+                valueMap.get(key)!.push(node.id);
+            }
+        }
+
+        const newEdges: GraphEdge[] = [];
+        for (const [key, ids] of valueMap.entries()) {
+            if (ids.length > 1) {
+                const [first, ...rest] = ids;
+                const value = key.split("::")[1];
+                for (const other of rest) {
+                    newEdges.push({
+                        source: first,
+                        target: other,
+                        label: `L:${value}`,
+                    });
+                }
+            }
+        }
+
+        return { ...graph, edges: [...edges, ...newEdges] };
+    }
+
+    // Entry point
+    // const rootId = "root";
+    //   makeNode("ROOT", rootId, "id", "root", "{...}", []);
+
+    for (const [rootKey, rootVal] of Object.entries(jsonObj)) {
+        const entity = rootKey.toUpperCase();
+
+        if (Array.isArray(rootVal)) {
+            rootVal.forEach((item, idx) => {
+                const entityId = (item as any).id || `${entity}${idx + 1}`;
+                // result.edges.push({
+                //   source: `ROOT.${rootId}.id`,
+                //   target: `${entity}.${entityId}.id`,
+                //   label: rootKey,
+                // });
+                processEntity(entity, entityId, item, [rootKey, idx]);
+            });
+        } else {
+            const entityId = (rootVal as any)?.id || `${entity}`;
+            processEntity(entity, entityId, rootVal, [rootKey]);
+        }
+    }
+
+    return connectNodesWithSameValue(result, linkedFields);
+}
+export function jsonToFieldGraph2(jsonObj: Record<string, any>, separateNodeForArray = true, linkedFields = [[""]]): GraphData {
     const result: GraphData = { nodes: [], edges: [] };
 
     function makeNode(entity: string, entityId: string, id: string, type: string, value: string) {
@@ -678,10 +884,118 @@ export function yamlToFieldGraph(yamlString: string, separateNodeForArray = true
 
     return { nodes, edges };
 }
-export function openapiToFieldGraph(jsonObj: Record<string, any>, separateNodeForArray = true, linkedFields = [[""]]): GraphData {
+export function openapiToFieldGraph2(jsonObj: Record<string, any>, separateNodeForArray = true, linkedFields = [[""]]): GraphData {
     return jsonToFieldGraph(jsonObj, separateNodeForArray, linkedFields);
 }
+export async function openapiToFieldGraph(openapiYaml: string): Promise<GraphData> {
+    // 1. Parse YAML
+    const spec = yaml.load(openapiYaml) as any;
 
+    // 2. Dereference all $refs
+    const client = await SwaggerClient({ spec: spec });
+    const derefSpec = client.spec;
+    // const components = (derefSpec as any).components?.schemas || {};
+
+    const nodes: GraphNode[] = [];
+    const edges: GraphEdge[] = [];
+
+    /**
+     * Recursive traversal of a schema to generate nodes + edges
+     */
+    function traverseSchema(schema: any, parentNode: GraphNode, contextName: string) {
+        if (!schema) return;
+
+        if (schema.allOf) schema.allOf.forEach((s: any) => traverseSchema(s, parentNode, contextName));
+        if (schema.oneOf || schema.anyOf) {
+            (schema.oneOf || schema.anyOf).forEach((s: any, idx: number) => {
+                const branchId = `${parentNode.id}.${contextName}[alt${idx}]`;
+                const branchNode: GraphNode = {
+                    id: branchId,
+                    name: `${contextName}[alt${idx}]`,
+                    type: s.type || "object",
+                    path: [...(parentNode.path || []), `${contextName}[alt${idx}]`],
+                };
+                nodes.push(branchNode);
+                edges.push({ source: parentNode.id, target: branchNode.id, label: `${contextName}[alt${idx}]` });
+                traverseSchema(s, branchNode, contextName);
+            });
+        }
+
+        if (schema.type === "object" && schema.properties) {
+            parentNode.fields = parentNode.fields || [];
+            for (const [prop, propSchema] of Object.entries<any>(schema.properties)) {
+                const fieldId = `${parentNode.id}.${prop}`;
+                parentNode.fields.push({
+                    id: fieldId,
+                    name: prop,
+                    type: propSchema.type || (propSchema.enum ? "enum" : "unknown"),
+                    value: "",
+                });
+
+                const childNode: GraphNode = {
+                    id: fieldId,
+                    name: prop,
+                    type: propSchema.type || "object",
+                    path: [...(parentNode.path || []), prop],
+                };
+                nodes.push(childNode);
+                edges.push({ source: parentNode.id, target: childNode.id, label: prop });
+                traverseSchema(propSchema, childNode, prop);
+            }
+        } else if (schema.type === "array" && schema.items) {
+            for (let i = 0; i < 2; i++) {
+                const arrId = `${parentNode.id}[${i}]`;
+                const arrNode: GraphNode = {
+                    id: arrId,
+                    name: `${contextName}[${i}]`,
+                    type: schema.items.type || "object",
+                    path: [...(parentNode.path || []), i],
+                };
+                nodes.push(arrNode);
+                edges.push({ source: parentNode.id, target: arrNode.id, label: `${contextName}[${i}]` });
+                traverseSchema(schema.items, arrNode, contextName);
+            }
+        }
+    }
+
+    // 3. Iterate over all paths → 200 JSON responses
+    for (const [path, methods] of Object.entries<any>(derefSpec.paths || {})) {
+        for (const [method, operation] of Object.entries<any>(methods)) {
+            const responses = operation.responses || {};
+            const res200 = responses["200"] || responses["201"];
+            if (!res200) continue;
+
+            const content = res200.content?.["application/json"];
+            if (!content || !content.schema) continue;
+
+            const schema = content.schema;
+            let schemaName = schema.title || schema.$ref?.split("/").pop() || `${method.toUpperCase()}${path}`;
+            const rootNodeId = `${schemaName}.${path}`;
+            const rootNode: GraphNode = {
+                id: rootNodeId,
+                name: schemaName,
+                type: schema.type || "object",
+                path: [],
+            };
+            nodes.push(rootNode);
+            traverseSchema(schema, rootNode, schemaName);
+        }
+    }
+
+    // //4 components
+    // for (const [compName, compSchema] of Object.entries<any>(components)) {
+    //     const compNodeId = `COMP.${compName}`;
+    //     const compNode: GraphNode = {
+    //         id: compNodeId,
+    //         name: compName,
+    //         type: compSchema.type || "object",
+    //     }
+    //     nodes.push(compNode);
+    //     traverseSchema(compSchema, compNode, compName);
+    // }
+
+    return { nodes, edges, direction: "vertical" };
+}
 
 const getCategoryEntity = (id: string): string | null => {
     const parts = id.split('.');
@@ -988,7 +1302,7 @@ const createTableFields = (
     if (fields.length === 0) fields.push({ id: 'Id', name: "Name", type: 'String', value: 'Value' });
 
     const fieldRows = fields
-        .map(({ id, name, type,  from, to }) => {
+        .map(({ id, name, type, from, to }) => {
             let tgt = type;
             // , tt = type;
             // if (type.includes('|')) {

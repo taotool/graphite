@@ -209,4 +209,43 @@ type Subscription {
 `;
 
 export const openapi = `
+---
+openapi: 3.0.3
+info:
+  title: Multi-root API
+  version: 1.0.0
+paths:
+  /users/{id}:
+    get:
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /orders/{id}:
+    get:
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+        total:
+          type: number
 `;
+
