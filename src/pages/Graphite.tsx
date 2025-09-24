@@ -197,7 +197,7 @@ export const Graphite = forwardRef<GraphiteRef, GraphiteProps>(
         // ------------------ Graph Rendering ------------------
 
         const renderGraph = (dotSrc: string, skipPush?: boolean) => {
-            console.log("Rendering graph...");
+            console.log("renderGraph start");
 
             removeAllTrackedListeners();
             if (!skipPush) {
@@ -211,20 +211,17 @@ export const Graphite = forwardRef<GraphiteRef, GraphiteProps>(
 
 
             (d3.select(".graphCanvas") as any)
-                .graphviz({ useWorker: false, engine: 'dot' })
+                .graphviz({ useWorker: true, engine: 'dot' })
                 .transition(function () {
                     return d3.transition()
-                        .duration(200);
+                        .duration(300);
                 })
                 .fit(true)
                 .zoom(true)//disable d3 graphviz zoom, to make svgPanZoom work
                 .dot(dotSrc)
                 .render()
                 .on("end", function () {
-                    // showDoc('graph rendering started');
-                    //const svgElement = document.querySelector(".graphCanvas svg");
-
-                    //panZoomRef.current = svgPanZoom(".graphCanvas svg", {controlIconsEnabled: true, customEventsHandler: eventsHandler})
+                    console.log("renderGraph ending.");
 
                     const nodes = document.querySelectorAll(".graphCanvas svg .graph_node")
                     nodes.forEach(node => {
@@ -292,8 +289,33 @@ export const Graphite = forwardRef<GraphiteRef, GraphiteProps>(
                         });
                     });
 
+
+
+//                     const svg = document.querySelector(".graphCanvas svg");
+// if (svg) {
+//     removeTrackedListeners(svg);
+//     trackEventListener(svg, "pointerup", (event) => {
+//         const node = (event.target as Element).closest(".graph_node, .graph_node_table, .graph_node_table_with_fields g a, .graph_label");
+//         if (!node) return;
+
+//         if (node.classList.contains("graph_node")) {
+//             const data = (node as any).__data__;
+//             showNode(data.key);
+//         } else if (node.classList.contains("graph_node_table")) {
+//             const data = (node as any).__data__;
+//             showTable(data.key);
+//         } else if (node.closest(".graph_node_table_with_fields g a")) {
+//             const data = (event.target as any).target;
+//             showTable(data.baseVal);
+//         } else if (node.classList.contains("graph_label")) {
+//             const data = (node as any).__data__;
+//             showRelation(data.key);
+//         }
+//     });
+// }
+
                     // showDoc('graph rendering ended');
-                    console.log("Graph rendered.");
+                    console.log("renderGraph ended.");
                 });
         }
 

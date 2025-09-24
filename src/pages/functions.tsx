@@ -1118,37 +1118,37 @@ export function oneDetaiBasedOnField(gd: GraphData, highlightEntity?: string): s
     }
 
     // ---------------- Build edge labels ----------------
-    const edgeLabels: GraphEdge[] = [];
-    gd.edges.forEach((edge) => {
-        const source = getCategoryEntity(edge.source);
-        const target = getCategoryEntity(edge.target);
-        if (source && target && source !== target) {
-            edgeLabels.push({ source, target, label: edge.label || "" });
-        }
-    });
-
-    // ---------------- Build merged edge labels ----------------
-    // const edgeMap = new Map<string, { source: string; target: string; labels: Set<string> }>();
-
+    // const edgeLabels: GraphEdge[] = [];
     // gd.edges.forEach((edge) => {
     //     const source = getCategoryEntity(edge.source);
     //     const target = getCategoryEntity(edge.target);
     //     if (source && target && source !== target) {
-    //         const key = `${source}|${target}`;
-    //         if (!edgeMap.has(key)) {
-    //             edgeMap.set(key, { source, target, labels: new Set() });
-    //         }
-    //         if (edge.label) {
-    //             edgeMap.get(key)!.labels.add(edge.label);
-    //         }
+    //         edgeLabels.push({ source, target, label: edge.label || "" });
     //     }
     // });
-    //
-    // const edgeLabels = Array.from(edgeMap.values()).map(({ source, target, labels }) => ({
-    //     source,
-    //     target,
-    //     label: Array.from(labels).join(", "),
-    // }));
+
+    // ---------------- Build merged edge labels ----------------
+    const edgeMap = new Map<string, { source: string; target: string; labels: Set<string> }>();
+
+    gd.edges.forEach((edge) => {
+        const source = getCategoryEntity(edge.source);
+        const target = getCategoryEntity(edge.target);
+        if (source && target && source !== target) {
+            const key = `${source}|${target}`;
+            if (!edgeMap.has(key)) {
+                edgeMap.set(key, { source, target, labels: new Set() });
+            }
+            if (edge.label) {
+                edgeMap.get(key)!.labels.add(edge.label);
+            }
+        }
+    });
+    
+    const edgeLabels = Array.from(edgeMap.values()).map(({ source, target, labels }) => ({
+        source,
+        target,
+        label: Array.from(labels).join(", "),
+    }));
 
     const direction = gd.direction === "vertical" ? "TD" : "LR";
 
