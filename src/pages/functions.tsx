@@ -21,6 +21,7 @@ import SwaggerClient from "swagger-client";
 //     isEnumType,
 // } from 'graphql';
 // import type { GraphQLNamedType, GraphQLType } from 'graphql';
+const round = false;
 
 
 import {
@@ -102,25 +103,25 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
                 edges.push({
                     source: fieldNodeId,
                     target: `TYPE.${fieldType.name}.${TARGET_FAKE_ID}`,
-                    label: `returns: ${fieldType.name}`,
+                    label: `${fieldName} returns: ${fieldType.name}`,
                 });
             } else if (isEnumType(fieldType)) {
                 edges.push({
                     source: fieldNodeId,
                     target: `ENUM.${fieldType.name}.${TARGET_FAKE_ID}`,
-                    label: `returns: ${fieldType.name}`,
+                    label: `${fieldName} returns: ${fieldType.name}`,
                 });
             } else if (isUnionType(fieldType)) {
                 edges.push({
                     source: fieldNodeId,
                     target: `UNION.${fieldType.name}.${TARGET_FAKE_ID}`,
-                    label: `returns: ${fieldType.name}`,
+                    label: `${fieldName} returns: ${fieldType.name}`,
                 });
             } else if (isScalarType(fieldType) && !BUILT_IN_SCALARS.has(fieldType.name)) {
                 edges.push({
                     source: fieldNodeId,
                     target: `SCALAR.${fieldType.name}.${TARGET_FAKE_ID}`,
-                    label: `returns: ${fieldType.name}`,
+                    label: `${fieldName} returns: ${fieldType.name}`,
                 });
 
 
@@ -342,19 +343,19 @@ export function graphqlToFieldGraph(schemaString: string): GraphData {
                     edges.push({
                         source: fieldNodeId,
                         target: `TYPE.${fieldType.name}.${TARGET_FAKE_ID}`,
-                        label: `returns: ${fieldType.name}`,
+                        label: `${fieldName}: ${fieldType.name}`,
                     });
                 } else if (isEnumType(fieldType)) {
                     edges.push({
                         source: fieldNodeId,
                         target: `ENUM.${fieldType.name}.${TARGET_FAKE_ID}`,
-                        label: `returns: ${fieldType.name}`,
+                        label: `${fieldName}: ${fieldType.name}`,
                     });
                 } else if (isScalarType(fieldType) && !BUILT_IN_SCALARS.has(fieldType.name)) {
                     edges.push({
                         source: fieldNodeId,
                         target: `SCALAR.${fieldType.name}.${TARGET_FAKE_ID}`,
-                        label: `returns: ${fieldType.name}`,
+                        label: `${fieldName}: ${fieldType.name}`,
                     });
                 }
             }
@@ -570,226 +571,7 @@ export function jsonToFieldGraph(
 
     return connectNodesWithSameValue(result, linkedFields);
 }
-export function jsonToFieldGraph2(jsonObj: Record<string, any>, separateNodeForArray = true, linkedFields = [[""]]): GraphData {
-    const result: GraphData = { nodes: [], edges: [] };
 
-    function makeNode(entity: string, entityId: string, id: string, type: string, value: string) {
-        result.nodes.push({
-            id: `${entity}.${entityId}.${id}`,
-            name: id,
-            type,
-            value
-        });
-    }
-
-    function processEntity(entity: string, entityId: string, obj: Record<string, any>) {
-        // ✅ early exit if obj is not a plain object
-        if (typeof obj !== "object" || obj === null || Array.isArray(obj)) {
-            makeNode(entity, entityId, "obj", typeof obj, String(obj));
-            return; // do nothing or handle differently
-        }
-        for (const [key, value] of Object.entries(obj)) {
-            if (value === null || value === undefined) continue;
-
-            if (typeof value !== "object" || (Array.isArray(value) === false && typeof value !== "object")) {
-                // primitive field
-                makeNode(entity, entityId, key, typeof value, String(value));
-            } else if (Array.isArray(value)) {
-                // array of objects
-                const tp = key;
-
-                //current node with type array USER.USRabc.addresses
-                // makeNode(entity, entityId, tp, `[${tp}]`, "[...]");//USER, USRabc, addresses, [addresses], [...]
-                makeNode(entity, entityId, tp, typeof value, "[...]");//USER, USRabc, addresses, [addresses], [...]
-
-                //child nodes, USER.USRabc.addresses -> 
-                if (separateNodeForArray) {
-                    // create an edge from parent entity to the array field
-                    let linkedToArray = false;
-                    value.forEach((item, idx) => {
-                        const childEntity = key.toUpperCase();
-                        const childId = item.id || `${childEntity}[${idx}]`;
-                        let v = "";
-                        if (typeof item !== "object" || (Array.isArray(item) === false && typeof item !== "object")) {
-                            v = String(item);
-                        } else if (Array.isArray(item)) {
-                            v = "[...]";
-                        } else if (typeof item === "object") {
-                            v = "{...}";
-                        } else {
-                            v = "???";
-                        }
-                        makeNode(`[${childEntity}]`, entityId, childId, typeof item, v);//array item node
-
-                        // PARENT -> ARRAY
-                        if (!linkedToArray) {
-
-                            result.edges.push({
-                                source: `${entity}.${entityId}.${tp}`,
-                                target: `[${childEntity}].${entityId}.${childId}`,
-                                label: `${key}[]`
-                            });
-
-                            linkedToArray = true;
-                        }
-                    });
-                }
-
-                // each item in the array is a separate entity
-                value.forEach((item, idx) => {
-                    const childEntity = key.toUpperCase(); // e.g. addresses -> ADDRESS
-                    const childId = item.id || `${childEntity}[${idx}]`;
-
-                    if (separateNodeForArray) {
-
-                        // ARRAY -> ITEM
-                        result.edges.push({
-                            source: `[${childEntity}].${entityId}.${childId}`,
-                            target: `${childEntity}.${childId}.id`,
-                            label: childId
-                        });
-
-
-                    } else {
-
-                        result.edges.push({
-                            source: `${entity}.${entityId}.${key}`,
-                            target: `${childEntity}.${childId}.id`,
-                            label: childId
-                        });
-
-
-                    }
-                    processEntity(childEntity, childId, item);
-                });
-            } else if (typeof value === "object") {
-                // nested object
-                const tp = key;
-
-                makeNode(entity, entityId, key, tp, "{...}");
-
-                const childEntity = key.toUpperCase();
-                const childId = value.id || `${tp}Id`;//  if no id
-
-                result.edges.push({
-                    source: `${entity}.${entityId}.${key}`,//parent
-                    target: `${childEntity}.${childId}.id`,//child - current
-                    label: key
-                });
-
-                processEntity(childEntity, childId, value);
-            } else {
-                // unknown type, skip
-                console.warn("Unknown type for key:", key, value);
-                alert("Unknown type for key: " + key);
-            }
-        }
-    }
-    /**
-     * Connect nodes with the same value, restricted to certain field groups.
-     * Field groups allow treating multiple field names as equivalent (e.g., ["orderId", "order_id"]).
-     *
-     * @param graph Input graph
-     * @param fieldGroups Array of field groups, each being a list of equivalent field names
-     * @returns A new graph with edges added for duplicates
-     */
-    function connectNodesWithSameValue(
-        graph: GraphData,
-        fieldGroups: string[][]
-    ): GraphData {
-        const { nodes, edges } = graph;
-
-        // Normalize groups into a lookup: fieldName -> groupId
-        const fieldToGroup = new Map<string, number>();
-        fieldGroups.forEach((group, idx) => {
-            for (const field of group) {
-                fieldToGroup.set(field, idx);
-            }
-        });
-
-        // Map: groupId + value -> node ids
-        const valueMap = new Map<string, string[]>();
-
-        for (const node of nodes) {
-            if (!node.value) continue;
-
-            const fieldName = node.id.split(".")[2];
-            const groupId = fieldToGroup.get(fieldName);
-
-            if (groupId !== undefined) {
-                const key = `${groupId}::${node.value}`;
-                if (!valueMap.has(key)) {
-                    valueMap.set(key, []);
-                }
-                valueMap.get(key)!.push(node.id);
-            }
-        }
-
-        // Create new edges for nodes that share the same value in the same field group
-        const newEdges: GraphEdge[] = [];
-        for (const [key, ids] of valueMap.entries()) {
-            if (ids.length > 1) {
-                const [first, ...rest] = ids;
-                const value = key.split("::")[1];
-                for (const other of rest) {
-
-                    newEdges.push({
-                        source: first,
-                        target: other,
-                        label: `L:${value}`,
-                    });
-                }
-            }
-        }
-
-        return {
-            ...graph,
-            edges: [...edges, ...newEdges],
-        };
-    }
-
-
-
-
-    // entry point: assume root objects are entities
-    const rootId = "root";
-    makeNode("ROOT", rootId, "id", "root", "{...}");
-
-    for (const [rootKey, rootVal] of Object.entries(jsonObj)) {
-        const entity = rootKey.toUpperCase();
-
-        if (Array.isArray(rootVal)) {
-            rootVal.forEach((item, idx) => {
-                const entityId = item.id || `${entity}${idx + 1}`;
-
-                // connect ROOT -> entity
-                result.edges.push({
-                    source: `ROOT.${rootId}.id`,
-                    target: `${entity}.${entityId}.id`,
-                    label: rootKey
-                });
-
-                processEntity(entity, entityId, item);
-            });
-        } else {
-            const entityId = rootVal?.id || `${entity}`;
-
-            // connect ROOT -> entity
-            // result.edges.push({
-            //     source: `ROOT.${rootId}.id`,
-            //     target: `${entity}.${entityId}.id`,
-            //     label: rootKey
-            // });
-
-            processEntity(entity, entityId, rootVal);
-        }
-    }
-
-
-    //
-    const updatedGraph = connectNodesWithSameValue(result, linkedFields);
-    return updatedGraph;
-}
 export function yamlToFieldGraph(yamlString: string, separateNodeForArray = true, linkedFields: [string, string][] = []): GraphData {
     let yamlObj: Record<string, any>;
 
@@ -884,9 +666,7 @@ export function yamlToFieldGraph(yamlString: string, separateNodeForArray = true
 
     return { nodes, edges };
 }
-export function openapiToFieldGraph2(jsonObj: Record<string, any>, separateNodeForArray = true, linkedFields = [[""]]): GraphData {
-    return jsonToFieldGraph(jsonObj, separateNodeForArray, linkedFields);
-}
+
 export async function openapiToFieldGraph(openapiYaml: string): Promise<GraphData> {
     // 1. Parse YAML
     const spec = yaml.load(openapiYaml) as any;
@@ -997,10 +777,7 @@ export async function openapiToFieldGraph(openapiYaml: string): Promise<GraphDat
     return { nodes, edges, direction: "vertical" };
 }
 
-const getCategoryEntity = (id: string): string | null => {
-    const parts = id.split('.');
-    return parts.length >= 2 ? `${parts[0]}.${parts[1]}` : null;
-}
+
 
 export function toEntityGraph(gd: GraphData): GraphData {
     const entityNodes: Record<string, GraphNode> = {};
@@ -1143,7 +920,7 @@ export function oneDetaiBasedOnField(gd: GraphData, highlightEntity?: string): s
             }
         }
     });
-    
+
     const edgeLabels = Array.from(edgeMap.values()).map(({ source, target, labels }) => ({
         source,
         target,
@@ -1175,7 +952,12 @@ export function oneDetaiBasedOnField(gd: GraphData, highlightEntity?: string): s
 
     // ---------------- Build DOT ----------------
     let dot = `digraph {\n`;
-    dot += `  node [shape=Record style=rounded]\n\n`;
+    if (round) {
+        dot += `  node [shape=Record style=rounded]\n\n`;
+    } else {
+        dot += `  node [shape=none margin=0]\n\n`;
+
+    }
     dot += `  edge[arrowhead="open"]\n  tooltip=""\n  rankdir=${direction} \n overlap = scale \n splines = true \n`;
 
     // ---------------- Render nodes ----------------
@@ -1286,43 +1068,35 @@ export function oneDetailEntity(
     return dot;
 }
 
-
+const getCategoryEntity = (id: string): string | null => {
+    const parts = id.split('.');
+    return parts.length >= 2 ? `${parts[0]}.${parts[1]}` : null;
+}
 // const createTableHeader = (category: string, entity: string) => {
 //     return `&nbsp;&nbsp;${category}&nbsp;&nbsp;| <f1>  ${entity}  `;
 // }
 const createTableHeader = (category: string, entity: string) => {
-    return `<table border="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4"><tr><td width="100"><B>${category}</B></td></tr><tr><td>${entity}</td></tr></table>`;
+    return `<table border="0"  CELLBORDER="${round ? 0 : 1}" CELLSPACING="0" CELLPADDING="4">
+        ${createTableHeader2(category, entity)}</table>`;
+}
+
+const createTableHeader2 = (category: string, entity: string) => {
+    return `<tr ><td width="100"><B>${category}</B></td></tr><tr><td>${entity}</td></tr>`;
 }
 const createTableFields = (
     category: string,
     entity: string,
     fields: GraphNode[]
 ) => {
-    const tableHeader = `<tr><td width="100"><FONT ><B>${category}</B></FONT></td></tr><tr><td ><FONT >${entity}</FONT><BR/><BR/></td></tr>`;
     if (fields.length === 0) fields.push({ id: 'Id', name: "Name", type: 'String', value: 'Value' });
 
     const fieldRows = fields
         .map(({ id, name, type, from, to }) => {
             let tgt = type;
-            // , tt = type;
-            // if (type.includes('|')) {
-            //     const t = type.split('|');
-            //     tt = t[0];
-            //     const target = t[1].split(".");
-            //     tgt = target[0] + "." + target[1];
-            // }
 
             if (to && to.length > 0) {
                 const target = to[0].split(".");
                 tgt = target[0] + "." + target[1];
-            }
-            let froms = "";
-            if (from && from.length > 0) {
-                froms += "<table border='1' CELLBORDER='0' CELLSPACING='0' CELLPADDING='0'>";
-                // for (const f of from) {
-                //     froms += `<tr><td>aaa</td></tr>`;
-                // }
-                froms += "</table>";
             }
             let tos = "";
             if (to && to.length > 0) {
@@ -1335,63 +1109,15 @@ const createTableFields = (
                 // tos += "</table>";
                 tos += to[0].split(".")[1];
             }
-            // let froms = "";
-            // if (from && from.length > 0) {
-            //     for (const f of from) {
-            //         const t = f.split(".");
-            //         froms += t[1] + " ";
-            //     }
-
-            // }
-            // if(from && from.length > 0 && to && to.length > 0) {
-            //     froms += `|`;
-            // }
-
-            // let tos = "";
-            // if (to && to.length > 0) {
-            //     for (const f of to) {
-            //         const t = f.split(".");
-            //         tos += t[1] + " ";
-            //     }
-            // }
-            // let cell = ""
-            // if(froms && froms.length > 0 ) {
-            //     cell = `
-            //     <td ALIGN="LEFT" ${to && to.length > 0 ? `TITLE="${tgt}" TARGET="${tgt}"` : ''}>
-
-            //         ${froms}
-
-            //         </td>
-            //     `;
-            // }
-            // if(tos && tos.length > 0 ) {
-            //     cell += `
-
-            //     <td ALIGN="LEFT" ${to && to.length > 0 ? `TITLE="${tgt}" TARGET="${tgt}"` : ''}>
-
-            //         ${tos}
-            //         </td>
-            //     `;
-            // }
-
-            // if(cell && cell.length == 0 ) {
-            //     cell = `<td>→</td>`;
-            // }
-            return `<tr>
-            <td ALIGN="LEFT" width="10" PORT="IN_${category}.${entity}.${id}" ><FONT >${name || id} </FONT></td>
-            <td ALIGN="LEFT" width="10">
-              ${type}
-            </td>
-            <td BALIGN="LEFT" PORT="OUT_${category}.${entity}.${id}" ${(to && to.length > 0) ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
-
+            return `
+            <tr><td ALIGN="LEFT" >${name || id}</td><td ALIGN="LEFT">${type}</td>
+            <td ALIGN="RIGHT" ${(to && to.length > 0) ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
               ${tos}
-            </td>
-            
-          </tr>`;
+            </td></tr>`;
         }).join('');
 
-    return `<table border="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0">
-              ${tableHeader}
+    return `<table border="0" CELLBORDER="${round ? 0 : 1}" CELLSPACING="0" CELLPADDING="4">
+              ${createTableHeader2(category, entity)}
               <tr><td>
                 <table border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" >
                   ${fieldRows}

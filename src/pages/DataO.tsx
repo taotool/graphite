@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
+import { Box, FormControl, InputLabel, Select, MenuItem, IconButton } from "@mui/material";
+import FilterCenterFocusIcon from '@mui/icons-material/FilterCenterFocus';
 import { Graphite } from "./Graphite";
 import type { GraphiteRef } from "./Graphite";
 import { Flowite } from "./Flowite";
@@ -66,7 +68,7 @@ export const DataO: React.FC<DataOProps> = (props) => {
   const handleMouseMove = (e: MouseEvent) => {
     if (isDragging) {
       const newDivider = (e.clientX / window.innerWidth) * 100;
-      if (newDivider > 10 && newDivider < 90) {
+      if (newDivider > 5 && newDivider < 95) {
         setDividerX(newDivider);
       }
     }
@@ -100,6 +102,34 @@ export const DataO: React.FC<DataOProps> = (props) => {
     setEngine(e.target.value);
   };
 
+  const handleLocate = () => {
+    const model = editorRef.current?.getModel();
+    const position = editorRef.current?.getPosition();
+    if (model && position) {
+      const offset = model.getOffsetAt(position);
+      const text = model.getValue();
+      if (type.toLowerCase() === "json") {
+        const root = jsonc.parseTree(text);
+        const node = jsonc.findNodeAtOffset(root!, offset);
+        if (node) {
+          const path = jsonc.getNodePath(node);
+          graphiteRef.current?.highlight(JSON.stringify(path));
+
+          console.log("Locate JSON path:", path);
+        }
+      } else if (type.toLowerCase() === "graphql") {
+        const ast = parse(text, { noLocation: false });
+
+        const node = findGraphQLNodeAt(ast, offset);
+        if (node) {
+          graphiteRef.current?.highlight(node.value);
+          console.log("Locate GraphQL node kind:", node.kind);
+        }
+      }
+    }
+
+  }
+
 
   // function handleNodeChange(node: any | null) {
   //   console.log("Current node:", node.value + " type: " + type);
@@ -113,25 +143,25 @@ export const DataO: React.FC<DataOProps> = (props) => {
   //     console.log("GraphQL node kind:", node.kind);
   //   }
   // }
-function findGraphQLNodeAt(astNode: any, offset: number): any {
-      if (!astNode?.loc) return null;
-      if (offset < astNode.loc.start || offset > astNode.loc.end) return null;
+  function findGraphQLNodeAt(astNode: any, offset: number): any {
+    if (!astNode?.loc) return null;
+    if (offset < astNode.loc.start || offset > astNode.loc.end) return null;
 
-      for (const key in astNode) {
-        const value = astNode[key];
-        if (Array.isArray(value)) {
-          for (const child of value) {
-            const found = findGraphQLNodeAt(child, offset);
-            if (found) return found;
-          }
-        } else if (typeof value === "object" && value?.loc) {
-          // const found = findGraphQLNodeAt(value, offset);
-          // if (found) return found;
-          return value;
+    for (const key in astNode) {
+      const value = astNode[key];
+      if (Array.isArray(value)) {
+        for (const child of value) {
+          const found = findGraphQLNodeAt(child, offset);
+          if (found) return found;
         }
+      } else if (typeof value === "object" && value?.loc) {
+        // const found = findGraphQLNodeAt(value, offset);
+        // if (found) return found;
+        return value;
       }
-      return astNode;
     }
+    return astNode;
+  }
 
   /**
    * Attach AST node detection to a Monaco editor instance.
@@ -141,7 +171,7 @@ function findGraphQLNodeAt(astNode: any, offset: number): any {
   //   mode: "json" | "graphql",
   //   onNodeChange: (node: any | null) => void
   // ) {
-    
+
   //   if (!editor) return;
 
   //   const model = editor.getModel();
@@ -210,7 +240,7 @@ function findGraphQLNodeAt(astNode: any, offset: number): any {
 
       const graphJson = convertToFieldGraph(data, type, engine);
       setGraphJson(graphJson);
-      console.log("Graph updated " );
+      console.log("Graph updated ");
       // if (!editorRef.current) return;
 
       // if listener is disabled, do nothing
@@ -235,62 +265,42 @@ function findGraphQLNodeAt(astNode: any, offset: number): any {
 
   console.log("--------- DataO render end ---------");
   return (
-    <div>
-      {/* Head div with dropdowns */}
-      <div style={{ border: "0px solid red", padding: "0.5rem", textAlign: "left" }}>
-        <label>
-          Type:{" "}
-          <select value={type} onChange={handleTypeChange}>
-            <option value="json">JSON</option>
-            <option value="graphql">GraphQL</option>
-            <option value="yaml">YAML</option>
-            <option value="openapi">OpenAPI</option>
-          </select>
-        </label>
+    <div style={{ display: "flex",  width: "96vw", flexDirection: "column", gap: "4px",  borderRadius: 6, border: "1px solid #e0e0e0" }}>
+      <Box
+        display="flex"
+        alignItems="center"
+        gap={2}
+        p={1}
+      >
+        {/* Type Selector */}
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel>Type</InputLabel>
+          <Select value={type} label="Type" onChange={handleTypeChange}>
+            <MenuItem value="json">JSON</MenuItem>
+            <MenuItem value="graphql">GraphQL</MenuItem>
+            <MenuItem value="yaml">YAML</MenuItem>
+            <MenuItem value="openapi">OpenAPI</MenuItem>
+          </Select>
+        </FormControl>
 
-        <label style={{ marginLeft: "1rem" }}>
-          Engine:{" "}
-          <select value={engine} onChange={handleEngineChange}>
-            <option value="flowite">Flowite</option>
-            <option value="graphite">Graphite</option>
-          </select>
-        </label>
+        {/* Engine Selector */}
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel>Engine</InputLabel>
+          <Select value={engine} label="Engine" onChange={handleEngineChange}>
+            <MenuItem value="flowite">Flowite</MenuItem>
+            <MenuItem value="graphite">Graphite</MenuItem>
+          </Select>
+        </FormControl>
 
-
-        {/* Toggle UI */}
-        
-          <button onClick={()=>{
-            const model = editorRef.current?.getModel();
-            const position = editorRef.current?.getPosition();
-            if(model && position) {
-              const offset = model.getOffsetAt(position);
-              const text = model.getValue();
-              if(type.toLowerCase() === "json") {
-                const root = jsonc.parseTree(text);
-                const node = jsonc.findNodeAtOffset(root!, offset);
-                if(node) {
-                  const path = jsonc.getNodePath(node);
-                  graphiteRef.current?.doSomething(JSON.stringify(path));
-
-                  console.log("Locate JSON path:", path);
-                }
-              } else if(type.toLowerCase() === "graphql") {
-                const ast = parse(text, { noLocation: false });
-                
-                const node = findGraphQLNodeAt(ast, offset);
-                if(node) {
-                  graphiteRef.current?.doSomething(node.value);
-                  console.log("Locate GraphQL node kind:", node.kind);
-                }
-              }
-            }
-
-          }}>Locate
-          </button>
-      </div>
+        {/* Action Button */}
+        {/* Icon Button */}
+        <IconButton color="primary" onClick={handleLocate}>
+          <FilterCenterFocusIcon />
+        </IconButton>
+      </Box>
 
       {/* Main content */}
-      <div style={{ display: "flex", height: "90vh", width: "96vw" }}>
+      <div style={{ display: "flex", flex: 1, height: "100%", width: "100%"}}>
         {/* Right panel: JSON editor */}
         <div style={{ border: "1px solid #ccc", width: `${dividerX}%` }}>
           <Editor
@@ -330,7 +340,7 @@ function findGraphQLNodeAt(astNode: any, offset: number): any {
             <Flowite data={graphJson} />
           ) : (
             <Graphite ref={graphiteRef} data={graphJson} onHighlightTable={(id: string) => {
-              console.log("DataO: Highlight table:", id);
+              // console.log("DataO: Highlight table:", id);
             }} />
           )}
         </div>

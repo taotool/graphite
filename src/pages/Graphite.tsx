@@ -37,7 +37,7 @@ export interface GraphiteProps {
     onHighlightRelation?: (relationId: string) => void;
 }
 export interface GraphiteRef {
-    doSomething: (id: string) => void;
+    highlight: (id: string) => void;
     reset: () => void;
 }
 // Event listener tracking
@@ -56,17 +56,14 @@ export const Graphite = forwardRef<GraphiteRef, GraphiteProps>(
         console.log("--------- Graphite render start ---------");
         // Expose methods to parent via the ref
         useImperativeHandle(ref, () => ({
-            doSomething(id) {
-                console.log("Graphite is doing something!");
-
-
-
+            highlight(id) {
+                // console.log("Graphite is doing something!");
                 let iddd = "";
 
                 for (const n of graphDataRef.current?.nodes) {
                     const idd = n.id.split(".");
                     if (idd[1] === id) {
-                        console.log("Found node:", n);
+                        //console.log("Found node:", n);
                         iddd = idd[0] + "." + idd[1];
                         break;
                     }
@@ -80,7 +77,7 @@ export const Graphite = forwardRef<GraphiteRef, GraphiteProps>(
                     JSON.stringify(n.path) === id
                 );
                 if (graphNode) {
-                    console.log("Found node by path:", graphNode);
+                    // console.log("Found node by path:", graphNode);
                     const idd = graphNode.id.split(".");
 
                     showTable(idd[0] + "." + idd[1]);
