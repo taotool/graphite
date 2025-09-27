@@ -24,6 +24,8 @@ export interface FlowiteRef {
 export const Flowite = forwardRef<FlowiteRef, FlowiteProps>(
   ({ data, onNodeClick }, ref) => {
     console.log("--------- Flowite render start ---------");
+      const highlightEntity = useRef<string>(undefined);
+
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
     const [graphData, setGraphData] = useState<{ nodes: Node[]; edges: Edge[] }>({ nodes: [], edges: [] });
 
@@ -39,6 +41,8 @@ export const Flowite = forwardRef<FlowiteRef, FlowiteProps>(
     //通过这个函数设置高亮实体，并更新图数据，又利用到了state来触发useEffect。
     //click -> setHighlightEntity -> setGraphData state -> 更新图数据
     const setHighlightEntity = async (hid: string) => {
+          highlightEntity.current = hid;
+
       const entityGraph = JSON.parse(data || '{}');
             console.log("b", JSON.stringify(data));
 
@@ -52,7 +56,7 @@ export const Flowite = forwardRef<FlowiteRef, FlowiteProps>(
       (async () => {
         if (data) {
           const entityGraph = JSON.parse(data);
-          const gd = await toEntityGraphFlow(entityGraph, "", 'LR');
+          const gd = await toEntityGraphFlow(entityGraph, highlightEntity.current, 'LR');
           setGraphData(gd);
         }
       })();

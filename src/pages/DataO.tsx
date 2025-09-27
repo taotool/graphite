@@ -283,6 +283,7 @@ export const DataO: React.FC<DataOProps> = (props) => {
         <FormControl size="small" sx={{ minWidth: 150 }}>
           <InputLabel>Type</InputLabel>
           <Select value={type} label="Type" onChange={handleTypeChange}>
+            <MenuItem value="flow">FLOW</MenuItem>
             <MenuItem value="json">JSON</MenuItem>
             <MenuItem value="graphql">GraphQL</MenuItem>
             <MenuItem value="yaml">YAML</MenuItem>
