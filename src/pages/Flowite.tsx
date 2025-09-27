@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect, useImperativeHandle, forwardRef } from "react";
-import ReactFlow from "reactflow";
-import "reactflow/dist/style.css";
+import ReactFlow, {
+  Background,
+  Controls,
+  MiniMap,
+} from "reactflow";import "reactflow/dist/style.css";
 import type { Node, Edge } from "reactflow";
 import { Dialog, DialogTitle, DialogContent, Button } from "@mui/material";
 
@@ -77,9 +80,12 @@ export const Flowite = forwardRef<FlowiteRef, FlowiteProps>(
           }}
           fitView
           proOptions={{ hideAttribution: true }}
+                minZoom={0.1}   // allow zooming out a lot more
+      maxZoom={2}     // (optional) prevent zooming in too far
+      defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         >
           {/* <MiniMap /> */}
-          {/* <Controls /> */}
+          <Controls />
           {/* <Background gap={16} color="#aaa" /> */}
 
         </ReactFlow>
