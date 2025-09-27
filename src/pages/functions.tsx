@@ -1395,7 +1395,7 @@ export async function toEntityGraphFlow(
                         <tbody>
                             {n.fields!.map(f => (
                                 <tr key={f.id}>
-                                    <td align="left" className="border border-gray-300 px-1">{f.name}</td>
+                                    <td align="left" className="border border-gray-300 px-1"><a href="http://www.google.com" target="_blank">google</a>{f.name}</td>
                                     <td align="left" className="border border-gray-300 px-1">{f.type}</td>
                                     <td align="right" className="border border-gray-300 px-1">{f.value}</td>
                                 </tr>

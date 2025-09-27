@@ -4,6 +4,7 @@ import FilterCenterFocusIcon from '@mui/icons-material/FilterCenterFocus';
 import { Graphite } from "./Graphite";
 import type { GraphiteRef } from "./Graphite";
 import { Flowite } from "./Flowite";
+import type { FlowiteRef } from "./Flowite";
 
 import "./Graphite.css"
 import Editor from "@monaco-editor/react";
@@ -22,6 +23,7 @@ export const DataO: React.FC<DataOProps> = (props) => {
 
   console.log("--------- DataO render start ---------");
   const graphiteRef = useRef<GraphiteRef>(null);
+  const flowiteRef = useRef<FlowiteRef>(null);
 
   const [data, setData] = useState(props.data); // rawJson as state
   const [type, setType] = useState(props.options.type || "json");
@@ -44,6 +46,9 @@ export const DataO: React.FC<DataOProps> = (props) => {
       return engine === 'flowite' ? JSON.stringify(toEntityGraph(fieldGraphData), null, 2) : JSON.stringify(fieldGraphData, null, 2);
     }
 
+    if (type === 'flow') {
+      return data
+    }
     if (type === 'openapi') {
       // const fieldGraphData = openapiToFieldGraph(data);
       (async () => {
@@ -114,6 +119,7 @@ export const DataO: React.FC<DataOProps> = (props) => {
         if (node) {
           const path = jsonc.getNodePath(node);
           graphiteRef.current?.highlight(JSON.stringify(path));
+          flowiteRef.current?.highlight(JSON.stringify(path));
 
           console.log("Locate JSON path:", path);
         }
@@ -123,6 +129,7 @@ export const DataO: React.FC<DataOProps> = (props) => {
         const node = findGraphQLNodeAt(ast, offset);
         if (node) {
           graphiteRef.current?.highlight(node.value);
+          flowiteRef.current?.highlight(node.value);
           console.log("Locate GraphQL node kind:", node.kind);
         }
       }
@@ -337,7 +344,9 @@ export const DataO: React.FC<DataOProps> = (props) => {
         {/* Left panel: Graph */}
         <div style={{ border: "1px solid #ccc", width: `${100 - dividerX}%` }}>
           {engine === "flowite" ? (
-            <Flowite data={graphJson} />
+            <Flowite ref={flowiteRef} data={graphJson} onNodeClick={(id: string) => {
+              console.log("DataO: onNodeClick:", id);
+            }}/>
           ) : (
             <Graphite ref={graphiteRef} data={graphJson} onHighlightTable={(id: string) => {
               // console.log("DataO: Highlight table:", id);
