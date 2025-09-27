@@ -9,3 +9,7 @@
     padding: 4px;
     border: "1px solid red";
 }
+
+.react-flow__node {
+  transition: transform 0.5s ease; /* 节点移动动画 */
+}
