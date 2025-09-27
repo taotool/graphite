@@ -1081,7 +1081,7 @@ const createTableHeader = (category: string, entity: string) => {
 }
 
 const createTableHeader2 = (category: string, entity: string) => {
-    return `<tr ><td width="100"><B>${category}</B></td></tr><tr><td>${entity}</td></tr>`;
+    return `<tr ><td width="100" colspan="3"><B>${category}</B></td></tr><tr><td colspan="3">${entity}</td></tr>`;
 }
 const createTableFields = (
     category: string,
@@ -1107,22 +1107,17 @@ const createTableFields = (
                 // //     tos += `<tr><td>← ${t[1]}</td></tr>`;
                 // // }
                 // tos += "</table>";
+
                 tos += to[0].split(".")[1];
             }
             return `
             <tr><td ALIGN="LEFT" >${name || id}</td><td ALIGN="LEFT">${type}</td>
-            <td ALIGN="RIGHT" ${(to && to.length > 0) ? `TITLE="${type}" TARGET="${tgt}"` : ''}>
-              ${tos}
-            </td></tr>`;
+            <td ALIGN="RIGHT" ${(to && to.length > 0) ? `TITLE="${type}" TARGET="${tgt}"` : ''}>${tos}</td></tr>`;
         }).join('');
 
     return `<table border="0" CELLBORDER="${round ? 0 : 1}" CELLSPACING="0" CELLPADDING="4">
               ${createTableHeader2(category, entity)}
-              <tr><td>
-                <table border="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4" >
-                  ${fieldRows}
-                </table>
-              </td></tr>
+              ${fieldRows}
             </table>`;
 }
 

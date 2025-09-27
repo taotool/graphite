@@ -265,7 +265,7 @@ export const DataO: React.FC<DataOProps> = (props) => {
 
   console.log("--------- DataO render end ---------");
   return (
-    <div style={{ display: "flex",  width: "96vw", flexDirection: "column", gap: "4px",  borderRadius: 6, border: "1px solid #e0e0e0" }}>
+    <div style={{ display: "flex", width: "96vw", flexDirection: "column", gap: "4px", borderRadius: 6, border: "1px solid #e0e0e0" }}>
       <Box
         display="flex"
         alignItems="center"
@@ -300,7 +300,7 @@ export const DataO: React.FC<DataOProps> = (props) => {
       </Box>
 
       {/* Main content */}
-      <div style={{ display: "flex", flex: 1, height: "100%", width: "100%"}}>
+      <div style={{ display: "flex", flex: 1, height: "100%", width: "100%" }}>
         {/* Right panel: JSON editor */}
         <div style={{ border: "1px solid #ccc", width: `${dividerX}%` }}>
           <Editor
