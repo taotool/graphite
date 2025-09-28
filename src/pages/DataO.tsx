@@ -4,6 +4,7 @@ import FilterCenterFocusIcon from '@mui/icons-material/FilterCenterFocus';
 import { Graphite } from "./Graphite";
 import type { GraphiteRef } from "./Graphite";
 import { Flowite } from "./Flowite";
+import { Flowite3D } from "./Flowite3D";
 import type { FlowiteRef } from "./Flowite";
 
 import "./Graphite.css"

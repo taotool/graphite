@@ -2,12 +2,16 @@ import React, {
   useState,
   useRef,
   useEffect,
+  useCallback,
   useImperativeHandle,
   forwardRef,
 } from "react";
-import ReactFlow, { /*Background, Controls */ } from "reactflow";
+import ReactFlow, {
+  StraightEdge, SimpleBezierEdge, SmoothStepEdge, BezierEdge,
+  applyNodeChanges,
+  applyEdgeChanges, Handle, Position, Background, Controls
+} from "reactflow";
 import type { Node, Edge } from "reactflow";
-
 import "reactflow/dist/style.css";
 import { Dialog, DialogTitle, DialogContent, Button } from "@mui/material";
 
@@ -105,9 +109,19 @@ export const Flowite = forwardRef<FlowiteRef, FlowiteProps>(
       console.log("Field clicked:", nodeId, field);
       const ss = nodeId.split(".");
       // setSelectedNode(node); // 显示节点详情
-      setHighlightEntity(ss[0]+"."+ss[1]); // 高亮父节点
+      setHighlightEntity(ss[0] + "." + ss[1]); // 高亮父节点
     };
+    // 节点变化时更新 state
+    const onNodesChange = useCallback(
+      (changes: any) => setGraphData((gd) => ({ ...gd, nodes: applyNodeChanges(changes, gd.nodes) })),
+      []
+    );
 
+    // 边变化（可选，比如删除边）
+    const onEdgesChange = useCallback(
+      (changes: any) => setGraphData((gd) => ({ ...gd, edges: applyEdgeChanges(changes, gd.edges) })),
+      []
+    );
     useEffect(() => {
       (async () => {
         if (data) {
@@ -135,6 +149,23 @@ export const Flowite = forwardRef<FlowiteRef, FlowiteProps>(
         <ReactFlow
           nodes={graphData.nodes}
           edges={graphData.edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onNodeDragStart={(_, node) => {
+            const el = document.querySelector(`[data-id='${node.id}']`);
+            el?.classList.add("dragging");
+          }}
+          onNodeDragStop={(_, node) => {
+            const el = document.querySelector(`[data-id='${node.id}']`);
+            el?.classList.remove("dragging");
+          }}
+          
+          nodesDraggable
+          nodesConnectable
+          //           edgeTypes={{
+          //   smart: SimpleBezierEdge, // 或 BezierEdge
+          // }}
+          // defaultEdgeOptions={{ type: "smart" }}
           onNodeClick={(_, node) => {
             console.log(node.id);
             // setSelectedNode(node);

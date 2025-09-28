@@ -9,11 +9,14 @@
     padding: 4px;
     border: "1px solid red";
 }
-
+/* 节点移动动画 */
 .react-flow__node {
-  transition: transform 0.5s ease; /* 节点移动动画 */
+  transition: transform 0.2s ease-in-out; /* 默认有动画 */
 }
 
+.react-flow__node.dragging {
+  transition: none !important; /* 拖动时禁用动画 */
+}
 ul {
     list-style: none;
     padding-left: 0;

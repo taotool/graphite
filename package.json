@@ -41,6 +41,7 @@
     "@mui/icons-material": "^7.3.1",
     "@mui/material": "^7.3.1",
     "@mui/x-tree-view": "^8.10.2",
+    "@react-three/fiber": "^9.3.0",
     "allotment": "^1.20.4",
     "d3": "^7.9.0",
     "d3-graphviz": "^5.6.0",
@@ -51,9 +52,12 @@
     "http-server": "^14.1.1",
     "js-yaml": "^4.1.0",
     "jsonc-parser": "^3.3.1",
+    "react-force-graph-3d": "^1.29.0",
     "react-router-dom": "^7.8.2",
     "reactflow": "^11.11.4",
-    "swagger-client": "^3.35.6"
+    "swagger-client": "^3.35.6",
+    "three": "^0.180.0",
+    "three-spritetext": "^1.10.0"
   },
   "peerDependencies": {
     "react": ">=19",
