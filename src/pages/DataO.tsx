@@ -47,7 +47,7 @@ export const DataO: React.FC<DataOProps> = (props) => {
     }
 
     if (type === 'flow') {
-      return data
+      return data; //entity graph in flow format
     }
     if (type === 'openapi') {
       // const fieldGraphData = openapiToFieldGraph(data);
@@ -326,6 +326,9 @@ export const DataO: React.FC<DataOProps> = (props) => {
                 horizontalScrollbarSize: 4,
                 arrowSize: 12,
               },
+              minimap: {
+                enabled: false,
+              }
             }}
           />
           {/* </Editor> */}
@@ -347,7 +350,7 @@ export const DataO: React.FC<DataOProps> = (props) => {
           {engine === "flowite" ? (
             <Flowite ref={flowiteRef} data={graphJson} onNodeClick={(id: string) => {
               console.log("DataO: onNodeClick:", id);
-            }}/>
+            }} />
           ) : (
             <Graphite ref={graphiteRef} data={graphJson} onHighlightTable={(id: string) => {
               // console.log("DataO: Highlight table:", id);

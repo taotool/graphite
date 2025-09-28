@@ -1863,7 +1863,7 @@ export async function toEntityGraphFlow(
       if (showDetail && n.fields?.length) {
         label = (
           <div className="graph_node_table_with_fields font-medium">
-            <div className="font-semibold mb-1">{category}</div>
+            <div className="font-semibold mb-1"><b>{category}</b></div>
             <div className="font-semibold mb-1">{entity}</div>
             <table width={"100%"} className="border-collapse border border-gray-300">
               <tbody>
@@ -1881,7 +1881,7 @@ export async function toEntityGraphFlow(
       } else {
         label = (
           <div className="font-medium graph_node_table">
-            <div className="font-semibold mb-1">{category}</div>
+            <div className="font-semibold mb-1"><b>{category}</b></div>
             <div className="font-semibold mb-1">{entity}</div>
           </div>
         );

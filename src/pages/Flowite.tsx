@@ -44,22 +44,7 @@ export const Flowite = forwardRef<FlowiteRef, FlowiteProps>(
       },
     }));
 
-    // ---------- 带动画的 setGraphData ----------
-    const animateGraphUpdate2 = (newData: GraphFlow) => {
-      setGraphData((prev) => {
-        // 先用旧位置渲染一次，触发 transition
-        const withOldPositions = newData.nodes.map((n) => {
-          const old = prev.nodes.find((p) => p.id === n.id);
-          return old ? { ...n, position: old.position } : n;
-        });
-        return { ...newData, nodes: withOldPositions };
-      });
 
-      // 下一帧再设置新位置，触发动画
-      requestAnimationFrame(() => {
-        setGraphData(newData);
-      });
-    };
     // ---------- 带动画的 setGraphData ----------
     const animateGraphUpdate = (newData: GraphFlow) => {
       setGraphData((prev) => {
@@ -149,12 +134,12 @@ export const Flowite = forwardRef<FlowiteRef, FlowiteProps>(
           }}
           fitView
           proOptions={{ hideAttribution: true }}
-          minZoom={0.1}
+          minZoom={0.2}
           maxZoom={2}
           defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         >
-          <Controls />
-          <Background gap={16} color="#aaa" />
+          {/* <Controls /> */}
+          {/* <Background gap={16} color="#aaa" /> */}
         </ReactFlow>
 
         {/* 节点详情对话框 */}
