@@ -1,5 +1,6 @@
 
 export const flow = `
+
 {
   "metadata": {},
   "nodes": [
@@ -12,7 +13,15 @@ export const flow = `
           "id": "ROOT.root.id",
           "name": "id",
           "type": "root",
-          "value": "{...}"
+          "value": "{...}",
+          "parents": [
+            "a.b.c"
+          ],
+          "children": [
+            "USER.USRabc.id",
+            "ORDERS.ORDERS1.orderId",
+            "ORDERS.ORDERS2.orderId"
+          ]
         }
       ]
     },

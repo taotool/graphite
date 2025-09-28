@@ -121,7 +121,7 @@ export const DataO: React.FC<DataOProps> = (props) => {
           graphiteRef.current?.highlight(JSON.stringify(path));
           flowiteRef.current?.highlight(JSON.stringify(path));
 
-          console.log("Locate JSON path:", path);
+          // console.log("Locate JSON path:", path);
         }
       } else if (type.toLowerCase() === "graphql") {
         const ast = parse(text, { noLocation: false });
@@ -137,19 +137,6 @@ export const DataO: React.FC<DataOProps> = (props) => {
 
   }
 
-
-  // function handleNodeChange(node: any | null) {
-  //   console.log("Current node:", node.value + " type: " + type);
-  //   // 👇 Do whatever you want here
-  //   if (type.toLowerCase() === "json" && node) {
-  //     graphiteRef.current?.doSomething(JSON.stringify(jsonc.getNodePath(node)));
-
-  //     console.log("JSON path:", jsonc.getNodePath(node));
-  //   } else if (type.toLowerCase() === "graphql" && node) {
-  //     graphiteRef.current?.doSomething(node.value);
-  //     console.log("GraphQL node kind:", node.kind);
-  //   }
-  // }
   function findGraphQLNodeAt(astNode: any, offset: number): any {
     if (!astNode?.loc) return null;
     if (offset < astNode.loc.start || offset > astNode.loc.end) return null;
@@ -170,65 +157,9 @@ export const DataO: React.FC<DataOProps> = (props) => {
     return astNode;
   }
 
-  /**
-   * Attach AST node detection to a Monaco editor instance.
-   */
-  // function attachAstNodeListener(
-  //   editor: any,
-  //   mode: "json" | "graphql",
-  //   onNodeChange: (node: any | null) => void
-  // ) {
-
-  //   if (!editor) return;
-
-  //   const model = editor.getModel();
-
-  //   function handlePositionChange(position: any) {
-  //     const offset = model.getOffsetAt(position);
-  //     const text = model.getValue();
-
-  //     try {
-  //       if (mode === "json") {
-  //         const root = jsonc.parseTree(text);
-  //         const node = jsonc.findNodeAtOffset(root!, offset);
-  //         onNodeChange(node ?? null);
-  //       } else if (mode === "graphql") {
-  //         const ast = parse(text, { noLocation: false });
-  //         const node = findGraphQLNodeAt(ast, offset);
-  //         onNodeChange(node ?? null);
-  //       }
-  //     } catch (err) {
-  //       console.error("AST parse error:", err);
-  //       onNodeChange(null);
-  //     }
-  //   }
-
-  //   const sub1 = editor.onDidChangeCursorPosition((e: any) =>
-  //     handlePositionChange(e.position)
-  //   );
-  //   // const sub2 = editor.onMouseDown((e: any) => {
-  //   //   if (e.target.position) {
-  //   //     handlePositionChange(e.target.position);
-  //   //   }
-  //   // });
-
-  //   return () => {
-  //     sub1.dispose();
-  //     // sub2.dispose();
-  //   };
-  // }
-
-
 
   const handleEditorMount: OnMount = (editor) => {
     editorRef.current = editor;
-
-    // attach the initial listener immediately
-    // disposeRef.current = attachAstNodeListener(
-    //   editor,
-    //   type.toLowerCase(),
-    //   handleNodeChange
-    // );
   };
 
   useEffect(() => {
@@ -248,22 +179,6 @@ export const DataO: React.FC<DataOProps> = (props) => {
       const graphJson = convertToFieldGraph(data, type, engine);
       setGraphJson(graphJson);
       console.log("Graph updated ");
-      // if (!editorRef.current) return;
-
-      // if listener is disabled, do nothing
-      // if (!listenerEnabled) {
-      // re-attach whenever type/engine/data changes
-      // disposeRef.current?.(); // cleanup old
-      // disposeRef.current = attachAstNodeListener(
-      //   editorRef.current,
-      //   type.toLowerCase(),
-      //   handleNodeChange
-      // );
-
-      // // cleanup when effect re-runs or component unmounts
-      // return () => {
-      //   disposeRef.current?.();
-      // };
 
     } catch (err) {
       setGraphJson(""); // invalid JSON → no graph
@@ -322,8 +237,8 @@ export const DataO: React.FC<DataOProps> = (props) => {
               scrollbar: {
                 vertical: "auto",
                 horizontal: "auto",
-                verticalScrollbarSize: 4,
-                horizontalScrollbarSize: 4,
+                verticalScrollbarSize: 8,
+                horizontalScrollbarSize: 8,
                 arrowSize: 12,
               },
               minimap: {

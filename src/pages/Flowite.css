@@ -13,3 +13,8 @@
 .react-flow__node {
   transition: transform 0.5s ease; /* 节点移动动画 */
 }
+
+ul {
+    list-style: none;
+    padding-left: 0;
+}​

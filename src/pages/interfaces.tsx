@@ -14,6 +14,8 @@ export interface GraphNode {
         name: string;
         type: string;
         value: string;
+        parents?: [string];
+        children?: [string];
     }[];
 }
 

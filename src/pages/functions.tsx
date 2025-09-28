@@ -1178,827 +1178,17 @@ const createTableFields = (
 
 
 
-
-
-export function toEntityGraphFlow2(
-    entityGraph: GraphData,
-    highlightEntity?: string,
-    rankdir: "TB" | "LR" = "TB"
-): { nodes: Node[]; edges: Edge[] } {
-    // function bfs(start: string, adj: Record<string, string[]>): Set<string> {
-    //     const visited = new Set<string>();
-    //     const queue: string[] = [start];
-    //     while (queue.length) {
-    //         const node = queue.shift()!;
-    //         if (!visited.has(node)) {
-    //             visited.add(node);
-    //             (adj[node] || []).forEach((next) => {
-    //                 if (!visited.has(next)) queue.push(next);
-    //             });
-    //         }
-    //     }
-    //     return visited;
-    // }
-
-    // const adjForward: Record<string, string[]> = {};
-    // const adjBackward: Record<string, string[]> = {};
-    // entityGraph.edges.forEach(({ source, target }) => {
-    //     if (!adjForward[source]) adjForward[source] = [];
-    //     if (!adjBackward[target]) adjBackward[target] = [];
-    //     adjForward[source].push(target);
-    //     adjBackward[target].push(source);
-    // });
-
-    // const allHighlights = new Set<string>();
-    // if (highlightEntity) {
-    //     const upstream = bfs(highlightEntity, adjBackward);
-    //     const downstream = bfs(highlightEntity, adjForward);
-    //     [highlightEntity, ...upstream, ...downstream].forEach((id) =>
-    //         allHighlights.add(id)
-    //     );
-    // }
-
-    // const sourcePosition = rankdir === "LR" ? Position.Right : Position.Bottom;
-    // const targetPosition = rankdir === "LR" ? Position.Left : Position.Top;
-
-    // const defaultWidth = 180;
-    // const defaultHeight = 80;
-
-    // const nodes: Node[] = entityGraph.nodes.map((n) => {
-    //     const [category, entity] = n.id.split(".");
-    //     const isHighlighted = allHighlights.has(n.id);
-    //     const isDetailNode = n.id === highlightEntity && n.fields?.length;
-
-    //     // Only increase size for the highlighted node
-    //     const nodeWidth = defaultWidth;
-    //     const nodeHeight = isDetailNode
-    //         ? Math.min(10, defaultHeight + n.fields!.length * 25)
-    //         : defaultHeight;
-
-    //     let label: React.ReactNode;
-    //     if (isDetailNode) {
-    //         label = (
-    //             <div className="text-xs">
-    //                 <div className="font-semibold mb-1">{entity} ({category})</div>
-    //                 <table className="border-collapse border border-gray-300">
-    //                     <thead>
-    //                         <tr className="bg-gray-100">
-    //                             <th className="border border-gray-300 px-1">Field</th>
-    //                             <th className="border border-gray-300 px-1">Type</th>
-    //                             <th className="border border-gray-300 px-1">Value</th>
-    //                         </tr>
-    //                     </thead>
-    //                     <tbody>
-    //                         {n.fields!.map((f) => (
-    //                             <tr key={f.id}>
-    //                                 <td className="border border-gray-300 px-1">{f.name}</td>
-    //                                 <td className="border border-gray-300 px-1">{f.type}</td>
-    //                                 <td className="border border-gray-300 px-1">{f.value}</td>
-    //                             </tr>
-    //                         ))}
-    //                     </tbody>
-    //                 </table>
-    //             </div>
-    //         );
-    //     } else {
-    //         label = (
-    //             <div className="font-medium">
-    //                 {entity} <span className="text-gray-500">({category})</span>
-    //             </div>
-    //         );
-    //     }
-
-    //     return {
-    //         id: n.id,
-    //         data: { label },
-    //         position: { x: 0, y: 0 },
-    //         style: {
-    //             border: isHighlighted ? "2px solid #1976d2" : "1px solid #888",
-    //             borderRadius: "12px",
-    //             padding: "8px",
-    //             background: isHighlighted ? "#E3F2FD" : "#FFF",
-    //             minWidth: nodeWidth,
-    //             minHeight: nodeHeight,
-    //         },
-    //         sourcePosition,
-    //         targetPosition,
-    //         __width: nodeWidth,
-    //         __height: nodeHeight,
-    //     };
-    // });
-
-    // // Merge edges
-    // const edgeMap = new Map<string, { source: string; target: string; labels: Set<string> }>();
-    // entityGraph.edges.forEach((e) => {
-    //     const key = `${e.source}|${e.target}`;
-    //     if (!edgeMap.has(key))
-    //         edgeMap.set(key, { source: e.source, target: e.target, labels: new Set() });
-    //     if (e.label) edgeMap.get(key)!.labels.add(e.label);
-    // });
-    // const edges: Edge[] = Array.from(edgeMap.values()).map(({ source, target, labels }, i) => ({
-    //     id: `edge-${i}`,
-    //     source,
-    //     target,
-    //     label: Array.from(labels).join(", "),
-    //     animated: true,
-    //     style: { stroke: allHighlights.has(source) ? "#1976d2" : "#555" },
-    // }));
-
-    // // Dagre layout
-    // const dagreGraph = new dagre.graphlib.Graph();
-    // dagreGraph.setDefaultEdgeLabel(() => ({}));
-    // dagreGraph.setGraph({ rankdir, nodesep: 50, ranksep: 80 });
-
-    // nodes.forEach((node) => {
-    //     dagreGraph.setNode(node.id, { width: node.__width, height: node.__height });
-    // });
-    // edges.forEach((edge) => dagreGraph.setEdge(edge.source, edge.target));
-
-    // dagre.layout(dagreGraph);
-
-    // nodes.forEach((node) => {
-    //     const nodeWithPosition = dagreGraph.node(node.id);
-    //     node.position = {
-    //         x: nodeWithPosition.x - node.__width / 2,
-    //         y: nodeWithPosition.y - node.__height / 2,
-    //     };
-    // });
-    console.log(entityGraph);
-    console.log(highlightEntity);
-    console.log(rankdir);
-    const nodes: Node[] = [];
-    const edges: Edge[] = [];
-    return { nodes, edges };
-}
-
-
-
-
-
-
-export async function toEntityGraphFlow3(
-    entityGraph: GraphData,
-    highlightEntity?: string,
-    rankdir: "TB" | "LR" = "LR"
-): Promise<{ nodes: Node[]; edges: Edge[] }> {
-    // ---------- BFS helper for highlighting ----------
-    function bfs(start: string, adj: Record<string, string[]>): Set<string> {
-        const visited = new Set<string>();
-        const queue: string[] = [start];
-        while (queue.length) {
-            const node = queue.shift()!;
-            if (!visited.has(node)) {
-                visited.add(node);
-                (adj[node] || []).forEach((next) => {
-                    if (!visited.has(next)) queue.push(next);
-                });
-            }
-        }
-        return visited;
-    }
-
-    // ---------- adjacency ----------
-    const adjForward: Record<string, string[]> = {};
-    const adjBackward: Record<string, string[]> = {};
-    entityGraph.edges.forEach(({ source, target }) => {
-        if (!adjForward[source]) adjForward[source] = [];
-        if (!adjBackward[target]) adjBackward[target] = [];
-        adjForward[source].push(target);
-        adjBackward[target].push(source);
-    });
-
-    // ---------- collect highlight set ----------
-    const allHighlights = new Set<string>();
-    if (highlightEntity) {
-        const upstream = bfs(highlightEntity, adjBackward);
-        const downstream = bfs(highlightEntity, adjForward);
-        [highlightEntity, ...upstream, ...downstream].forEach((id) =>
-            allHighlights.add(id)
-        );
-    }
-
-    const defaultWidth = 80;
-    const defaultHeight = 10;
-
-    // ---------- build nodes ----------
-    const nodes: Node[] = entityGraph.nodes.map((n) => {
-        const [category, entity] = n.id.split(".");
-        const isHighlighted = allHighlights.has(n.id);
-        const isDetailNode = n.id === highlightEntity && n.fields?.length;
-
-        const width = isDetailNode ? defaultWidth + 125 : defaultWidth;
-        const height = isDetailNode
-            ? defaultHeight + n.fields!.length * 30
-            : defaultHeight;
-
-        let label: React.ReactNode;
-        if (isDetailNode) {
-            label = (
-                <div className="graph_node_table_with_fields font-medium ">
-                    <div className="font-semibold mb-1">{category}</div>
-                    <div className="font-semibold mb-1">{entity}</div>
-                    <br />
-                    <table
-                        width={"100%"}
-                        className="border-collapse border border-gray-300"
-                    >
-                        <tbody>
-                            {n.fields!.map((f) => (
-                                <tr key={f.id}>
-                                    <td
-                                        align="left"
-                                        className="border border-gray-300 px-1"
-                                    >
-                                        <a href="http://www.google.com" target="_blank">
-                                            google
-                                        </a>
-                                        {f.name}
-                                    </td>
-                                    <td
-                                        align="left"
-                                        className="border border-gray-300 px-1"
-                                    >
-                                        {f.type}
-                                    </td>
-                                    <td
-                                        align="right"
-                                        className="border border-gray-300 px-1"
-                                    >
-                                        {f.value}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            );
-        } else {
-            label = (
-                <div className="font-medium graph_node_table">
-                    <div className="font-semibold mb-1">{category}</div>
-                    <div className="font-semibold mb-1">{entity}</div>
-                </div>
-            );
-        }
-
-        return {
-            id: n.id,
-            data: { label },
-            style: {
-                border: isHighlighted ? "2px solid #1976d2" : "2px solid #000",
-                borderRadius: "8px",
-                padding: "0px",
-                background: isHighlighted ? "--var(back-color)" : "#FFF",
-                minWidth: width,
-                minHeight: height,
-            },
-            width,
-            height,
-            // sourcePosition: rankdir === "LR" ? Position.Right : Position.Bottom,
-            // targetPosition: rankdir === "LR" ? Position.Left : Position.Top,
-            position: { x: 0, y: 0 }, // default
-        };
-    });
-
-    // ---------- merge edges ----------
-    const edgeMap = new Map<
-        string,
-        { source: string; target: string; labels: Set<string> }
-    >();
-    entityGraph.edges.forEach((e) => {
-        const key = `${e.source}|${e.target}`;
-        if (!edgeMap.has(key))
-            edgeMap.set(key, { source: e.source, target: e.target, labels: new Set() });
-        if (e.label) edgeMap.get(key)!.labels.add(e.label);
-    });
-    const edges: Edge[] = Array.from(edgeMap.values()).map(
-        ({ source, target, labels }, i) => ({
-            id: `edge-${i}`,
-            source,
-            target,
-            label: Array.from(labels).join(", "),
-            animated: true,
-            style: { stroke: allHighlights.has(source) ? "#1976d2" : "#000" },
-        })
-    );
-
-
-    //615 macleod trail se suite 1000 calgary ab t2g 4t8
-    // ---------- internal: apply layout ----------
-    async function applyLayout(
-        nodes: Node[],
-        edges: Edge[],
-        rankdir: "TB" | "LR"
-    ): Promise<Node[]> {
-        const elkGraph = {
-            id: "root",
-            layoutOptions: {
-                "elk.algorithm": "layered",
-                "elk.layered.removeCycles": "true", // 默认是true
-                "elk.direction": rankdir === "LR" ? "RIGHT" : "DOWN",
-                "elk.spacing.nodeNode": "100",
-                "elk.layered.spacing.nodeNodeBetweenLayers": "160",
-                "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
-                'elk.edgeRouting': 'SPLINES',
-                //   'elk.layered.cycleBreaking.strategy': 'DEPTH_FIRST',
-                //   'elk.layered.nodePlacement.favorStraightEdges': 'true'
-            },
-            children: nodes.map((n) => ({
-                id: n.id,
-                width: n.width ?? 100,
-                height: n.height ?? 50,
-            })),
-            edges: edges.map((e) => ({
-                id: e.id,
-                sources: [e.source],
-                targets: [e.target],
-            })),
-        };
-
-        const elk = new ELK();
-        const layout = await elk.layout(elkGraph);
-
-        const nodePositions = new Map<string, { x: number; y: number }>();
-        layout.children?.forEach((n) => {
-            if (n.x !== undefined && n.y !== undefined) {
-                nodePositions.set(n.id, { x: n.x, y: n.y });
-            }
-        });
-
-        return nodes.map((n) => ({
-            ...n,
-            position: nodePositions.get(n.id) || { x: 0, y: 0 },
-        }));
-    }
-
-    // ---------- apply layout and return ----------
-    const positionedNodes = await applyLayout(nodes, edges, rankdir);
-    return { nodes: positionedNodes, edges };
-}
-
-
-
-
-export async function toEntityGraphFlow4(
-    entityGraph: GraphData,
-    highlightEntity?: string,
-    rankdir: "TB" | "LR" = "LR"
-): Promise<{ nodes: Node[]; edges: Edge[] }> {
-    // ---------- BFS helper for highlighting ----------
-    function bfs(start: string, adj: Record<string, string[]>): Set<string> {
-        const visited = new Set<string>();
-        const queue: string[] = [start];
-        while (queue.length) {
-            const node = queue.shift()!;
-            if (!visited.has(node)) {
-                visited.add(node);
-                (adj[node] || []).forEach((next) => {
-                    if (!visited.has(next)) queue.push(next);
-                });
-            }
-        }
-        return visited;
-    }
-
-    // ---------- adjacency ----------
-    const adjForward: Record<string, string[]> = {};
-    const adjBackward: Record<string, string[]> = {};
-    entityGraph.edges.forEach(({ source, target }) => {
-        if (!adjForward[source]) adjForward[source] = [];
-        if (!adjBackward[target]) adjBackward[target] = [];
-        adjForward[source].push(target);
-        adjBackward[target].push(source);
-    });
-
-    // ---------- collect highlight set ----------
-    const allHighlights = new Set<string>();
-    if (highlightEntity) {
-        const upstream = bfs(highlightEntity, adjBackward);
-        const downstream = bfs(highlightEntity, adjForward);
-        [highlightEntity, ...upstream, ...downstream].forEach((id) =>
-            allHighlights.add(id)
-        );
-    }
-
-    const defaultWidth = 80;
-    const defaultHeight = 10;
-
-    // ---------- build nodes ----------
-    const nodes: Node[] = entityGraph.nodes.map((n) => {
-        const [category, entity] = n.id.split(".");
-        const isHighlighted = allHighlights.has(n.id);
-        const isDetailNode = n.id === highlightEntity && n.fields?.length;
-
-        const width = isDetailNode ? defaultWidth + 125 : defaultWidth;
-        const height = isDetailNode
-            ? defaultHeight + n.fields!.length * 30
-            : defaultHeight;
-
-        let label: React.ReactNode;
-        if (isDetailNode) {
-            label = (
-                <div className="graph_node_table_with_fields font-medium ">
-                    <div className="font-semibold mb-1">{category}</div>
-                    <div className="font-semibold mb-1">{entity}</div>
-                    <br />
-                    <table
-                        width={"100%"}
-                        className="border-collapse border border-gray-300"
-                    >
-                        <tbody>
-                            {n.fields!.map((f) => (
-                                <tr key={f.id}>
-                                    <td
-                                        align="left"
-                                        className="border border-gray-300 px-1"
-                                    >
-                                        <a href="http://www.google.com" target="_blank">
-                                            google
-                                        </a>
-                                        {f.name}
-                                    </td>
-                                    <td
-                                        align="left"
-                                        className="border border-gray-300 px-1"
-                                    >
-                                        {f.type}
-                                    </td>
-                                    <td
-                                        align="right"
-                                        className="border border-gray-300 px-1"
-                                    >
-                                        {f.value}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            );
-        } else {
-            label = (
-                <div className="font-medium graph_node_table">
-                    <div className="font-semibold mb-1">{category}</div>
-                    <div className="font-semibold mb-1">{entity}</div>
-                </div>
-            );
-        }
-
-        return {
-            id: n.id,
-            data: { label },
-            style: {
-                border: isHighlighted ? "2px solid #1976d2" : "2px solid #000",
-                borderRadius: "8px",
-                padding: "0px",
-                background: isHighlighted ? "--var(back-color)" : "#FFF",
-                minWidth: width,
-                minHeight: height,
-            },
-            width,
-            height,
-            position: { x: 0, y: 0 },
-        };
-    });
-
-    // ---------- merge edges ----------
-    const edgeMap = new Map<
-        string,
-        { source: string; target: string; labels: Set<string> }
-    >();
-    entityGraph.edges.forEach((e) => {
-        const key = `${e.source}|${e.target}`;
-        if (!edgeMap.has(key))
-            edgeMap.set(key, { source: e.source, target: e.target, labels: new Set() });
-        if (e.label) edgeMap.get(key)!.labels.add(e.label);
-    });
-    const edges: Edge[] = Array.from(edgeMap.values()).map(
-        ({ source, target, labels }, i) => ({
-            id: `edge-${i}`,
-            source,
-            target,
-            label: Array.from(labels).join(", "),
-            animated: false,
-            type: 'smoothstep',
-            style: { stroke: allHighlights.has(source) ? "#1976d2" : "#000" },
-        })
-    );
-
-    // ---------- internal: apply layout ----------
-    async function applyLayout(
-        nodes: Node[],
-        edges: Edge[],
-        rankdir: "TB" | "LR"
-    ): Promise<Node[]> {
-        const elkGraph = {
-            id: "root",
-            layoutOptions: {
-                "elk.algorithm": "layered",
-                "elk.layered.removeCycles": "true",
-                "elk.spacing.nodeNode": "100",
-                "elk.layered.spacing.nodeNodeBetweenLayers": "160",
-                "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
-                'elk.edgeRouting': 'SPLINES',
-                'elk.portConstraints': 'FIXED_SIDE',   // 边从固定一侧出入
-            },
-            children: nodes.map((n) => ({
-                id: n.id,
-                width: n.width ?? 100,
-                height: n.height ?? 50,
-            })),
-            edges: edges.map((e) => ({
-                id: e.id,
-                sources: [e.source],
-                targets: [e.target],
-            })),
-        };
-
-        const elk = new ELK();
-        const layout = await elk.layout(elkGraph);
-
-        const nodePositions = new Map<string, { x: number; y: number; width: number; height: number }>();
-        layout.children?.forEach((n) => {
-            if (n.x !== undefined && n.y !== undefined) {
-                nodePositions.set(n.id, { x: n.x, y: n.y, width: n.width ?? 0, height: n.height ?? 0 });
-            }
-        });
-
-        // ---------- helper: compute dynamic source/target position ----------
-        function getPositionForEdge(
-            source: { x: number; y: number },
-            target: { x: number; y: number }
-        ): Position {
-            const dx = target.x - source.x;
-            const dy = target.y - source.y;
-            if (Math.abs(dx) > Math.abs(dy)) {
-                return dx > 0 ? Position.Right : Position.Left;
-            } else {
-                return dy > 0 ? Position.Bottom : Position.Top;
-            }
-        }
-
-        // ---------- assign positions + dynamic source/target ----------
-        return nodes.map((n) => {
-            const info = nodePositions.get(n.id);
-            if (!info) return n;
-
-            let sourcePos: Position = rankdir === "LR" ? Position.Right : Position.Bottom;
-            let targetPos: Position = rankdir === "LR" ? Position.Left : Position.Top;
-
-            // 如果节点有边，选第一个 outgoing / incoming 作为参考
-            const outEdge = edges.find((e) => e.source === n.id);
-            const inEdge = edges.find((e) => e.target === n.id);
-
-            if (outEdge && nodePositions.has(outEdge.target)) {
-                sourcePos = getPositionForEdge(info, nodePositions.get(outEdge.target)!);
-            }
-            if (inEdge && nodePositions.has(inEdge.source)) {
-                targetPos = getPositionForEdge(info, nodePositions.get(inEdge.source)!);
-            }
-
-            return {
-                ...n,
-                position: { x: info.x, y: info.y },
-                sourcePosition: sourcePos,
-                targetPosition: targetPos,
-            };
-        });
-    }
-
-    // ---------- apply layout and return ----------
-    const positionedNodes = await applyLayout(nodes, edges, rankdir);
-    return { nodes: positionedNodes, edges };
-}
-
-
-
-
 // 假设 GraphData, GraphNode, GraphEdge 类型在你的项目已有定义
 // type GraphData = { nodes: { id: string; fields?: any[] }[]; edges: { source: string; target: string; label?: string }[] };
 
 export async function toEntityGraphFlow(
-  entityGraph: GraphData,
-  highlightEntity?: string,
-  rankdir: "TB" | "LR" = "LR"
-): Promise<{ nodes: Node[]; edges: Edge[] }> {
-  const defaultWidth = 40;
-  const defaultHeight = 40;
-
-  // ---------- build adjacency maps ----------
-  const adjForward: Record<string, string[]> = {};
-  const adjBackward: Record<string, string[]> = {};
-  entityGraph.edges.forEach(({ source, target }) => {
-    if (!adjForward[source]) adjForward[source] = [];
-    if (!adjBackward[target]) adjBackward[target] = [];
-    adjForward[source].push(target);
-    adjBackward[target].push(source);
-  });
-
-  // ---------- BFS helper (returns set including nodes reachable, excluding the start itself optionally) ----------
-  function bfsAll(start: string, adj: Record<string, string[]>): Set<string> {
-    const visited = new Set<string>();
-    const q: string[] = [];
-    if (start) q.push(start);
-    while (q.length) {
-      const cur = q.shift()!;
-      (adj[cur] || []).forEach((nx) => {
-        if (!visited.has(nx) && nx !== start) {
-          visited.add(nx);
-          q.push(nx);
-        }
-      });
-    }
-    return visited;
-  }
-
-  // ---------- compute upstream/downstream full sets and direct neighbors ----------
-  const upstreamAll = highlightEntity ? bfsAll(highlightEntity, adjBackward) : new Set<string>();
-  const downstreamAll = highlightEntity ? bfsAll(highlightEntity, adjForward) : new Set<string>();
-
-  const directUpstream = new Set<string>();
-  const directDownstream = new Set<string>();
-  if (highlightEntity) {
-    entityGraph.edges.forEach((e) => {
-      if (e.target === highlightEntity) directUpstream.add(e.source); // 直接父节点
-      if (e.source === highlightEntity) directDownstream.add(e.target); // 直接子节点
-    });
-  }
-
-  // ---------- determine which nodes are highlighted (for border/background) ----------
-  // upstream non-direct: upstreamAll - directUpstream
-  // downstream non-direct: downstreamAll - directDownstream
-  // direct upstream/downstream are handled separately to show detail
-  const highlightedNodes = new Set<string>();
-  if (highlightEntity) {
-    highlightedNodes.add(highlightEntity);
-    upstreamAll.forEach((id) => highlightedNodes.add(id));
-    downstreamAll.forEach((id) => highlightedNodes.add(id));
-  }
-
-  // ---------- build nodes (only current or direct neighbors show detail) ----------
-  function buildNodes(): Node[] {
-    return entityGraph.nodes.map((n) => {
-      const [category, entity] = n.id.split(".");
-      const isCurrent = n.id === highlightEntity;
-      const isDirectUp = directUpstream.has(n.id);
-      const isDirectDown = directDownstream.has(n.id);
-      const isUpNonDirect = upstreamAll.has(n.id) && !isDirectUp && !isCurrent;
-      const isDownNonDirect = downstreamAll.has(n.id) && !isDirectDown && !isCurrent;
-
-      const showDetail = isCurrent || isDirectUp || isDirectDown; // 只有当前或直接相连的显示 detail
-
-      const width = showDetail ? defaultWidth + 200 : defaultWidth;
-      const height = showDetail
-        ? defaultHeight + (n.fields?.length || 0) * 20
-        : defaultHeight;
-
-      // 选择背景色：当前 = 色3 (黄)、上游(直接或非直接) = 色1 (绿系)、下游 = 色2 (蓝系)、普通白
-      let background = "#FFF";
-      if (isCurrent) background = "#ffe680"; // 色3: 当前（黄色）
-      else if (isDirectUp || isUpNonDirect) background = "#d1e7dd"; // 色1: 上游（淡绿）
-      else if (isDirectDown || isDownNonDirect) background = "#cfe2ff"; // 色2: 下游（淡蓝）
-
-      // label: 如果展示 detail 且有 fields，显示表格；否则只显示简要
-      let label: React.ReactNode;
-      if (showDetail && n.fields?.length) {
-        label = (
-          <div className="graph_node_table_with_fields font-medium">
-            <div className="font-semibold mb-1"><b>{category}</b></div>
-            <div className="font-semibold mb-1">{entity}</div>
-            <table width={"100%"} className="border-collapse border border-gray-300">
-              <tbody>
-                {n.fields!.map((f) => (
-                  <tr key={f.id}>
-                    <td align="left" className="border border-gray-300 px-1">{f.name}</td>
-                    <td align="left" className="border border-gray-300 px-1">{f.type}</td>
-                    <td align="right" className="border border-gray-300 px-1">{f.value}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        );
-      } else {
-        label = (
-          <div className="font-medium graph_node_table">
-            <div className="font-semibold mb-1"><b>{category}</b></div>
-            <div className="font-semibold mb-1">{entity}</div>
-          </div>
-        );
-      }
-
-      return {
-        id: n.id,
-        data: { label },
-        style: {
-          border: isCurrent ? "2px solid #1976d2" : "1px solid #000",
-          borderRadius: 8,
-          padding: 0,
-          background,
-          minWidth: width,
-          minHeight: height,
-        },
-        width,
-        height,
-        position: { x: 0, y: 0 }, // Dagre 会覆盖
-      };
-    });
-  }
-
-  // ---------- build edges (merge parallel edges) ----------
-  function buildEdges(): Edge[] {
-    const edgeMap = new Map<string, { source: string; target: string; labels: Set<string>; originalIndexes: number[] }>();
-    entityGraph.edges.forEach((e, idx) => {
-      const key = `${e.source}|${e.target}`;
-      if (!edgeMap.has(key)) edgeMap.set(key, { source: e.source, target: e.target, labels: new Set(), originalIndexes: [] });
-      if (e.label) edgeMap.get(key)!.labels.add(e.label);
-      edgeMap.get(key)!.originalIndexes.push(idx);
-    });
-
-    return Array.from(edgeMap.values()).map(({ source, target, labels, originalIndexes }, i) => {
-      // highlight/animate if this merged edge connects nodes that are part of the highlightedNodes set
-      const isAnimated = highlightEntity ? (highlightedNodes.has(source) && highlightedNodes.has(target)) : false;
-      const isDirectlyConnectedToCurrent = highlightEntity ? (
-        (source === highlightEntity && directDownstream.has(target)) ||
-        (target === highlightEntity && directUpstream.has(source))
-      ) : false;
-
-      return {
-        id: `edge-${i}`,
-        source,
-        target,
-        label: Array.from(labels).join(", "),
-        animated: !!isAnimated,
-        style: {
-          stroke: isAnimated ? "#1976d2" : "#000",
-          strokeWidth: isDirectlyConnectedToCurrent ? 3 : (isAnimated ? 2 : 1),
-        },
-      } as Edge;
-    });
-  }
-
-  // ---------- Dagre layout function (keeps here as a small helper) ----------
-  function applyDagreLayout(nodes: Node[], edges: Edge[], rankdir: "TB" | "LR"): Node[] {
-    const g = new dagre.graphlib.Graph();
-    g.setGraph({
-      rankdir: rankdir,
-      nodesep: 50,
-      ranksep: 200,
-      marginx: 20,
-      marginy: 20,
-    });
-    g.setDefaultEdgeLabel(() => ({}));
-
-    nodes.forEach((n) => g.setNode(n.id, { width: n.width!, height: n.height! }));
-    edges.forEach((e) => g.setEdge(e.source, e.target));
-
-    dagre.layout(g);
-
-    return nodes.map((n) => {
-      const node = g.node(n.id);
-      const sourcePosition: Position = rankdir === "LR" ? Position.Right : Position.Bottom;
-      const targetPosition: Position = rankdir === "LR" ? Position.Left : Position.Top;
-
-      return {
-        ...n,
-        position: { x: node.x - n.width! / 2, y: node.y - n.height! / 2 },
-        sourcePosition,
-        targetPosition,
-      };
-    });
-  }
-
-  // ---------- assemble graph ----------
-  const nodesBuilt = buildNodes();
-  const edgesBuilt = buildEdges();
-  const positionedNodes = applyDagreLayout(nodesBuilt, edgesBuilt, rankdir);
-
-  return { nodes: positionedNodes, edges: edgesBuilt };
-}
-
-export async function toEntityGraphFlow222(
     entityGraph: GraphData,
     highlightEntity?: string,
-    rankdir: "TB" | "LR" = "LR"
+    rankdir: "TB" | "LR" = "LR",
+    onFieldClick?: any
 ): Promise<{ nodes: Node[]; edges: Edge[] }> {
     const defaultWidth = 40;
     const defaultHeight = 40;
-
-    // ---------- BFS helper ----------
-    function bfs(start: string, adj: Record<string, string[]>): Set<string> {
-        const visited = new Set<string>();
-        const queue: string[] = [start];
-        while (queue.length) {
-            const node = queue.shift()!;
-            if (!visited.has(node)) {
-                visited.add(node);
-                (adj[node] || []).forEach((next) => {
-                    if (!visited.has(next)) queue.push(next);
-                });
-            }
-        }
-        return visited;
-    }
 
     // ---------- build adjacency maps ----------
     const adjForward: Record<string, string[]> = {};
@@ -2010,261 +1200,219 @@ export async function toEntityGraphFlow222(
         adjBackward[target].push(source);
     });
 
-    // ---------- determine highlights ----------
-    const highlightedNodes = new Set<string>();
-    const highlightedEdges = new Set<string>();
-    if (highlightEntity) {
-        const upstream = bfs(highlightEntity, adjBackward);
-        const downstream = bfs(highlightEntity, adjForward);
-        [highlightEntity, ...upstream, ...downstream].forEach((id) => highlightedNodes.add(id));
+    // ---------- BFS helper (returns set including nodes reachable, excluding the start itself optionally) ----------
+    function bfsAll(start: string, adj: Record<string, string[]>): Set<string> {
+        const visited = new Set<string>();
+        const q: string[] = [];
+        if (start) q.push(start);
+        while (q.length) {
+            const cur = q.shift()!;
+            (adj[cur] || []).forEach((nx) => {
+                if (!visited.has(nx) && nx !== start) {
+                    visited.add(nx);
+                    q.push(nx);
+                }
+            });
+        }
+        return visited;
+    }
 
-        // 只有上下游的边需要动画/highlight
-        entityGraph.edges.forEach((e, i) => {
-            if (highlightedNodes.has(e.source) && highlightedNodes.has(e.target)) {
-                highlightedEdges.add(`edge-${i}`);
-            }
+    // ---------- compute upstream/downstream full sets and direct neighbors ----------
+    const upstreamAll = highlightEntity ? bfsAll(highlightEntity, adjBackward) : new Set<string>();
+    const downstreamAll = highlightEntity ? bfsAll(highlightEntity, adjForward) : new Set<string>();
+
+    const directUpstream = new Set<string>();
+    const directDownstream = new Set<string>();
+    if (highlightEntity) {
+        entityGraph.edges.forEach((e) => {
+            if (e.target === highlightEntity) directUpstream.add(e.source); // 直接父节点
+            if (e.source === highlightEntity) directDownstream.add(e.target); // 直接子节点
         });
     }
 
-    // ---------- build nodes ----------
-    function buildNodes22(): Node[] {
-  const upstream = highlightEntity ? bfs(highlightEntity, adjBackward) : new Set<string>();
-  const downstream = highlightEntity ? bfs(highlightEntity, adjForward) : new Set<string>();
-
-  return entityGraph.nodes.map((n) => {
-    const [category, entity] = n.id.split(".");
-    const isCurrent = n.id === highlightEntity;
-    const isUpstream = upstream.has(n.id);
-    const isDownstream = downstream.has(n.id);
-    const isDetailNode = isCurrent || isUpstream || isDownstream;
-
-    const width = isDetailNode ? defaultWidth + 200 : defaultWidth;
-    const height = isDetailNode
-      ? defaultHeight + (n.fields?.length || 0) * 20
-      : defaultHeight;
-
-    let label: React.ReactNode;
-    if (isDetailNode && n.fields?.length) {
-      label = (
-        <div className="graph_node_table_with_fields font-medium">
-          <div className="font-semibold mb-1">{category}</div>
-          <div className="font-semibold mb-1">{entity}</div>
-          <table width="100%" className="border-collapse border border-gray-300">
-            <tbody>
-              {n.fields!.map((f) => (
-                <tr key={f.id}>
-                  <td align="left" className="border border-gray-300 px-1">{f.name}</td>
-                  <td align="left" className="border border-gray-300 px-1">{f.type}</td>
-                  <td align="right" className="border border-gray-300 px-1">{f.value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
-    } else {
-      label = (
-        <div className="font-medium graph_node_table">
-          <div className="font-semibold mb-1">{category}</div>
-          <div className="font-semibold mb-1">{entity}</div>
-        </div>
-      );
-    }
-
-    // 根据节点类型设置背景色
-    let background = "#FFF";
-    if (isCurrent) background = "#ffe680"; // 当前节点黄
-    else if (isUpstream) background = "#d1e7dd"; // 上游淡绿
-    else if (isDownstream) background = "#cfe2ff"; // 下游淡蓝
-
-    return {
-      id: n.id,
-      data: { label },
-      style: {
-        border: isCurrent ? "2px solid #1976d2" : "1px solid #000",
-        borderRadius: 8,
-        padding: 0,
-        background,
-        minWidth: width,
-        minHeight: height,
-      },
-      width,
-      height,
-      position: { x: 0, y: 0 },
-    };
-  });
-}
-function buildNodes(): Node[] {
-  const directlyUpstream = new Set<string>();
-  const directlyDownstream = new Set<string>();
-  const upstream = new Set<string>();
-  const downstream = new Set<string>();
-
-  // 遍历 edges 收集信息
-  entityGraph.edges.forEach((e) => {
+    // ---------- determine which nodes are highlighted (for border/background) ----------
+    // upstream non-direct: upstreamAll - directUpstream
+    // downstream non-direct: downstreamAll - directDownstream
+    // direct upstream/downstream are handled separately to show detail
+    const highlightedNodes = new Set<string>();
     if (highlightEntity) {
-      if (e.target === highlightEntity) {
-        upstream.add(e.source);
-      }
-      if (e.source === highlightEntity) {
-        downstream.add(e.target);
-      }
-      // 直接相连
-      if (e.target === highlightEntity) directlyUpstream.add(e.source);
-      if (e.source === highlightEntity) directlyDownstream.add(e.target);
-    }
-  });
-
-  return entityGraph.nodes.map((n) => {
-    const [category, entity] = n.id.split(".");
-    const isCurrent = n.id === highlightEntity;
-    const isDirectlyUp = directlyUpstream.has(n.id);
-    const isDirectlyDown = directlyDownstream.has(n.id);
-    const isUp = upstream.has(n.id) && !isDirectlyUp && !isCurrent;
-    const isDown = downstream.has(n.id) && !isDirectlyDown && !isCurrent;
-
-    // 决定是否显示 detail
-    const showDetail = isCurrent || isDirectlyUp || isDirectlyDown;
-
-    // 设置背景色
-    let background = "#FFF";
-    if (isCurrent) background = "#ffe680"; // 当前节点黄
-    else if (isDirectlyUp || isUp) background = "#d1e7dd"; // 上游淡绿
-    else if (isDirectlyDown || isDown) background = "#cfe2ff"; // 下游淡蓝
-
-    const width = showDetail ? defaultWidth + 200 : defaultWidth;
-    const height = showDetail
-      ? defaultHeight + (n.fields?.length || 0) * 20
-      : defaultHeight;
-
-    // label
-    let label: React.ReactNode;
-    if (showDetail && n.fields?.length) {
-      label = (
-        <div className="graph_node_table_with_fields font-medium">
-          <div className="font-semibold mb-1">{category}</div>
-          <div className="font-semibold mb-1">{entity}</div>
-          <table width="100%" className="border-collapse border border-gray-300">
-            <tbody>
-              {n.fields!.map((f) => (
-                <tr key={f.id}>
-                  <td align="left" className="border border-gray-300 px-1">{f.name}</td>
-                  <td align="left" className="border border-gray-300 px-1">{f.type}</td>
-                  <td align="right" className="border border-gray-300 px-1">{f.value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
-    } else {
-      label = (
-        <div className="font-medium graph_node_table">
-          <div className="font-semibold mb-1">{category}</div>
-          <div className="font-semibold mb-1">{entity}</div>
-        </div>
-      );
+        highlightedNodes.add(highlightEntity);
+        upstreamAll.forEach((id) => highlightedNodes.add(id));
+        downstreamAll.forEach((id) => highlightedNodes.add(id));
     }
 
-    return {
-      id: n.id,
-      data: { label },
-      style: {
-        border: isCurrent ? "2px solid #1976d2" : "1px solid #000",
-        borderRadius: 8,
-        padding: 0,
-        background,
-        minWidth: width,
-        minHeight: height,
-      },
-      width,
-      height,
-      position: { x: 0, y: 0 },
-    };
-  });
-}
-
-
-    function buildNodes2(): Node[] {
+    // ---------- build nodes (only current or direct neighbors show detail) ----------
+    function buildNodes(): Node[] {
         return entityGraph.nodes.map((n) => {
+            if(!n.id) n.id = "Unknown.Unknown";
             const [category, entity] = n.id.split(".");
-            const isDetailNode = n.id === highlightEntity && n.fields?.length;
-            const isHighlighted = highlightedNodes.has(n.id);
+            const isCurrent = n.id === highlightEntity;
+            const isDirectUp = directUpstream.has(n.id);
+            const isDirectDown = directDownstream.has(n.id);
+            const isUpNonDirect = upstreamAll.has(n.id) && !isDirectUp && !isCurrent;
+            const isDownNonDirect = downstreamAll.has(n.id) && !isDirectDown && !isCurrent;
 
-            const width = isDetailNode ? defaultWidth + 200 : defaultWidth;
-            const height = isDetailNode ? defaultHeight + (n.fields!.length || 0) * 20 : defaultHeight;
+            const showDetail = isCurrent || isDirectUp || isDirectDown; // 只有当前或直接相连的显示 detail
 
+            const width = showDetail ? defaultWidth + 300 : defaultWidth;
+            const height = showDetail
+                ? defaultHeight + (n.fields?.length || 0) * 20
+                : defaultHeight;
+
+            // 选择背景色：当前 = 色3 (黄)、上游(直接或非直接) = 色1 (绿系)、下游 = 色2 (蓝系)、普通白
+            let background = "#FFF";
+            if (isCurrent) background = "#ffe680"; // 色3: 当前（黄色）
+            else if (isDirectUp || isUpNonDirect) background = "#d1e7dd"; // 色1: 上游（淡绿）
+            else if (isDirectDown || isDownNonDirect) background = "#cfe2ff"; // 色2: 下游（淡蓝）
+
+            // label: 如果展示 detail 且有 fields，显示表格；否则只显示简要
             let label: React.ReactNode;
-            if (isDetailNode) {
+            if (showDetail && n.fields?.length) {
                 label = (
-                    <div className="graph_node_table_with_fields font-medium">
-                        <div className="font-semibold mb-1">{category}</div>
-                        <div className="font-semibold mb-1">{entity}</div>
-                        <table width="100%" className="border-collapse border border-gray-300">
-                            <tbody>
-                                {n.fields!.map((f) => (
-                                    <tr key={f.id}>
-                                        <td align="left" className="border border-gray-300 px-1">{f.name}</td>
-                                        <td align="left" className="border border-gray-300 px-1">{f.type}</td>
-                                        <td align="right" className="border border-gray-300 px-1">{f.value}</td>
-                                    </tr>
+<div className="graph_node_table_with_fields font-medium">
+    <div className="font-semibold mb-1"><b>{category}</b></div>
+    <div className="font-semibold mb-1">{entity}</div>
+    <table width={"100%"} border="1" className="border-collapse border border-gray-300">
+        <tbody>
+            {n.fields!.map((f) => (
+                <tr key={f.id}>
+                    <td align="left" className="border border-gray-300 px-1">{f.name}</td>
+                    <td align="left" className="border border-gray-300 px-1">{f.type}</td>
+                    <td align="right" className="border border-gray-300 px-1">
+                        {/* 值本身可点击 */}
+                        {/* <a
+                            href="#"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                onFieldClick?.(n.id, f);
+                            }}
+                            style={{ color: "#1976d2", cursor: "pointer" }}
+                        >
+                            {f.value}
+                        </a> */}
+
+                        {/* 父节点链接 */}
+                        {f.parents?.length ? (
+                            <div style={{ fontSize: "0.8em", color: "#555" }}>
+                                <ul>
+                                Parents:&nbsp;
+                                {f.parents.map((p) => (
+                                    <li>
+                                    <a
+                                        key={p}
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            onFieldClick?.(p, { id: p, name: p, type: "parent" });
+                                        }}
+                                        style={{ color: "#388e3c", cursor: "pointer", marginRight: 4 }}
+                                    >
+                                        {p}
+                                    </a>
+                                    </li>
                                 ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </ul>
+                            </div>
+                        ) : null}
+
+                        {/* 子节点链接 */}
+                        {f.children?.length ? (
+                            <div style={{ fontSize: "0.8em", color: "#555" }}>
+                                <ul>
+                                Children:&nbsp;
+                                {f.children.map((c) => (
+                                    <li><a
+                                        key={c}
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            onFieldClick?.(c, { id: c, name: c, type: "child" });
+                                        }}
+                                        style={{ color: "#1976d2", cursor: "pointer", marginRight: 4 }}
+                                    >
+                                        {c}
+                                    </a></li>
+                                ))}
+                                </ul>
+                            </div>
+                        ) : null}
+                    </td>
+                </tr>
+            ))}
+        </tbody>
+    </table>
+</div>
                 );
             } else {
                 label = (
                     <div className="font-medium graph_node_table">
-                        <div className="font-semibold mb-1">{category}</div>
+                        <div className="font-semibold mb-1"><b>{category}</b></div>
                         <div className="font-semibold mb-1">{entity}</div>
                     </div>
                 );
             }
+
 
             return {
                 id: n.id,
                 data: { label },
                 style: {
-                    border: isHighlighted ? "3px solid #1976d2" : "1px solid #000",
+                    border: isCurrent ? "2px solid #1976d2" : "1px solid #000",
                     borderRadius: 8,
                     padding: 0,
-                    background: isHighlighted ? "cornsilk" : "#FFF",
+                    background,
                     minWidth: width,
                     minHeight: height,
                 },
                 width,
                 height,
-                position: { x: 0, y: 0 },
+                position: { x: 0, y: 0 }, // Dagre 会覆盖
             };
         });
     }
 
-    // ---------- build edges ----------
+    // ---------- build edges (merge parallel edges) ----------
     function buildEdges(): Edge[] {
-        return entityGraph.edges.map((e, i) => {
-            const isAnimated = highlightedEdges.has(`edge-${i}`);
+        const edgeMap = new Map<string, { source: string; target: string; labels: Set<string>; originalIndexes: number[] }>();
+        entityGraph.edges.forEach((e, idx) => {
+            const key = `${e.source}|${e.target}`;
+            if (!edgeMap.has(key)) edgeMap.set(key, { source: e.source, target: e.target, labels: new Set(), originalIndexes: [] });
+            if (e.label) edgeMap.get(key)!.labels.add(e.label);
+            edgeMap.get(key)!.originalIndexes.push(idx);
+        });
+
+        return Array.from(edgeMap.values()).map(({ source, target, labels, originalIndexes }, i) => {
+            // highlight/animate if this merged edge connects nodes that are part of the highlightedNodes set
+            const isAnimated = highlightEntity ? (highlightedNodes.has(source) && highlightedNodes.has(target)) : false;
+            const isDirectlyConnectedToCurrent = highlightEntity ? (
+                (source === highlightEntity && directDownstream.has(target)) ||
+                (target === highlightEntity && directUpstream.has(source))
+            ) : false;
+
             return {
                 id: `edge-${i}`,
-                source: e.source,
-                target: e.target,
-                label: e.label || "",
+                source,
+                target,
+                label: Array.from(labels).join(", "),
                 animated: !!isAnimated,
                 style: {
                     stroke: isAnimated ? "#1976d2" : "#000",
-                    strokeWidth: isAnimated ? 3 : 1, // 加粗高亮边
+                    strokeWidth: isDirectlyConnectedToCurrent ? 3 : (isAnimated ? 2 : 1),
                 },
-            };
+            } as Edge;
         });
     }
 
-    const nodes = buildNodes();
-    const edges = buildEdges();
-
-    // ---------- Dagre layout ----------
+    // ---------- Dagre layout function (keeps here as a small helper) ----------
     function applyDagreLayout(nodes: Node[], edges: Edge[], rankdir: "TB" | "LR"): Node[] {
         const g = new dagre.graphlib.Graph();
-        g.setGraph({ rankdir, nodesep: 50, ranksep: 200, marginx: 20, marginy: 20 });
+        g.setGraph({
+            rankdir: rankdir,
+            nodesep: 50,
+            ranksep: 150,
+            marginx: 20,
+            marginy: 20,
+        });
         g.setDefaultEdgeLabel(() => ({}));
 
         nodes.forEach((n) => g.setNode(n.id, { width: n.width!, height: n.height! }));
@@ -2274,17 +1422,24 @@ function buildNodes(): Node[] {
 
         return nodes.map((n) => {
             const node = g.node(n.id);
+            const sourcePosition: Position = rankdir === "LR" ? Position.Right : Position.Bottom;
+            const targetPosition: Position = rankdir === "LR" ? Position.Left : Position.Top;
 
             return {
                 ...n,
                 position: { x: node.x - n.width! / 2, y: node.y - n.height! / 2 },
-                sourcePosition: rankdir === "LR" ? Position.Right : Position.Bottom,
-                targetPosition: rankdir === "LR" ? Position.Left : Position.Top,
+                sourcePosition,
+                targetPosition,
             };
         });
     }
 
-    const positionedNodes = applyDagreLayout(nodes, edges, rankdir);
+    // ---------- assemble graph ----------
+    const nodesBuilt = buildNodes();
+    const edgesBuilt = buildEdges();
+    const positionedNodes = applyDagreLayout(nodesBuilt, edgesBuilt, rankdir);
 
-    return { nodes: positionedNodes, edges };
+    return { nodes: positionedNodes, edges: edgesBuilt };
 }
+
+

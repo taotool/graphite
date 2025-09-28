@@ -5,7 +5,7 @@ import React, {
   useImperativeHandle,
   forwardRef,
 } from "react";
-import ReactFlow, { Background, Controls } from "reactflow";
+import ReactFlow, { /*Background, Controls */ } from "reactflow";
 import type { Node, Edge } from "reactflow";
 
 import "reactflow/dist/style.css";
@@ -96,9 +96,16 @@ export const Flowite = forwardRef<FlowiteRef, FlowiteProps>(
     const setHighlightEntity = async (hid: string) => {
       highlightEntity.current = hid;
       const entityGraph = JSON.parse(data || "{}");
-      const gd = await toEntityGraphFlow(entityGraph, hid, "LR");
-      console.log("Updated graph data with highlight:", JSON.stringify(gd));
+      const gd = await toEntityGraphFlow(entityGraph, hid, "LR", onFieldClick);
+      // console.log("Updated graph data with highlight:", JSON.stringify(gd));
       animateGraphUpdate(gd);
+    };
+
+    const onFieldClick = (nodeId: string, field: { id: string; name: string; type: string; value: string }) => {
+      console.log("Field clicked:", nodeId, field);
+      const ss = nodeId.split(".");
+      // setSelectedNode(node); // 显示节点详情
+      setHighlightEntity(ss[0]+"."+ss[1]); // 高亮父节点
     };
 
     useEffect(() => {
@@ -108,7 +115,8 @@ export const Flowite = forwardRef<FlowiteRef, FlowiteProps>(
           const gd = await toEntityGraphFlow(
             entityGraph,
             highlightEntity.current,
-            "LR"
+            "LR",
+            onFieldClick
           );
           animateGraphUpdate(gd);
         }
@@ -129,6 +137,7 @@ export const Flowite = forwardRef<FlowiteRef, FlowiteProps>(
           edges={graphData.edges}
           onNodeClick={(_, node) => {
             console.log(node.id);
+            // setSelectedNode(node);
             setHighlightEntity(node.id);
             onNodeClick?.(node.id);
           }}
