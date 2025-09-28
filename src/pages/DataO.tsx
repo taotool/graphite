@@ -12,7 +12,7 @@ import Editor from "@monaco-editor/react";
 import { useMediaQuery } from "@mui/material";
 import type { OnMount } from "@monaco-editor/react";
 import { yamlToFieldGraph, graphqlToFieldGraph, openapiToFieldGraph, jsonToFieldGraph, toEntityGraph } from "./functions"
-import { json, graphql, yaml, openapi } from "./samples";
+import { sampleJson, sampleGraphql, sampleYaml, sampleOpenapi, sampleEntity, sampleField } from "./samples";
 import * as jsonc from "jsonc-parser";
 import { parse } from "graphql";
 export interface DataOProps {
@@ -47,9 +47,16 @@ export const DataO: React.FC<DataOProps> = (props) => {
       return engine === 'flowite' ? JSON.stringify(toEntityGraph(fieldGraphData), null, 2) : JSON.stringify(fieldGraphData, null, 2);
     }
 
-    if (type === 'flow') {
-      return data; //entity graph in flow format
+    if (type === 'entity') {
+      const fieldGraphData = null;
+      return engine === 'flowite' ? data : fieldGraphData;
     }
+
+    if (type === 'field') {
+      const fieldGraphData = JSON.parse(data);
+      return engine === 'flowite' ? JSON.stringify(toEntityGraph(fieldGraphData), null, 2) : data;
+    }
+
     if (type === 'openapi') {
       // const fieldGraphData = openapiToFieldGraph(data);
       (async () => {
@@ -93,13 +100,47 @@ export const DataO: React.FC<DataOProps> = (props) => {
 
     setType(e.target.value);
     if (e.target.value === "json") {
-      setData(json);
+      const storage = localStorage.getItem("json");
+      if (storage) {
+        setData(storage);
+      } else {
+        setData(sampleJson);
+      }
     } else if (e.target.value === "graphql") {
-      setData(graphql);
+      const storage = localStorage.getItem("graphql");
+      if (storage) {
+        setData(storage);
+      } else {
+        setData(sampleGraphql);
+      }
     } else if (e.target.value === "yaml") {
-      setData(yaml);
+      const storage = localStorage.getItem("yaml");
+      if (storage) {
+        setData(storage);
+      } else {
+        setData(sampleYaml);
+      }
     } else if (e.target.value === "openapi") {
-      setData(openapi);
+      const storage = localStorage.getItem("openapi"); // "JohnDoe"
+      if (storage) {
+        setData(storage);
+      } else {
+        setData(sampleOpenapi);
+      }
+    } else if (e.target.value === "entity") {
+      const storage = localStorage.getItem("entity"); // "JohnDoe"
+      if (storage) {
+        setData(storage);
+      } else {
+        setData(sampleEntity);
+      }
+    } else if (e.target.value === "field") {
+      const storage = localStorage.getItem("field"); // "JohnDoe"
+      if (storage) {
+        setData(storage);
+      } else {
+        setData(sampleField);
+      }
     }
 
   };
@@ -179,7 +220,8 @@ export const DataO: React.FC<DataOProps> = (props) => {
 
       const graphJson = convertToFieldGraph(data, type, engine);
       setGraphJson(graphJson);
-      console.log("Graph updated ");
+      localStorage.setItem(type, data);
+      console.log("Graph updated "+type);
 
     } catch (err) {
       setGraphJson(""); // invalid JSON → no graph
@@ -199,7 +241,8 @@ export const DataO: React.FC<DataOProps> = (props) => {
         <FormControl size="small" sx={{ minWidth: 150 }}>
           <InputLabel>Type</InputLabel>
           <Select value={type} label="Type" onChange={handleTypeChange}>
-            <MenuItem value="flow">FLOW</MenuItem>
+            <MenuItem value="field">Field</MenuItem>
+            <MenuItem value="entity">Entity</MenuItem>
             <MenuItem value="json">JSON</MenuItem>
             <MenuItem value="graphql">GraphQL</MenuItem>
             <MenuItem value="yaml">YAML</MenuItem>
@@ -212,6 +255,7 @@ export const DataO: React.FC<DataOProps> = (props) => {
           <InputLabel>Engine</InputLabel>
           <Select value={engine} label="Engine" onChange={handleEngineChange}>
             <MenuItem value="flowite">Flowite</MenuItem>
+            <MenuItem value="flowite3d">Flowite3D</MenuItem>
             <MenuItem value="graphite">Graphite</MenuItem>
           </Select>
         </FormControl>
@@ -267,7 +311,12 @@ export const DataO: React.FC<DataOProps> = (props) => {
             <Flowite ref={flowiteRef} data={graphJson} onNodeClick={(id: string) => {
               console.log("DataO: onNodeClick:", id);
             }} />
-          ) : (
+          ) : engine==="flowite3d"? (
+            <Flowite3D ref={flowiteRef} data={graphJson} onNodeClick={(id: string) => {
+              console.log("DataO: onNodeClick:", id);
+            }} />
+          )
+          :(
             <Graphite ref={graphiteRef} data={graphJson} onHighlightTable={(id: string) => {
               // console.log("DataO: Highlight table:", id);
             }} />

@@ -1,5 +1,128 @@
+export const sampleField = `
+{
+    "type": "data",
+    "nodes": [
+      {"id":"SELLER.Seller1.id","name":"id","type":"ID","description":"x"},
+      {"id":"SELLER.Seller2.id","name":"x","type":"[Review]","description":"x"},
 
-export const flow = `
+      {"id":"ITEM.Item1.id","name":"author","type":"User","description":"x"},
+      {"id":"ITEM.Item2.id","name":"id","type":"ID","description":"x"},
+      {"id":"ITEM.Item3.id","name":"id","type":"ID","description":"x"},
+
+      {"id":"ORDER.Order1.LineItem1","name":"Item1","type":"Item1","description":"2"},
+      {"id":"ORDER.Order1.LineItem2","name":"Item2","type":"Item2","description":"2"},
+
+
+      {"id":"ORDER.Order2.lineitem1","name":"Item1","type":"Item1","description":"1"},
+      {"id":"ORDER.Order2.lineitem2","name":"Item2","type":"Item2","description":"1"},
+
+      {"id":"ORDER.Order3.id","name":"Item3","type":"Item3","description":"1"},
+
+
+      {"id":"LINEITEM.Order1LineItem1.id","name":"Item3","type":"Item3","description":"1"},
+
+      {"id":"LINEITEM.Order1LineItem2.id","name":"Item3","type":"Item3","description":"1"},
+
+      {"id":"LINEITEM.Order2LineItem1.id","name":"Item3","type":"Item3","description":"1"},
+      {"id":"LINEITEM.Order2LineItem2.id","name":"Item3","type":"Item3","description":"1"},
+      {"id":"LINEITEM.Order3LineItem1.id","name":"Item3","type":"Item3","description":"1"},
+
+
+      {"id":"UNIT.Item1_Unit1.unit1","name":"Item1","type":"Item1","description":"Order1"},
+      {"id":"UNIT.Item1_Unit2.id","name":"Item1","type":"Item1","description":"Order1"},
+      {"id":"UNIT.Item1_Unit3.id","name":"Item1","type":"Item1","description":"Order2"},
+      
+      {"id":"UNIT.Item2_Unit1.id","name":"Item2","type":"Item2","description":"Order1"},
+      {"id":"UNIT.Item2_Unit2.id","name":"Item2","type":"Item2","description":"Order1"},
+      {"id":"UNIT.Item2_Unit3.id","name":"Item2","type":"Item2","description":"Order2"},
+
+
+      {"id":"UNIT.Item3_Unit1.id","name":"Item3","type":"Item3","description":"Order3"},
+
+      
+      {"id":"PACKAGE.Package1.id","name":"author","type":"User","description":"x"},
+      {"id":"PACKAGE.Package1.unit1","name":"","type":"Item1","description":"Order1"},
+      {"id":"PACKAGE.Package1.unit1","name":"","type":"Item2","description":"Order1"},
+
+      {"id":"PACKAGE.Package2.id","name":"id","type":"ID","description":"x"},
+      {"id":"PACKAGE.Package2.unit2","name":"product","type":"Item1","description":"Order1"},
+      {"id":"PACKAGE.Package2.unit3","name":"product","type":"Item1","description":"Order2"},
+      {"id":"PACKAGE.Package2.unit2","name":"product","type":"Item2","description":"Order1"},
+      {"id":"PACKAGE.Package2.unit3","name":"product","type":"Item2","description":"Order2"},
+
+      {"id":"PACKAGE.Package3.id","name":"id","type":"ID","description":"x"},
+      {"id":"PACKAGE.Package3.unit1","name":"","type":"Item3","description":"Order3"},
+
+
+      {"id":"AG.Hub.event1","name":"","type":"Item3","description":"Order3"},
+      {"id":"AG.Hub.event2","name":"","type":"Item3","description":"Order3"},
+      {"id":"AG.Hub.event3","name":"","type":"Item3","description":"Order3"},
+      {"id":"CG.Hub.event1","name":"","type":"Item3","description":"Order3"},
+
+      {"id":"BUYER.Buyer1.id","name":"id","type":"ID","description":"x"},
+      {"id":"BUYER.Buyer1.name","name":"name","type":"String","description":"x"},
+      {"id":"BUYER.Buyer2.id","name":"x","type":"[Review]","description":"x"},
+            {"id":"BUYER.Buyer3.id","name":"x","type":"[Review]","description":"x"},
+
+      {"id":"BUYER.Buyer2.name","name":"username","type":"String","description":"x"}
+    ],
+    "edges": [
+      { "source": "SELLER.Seller1.id", "target": "ITEM.Item1.id", "weight": "list" },
+      { "source": "SELLER.Seller2.id", "target": "ITEM.Item2.id", "weight": "list" },
+      { "source": "SELLER.Seller2.id", "target": "ITEM.Item3.id", "weight": "list" },
+
+      { "source": "ITEM.Item1.id", "target": "ORDER.Order1.id", "weight": "order" },
+      { "source": "ITEM.Item1.id", "target": "ORDER.Order2.id", "weight": "order" },
+
+      { "source": "ITEM.Item2.id", "target": "ORDER.Order1.id", "weight": "order" },    
+      { "source": "ITEM.Item2.id", "target": "ORDER.Order2.id", "weight": "order" },
+
+      { "source": "ITEM.Item3.id", "target": "ORDER.Order3.id", "weight": "order" },
+
+
+      { "source": "ORDER.Order1.id", "target": "LINEITEM.Order1LineItem1.id", "weight": "contains" },
+      { "source": "ORDER.Order1.id", "target": "LINEITEM.Order1LineItem2.id", "weight": "contains" },
+      { "source": "ORDER.Order2.id", "target": "LINEITEM.Order2LineItem1.id", "weight": "contains" },
+      { "source": "ORDER.Order2.id", "target": "LINEITEM.Order2LineItem2.id", "weight": "contains" },
+      { "source": "ORDER.Order3.id", "target": "LINEITEM.Order3LineItem1.id", "weight": "contains" },
+
+
+
+
+      { "source": "LINEITEM.Order1LineItem1.id", "target": "UNIT.Item1_Unit1.id", "weight": "contains" },
+      { "source": "LINEITEM.Order1LineItem1.id", "target": "UNIT.Item1_Unit2.id", "weight": "contains" },
+      { "source": "LINEITEM.Order1LineItem2.id", "target": "UNIT.Item2_Unit1.id", "weight": "contains" },
+      { "source": "LINEITEM.Order1LineItem2.id", "target": "UNIT.Item2_Unit2.id", "weight": "contains" },
+      { "source": "LINEITEM.Order2LineItem1.id", "target": "UNIT.Item1_Unit3.id", "weight": "contains" },
+      { "source": "LINEITEM.Order2LineItem2.id", "target": "UNIT.Item2_Unit3.id", "weight": "contains" },
+      { "source": "LINEITEM.Order3LineItem1.id", "target": "UNIT.Item3_Unit1.id", "weight": "contains" },
+
+
+      { "source": "UNIT.Item1_Unit1.id", "target": "PACKAGE.Package1.id", "weight": "belongs to" },
+      { "source": "UNIT.Item1_Unit2.id", "target": "PACKAGE.Package2.id", "weight": "belongs to" },
+      { "source": "UNIT.Item1_Unit3.id", "target": "PACKAGE.Package2.id", "weight": "belongs to" },
+      
+
+      { "source": "UNIT.Item2_Unit1.id", "target": "PACKAGE.Package1.id", "weight": "belongs to" },
+      { "source": "UNIT.Item2_Unit2.id", "target": "PACKAGE.Package2.id", "weight": "belongs to" },
+      { "source": "UNIT.Item2_Unit3.id", "target": "PACKAGE.Package2.id", "weight": "belongs to" },
+
+      { "source": "UNIT.Item3_Unit1.id", "target": "PACKAGE.Package3.id", "weight": "belongs to" },
+
+
+      { "source": "PACKAGE.Package1.id", "target": "BUYER.Buyer1.id", "weight": "deliver" },
+      { "source": "PACKAGE.Package2.id", "target": "BUYER.Buyer1.id", "weight": "deliver" },
+      { "source": "PACKAGE.Package2.id", "target": "BUYER.Buyer3.id", "weight": "deliver" },
+
+      { "source": "UNIT.Item3_Unit1.id", "target": "AG.Hub.id", "weight": "authenticate" },
+      { "source": "AG.Hub.id", "target": "CG.Hub.id", "weight": "grade" },
+      { "source": "CG.Hub.id", "target": "BUYER.Buyer2.id", "weight": "deliver" }
+
+    ]
+  }
+
+`;
+export const sampleEntity = `
 
 {
   "metadata": {},
@@ -522,7 +645,7 @@ export const flow = `
 
 `;
 
-export const json = `
+export const sampleJson = `
 {
   "user": {
     "id": "User123",
@@ -597,7 +720,7 @@ export const json = `
 `;
 
 
-export const yaml = `
+export const sampleYaml = `
 ---
 # This is a sample YAML configuration file
 # Comments are denoted by a hash symbol (#)
@@ -654,7 +777,7 @@ message: >
   unless explicitly indented.
 `;
 
-export const graphql: string = `
+export const sampleGraphql: string = `
 # Scalars
 scalar DateTime
 scalar JSON
@@ -731,7 +854,7 @@ type Subscription {
 
 `;
 
-export const openapi = `
+export const sampleOpenapi = `
 ---
 openapi: 3.0.3
 info:

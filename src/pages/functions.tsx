@@ -1272,7 +1272,7 @@ export async function toEntityGraphFlow(
 <div className="graph_node_table_with_fields font-medium">
     <div className="font-semibold mb-1"><b>{category}</b></div>
     <div className="font-semibold mb-1">{entity}</div>
-    <table width={"100%"} border="1" className="border-collapse border border-gray-300">
+    <table width={"100%"} border={1}  cellSpacing="0" cellPadding={4}>
         <tbody>
             {n.fields!.map((f) => (
                 <tr key={f.id}>
@@ -1403,91 +1403,14 @@ export async function toEntityGraphFlow(
         });
     }
 
-    function applyDagreLayout2(
-  nodes: Node[],
-  edges: Edge[],
-  rankdir: "TB" | "LR"
-): Node[] {
-  const g = new dagre.graphlib.Graph();
-  g.setGraph({
-    rankdir: rankdir,
-    nodesep: 50,
-    ranksep: 200,
-    marginx: 20,
-    marginy: 20,
-    edgesep: 20,
-  });
-  g.setDefaultEdgeLabel(() => ({}));
 
-  // 放入 dagre
-  nodes.forEach((n) => g.setNode(n.id, { width: n.width!, height: n.height! }));
-  edges.forEach((e) => g.setEdge(e.source, e.target));
-
-  dagre.layout(g);
-
-  // 辅助函数：根据相对位置推算出 source/target 的位置
-  function getRelativePosition(src: dagre.Node, tgt: dagre.Node) {
-    const dx = (tgt.x ?? 0) - (src.x ?? 0);
-    const dy = (tgt.y ?? 0) - (src.y ?? 0);
-
-    if (Math.abs(dx) > Math.abs(dy)) {
-      // 横向距离更大 → 左/右
-      return dx > 0
-        ? { sourcePosition: Position.Right, targetPosition: Position.Left }
-        : { sourcePosition: Position.Left, targetPosition: Position.Right };
-    } else {
-      // 纵向距离更大 → 上/下
-      return dy > 0
-        ? { sourcePosition: Position.Bottom, targetPosition: Position.Top }
-        : { sourcePosition: Position.Top, targetPosition: Position.Bottom };
-    }
-  }
-
-  // 更新节点
-  return nodes.map((n) => {
-    const node = g.node(n.id);
-
-    // 默认
-    let sourcePosition: Position = rankdir === "LR" ? Position.Right : Position.Bottom;
-    let targetPosition: Position = rankdir === "LR" ? Position.Left : Position.Top;
-
-    // 如果有边，取第一个出边/入边做参考
-    const outEdges = g.outEdges(n.id);
-    if (outEdges && outEdges.length > 0) {
-      const tgt = g.node(outEdges[0].w);
-      if (tgt) {
-        const pos = getRelativePosition(node, tgt);
-        sourcePosition = pos.sourcePosition;
-      }
-    }
-
-    const inEdges = g.inEdges(n.id);
-    if (inEdges && inEdges.length > 0) {
-      const src = g.node(inEdges[0].v);
-      if (src) {
-        const pos = getRelativePosition(src, node);
-        targetPosition = pos.targetPosition;
-      }
-    }
-
-    return {
-      ...n,
-      position: {
-        x: node.x - n.width! / 2,
-        y: node.y - n.height! / 2,
-      },
-      sourcePosition,
-      targetPosition,
-    };
-  });
-}
 
     function applyDagreLayout(nodes: Node[], edges: Edge[], rankdir: "TB" | "LR"): Node[] {
         const g = new dagre.graphlib.Graph();
         g.setGraph({
             rankdir: rankdir,
             nodesep: 50,
-            ranksep: 160,
+            ranksep: 200,
             marginx: 20,
             marginy: 20,
             edgesep: 20,
