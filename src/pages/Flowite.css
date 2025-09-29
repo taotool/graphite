@@ -17,7 +17,3 @@
 .react-flow__node.dragging {
   transition: none !important; /* 拖动时禁用动画 */
 }
-ul {
-    list-style: none;
-    padding-left: 0;
-}​

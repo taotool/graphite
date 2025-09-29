@@ -1187,8 +1187,6 @@ export async function toEntityGraphFlow(
     rankdir: "TB" | "LR" = "LR",
     onFieldClick?: any
 ): Promise<{ nodes: Node[]; edges: Edge[] }> {
-    const defaultWidth = 40;
-    const defaultHeight = 40;
 
     // ---------- build adjacency maps ----------
     const adjForward: Record<string, string[]> = {};
@@ -1199,6 +1197,29 @@ export async function toEntityGraphFlow(
         adjForward[source].push(target);
         adjBackward[target].push(source);
     });
+    // ---------- compute upstream/downstream full sets and direct neighbors ----------
+    const upstreamAll = highlightEntity ? bfsAll(highlightEntity, adjBackward) : new Set<string>();
+    const downstreamAll = highlightEntity ? bfsAll(highlightEntity, adjForward) : new Set<string>();
+    const directUpstream = new Set<string>();
+    const directDownstream = new Set<string>();
+    if (highlightEntity) {
+        entityGraph.edges.forEach((e) => {
+            if (e.target === highlightEntity) directUpstream.add(e.source); // 直接父节点
+            if (e.source === highlightEntity) directDownstream.add(e.target); // 直接子节点
+        });
+    }
+
+
+    // ---------- determine which nodes are highlighted (for border/background) ----------
+    // upstream non-direct: upstreamAll - directUpstream
+    // downstream non-direct: downstreamAll - directDownstream
+    // direct upstream/downstream are handled separately to show detail
+    const highlightedNodes = new Set<string>();
+    if (highlightEntity) {
+        highlightedNodes.add(highlightEntity);
+        upstreamAll.forEach((id) => highlightedNodes.add(id));
+        downstreamAll.forEach((id) => highlightedNodes.add(id));
+    }
 
     // ---------- BFS helper (returns set including nodes reachable, excluding the start itself optionally) ----------
     function bfsAll(start: string, adj: Record<string, string[]>): Set<string> {
@@ -1217,34 +1238,79 @@ export async function toEntityGraphFlow(
         return visited;
     }
 
-    // ---------- compute upstream/downstream full sets and direct neighbors ----------
-    const upstreamAll = highlightEntity ? bfsAll(highlightEntity, adjBackward) : new Set<string>();
-    const downstreamAll = highlightEntity ? bfsAll(highlightEntity, adjForward) : new Set<string>();
-
-    const directUpstream = new Set<string>();
-    const directDownstream = new Set<string>();
-    if (highlightEntity) {
-        entityGraph.edges.forEach((e) => {
-            if (e.target === highlightEntity) directUpstream.add(e.source); // 直接父节点
-            if (e.source === highlightEntity) directDownstream.add(e.target); // 直接子节点
-        });
+    // put near top of file
+    function createTextMeasurer(font = "14px Arial") {
+        // reuse single canvas for performance
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d")!;
+        ctx.font = font;
+        return (text: string) => {
+            if (!text) return 0;
+            return Math.ceil(ctx.measureText(String(text)).width);
+        };
     }
 
-    // ---------- determine which nodes are highlighted (for border/background) ----------
-    // upstream non-direct: upstreamAll - directUpstream
-    // downstream non-direct: downstreamAll - directDownstream
-    // direct upstream/downstream are handled separately to show detail
-    const highlightedNodes = new Set<string>();
-    if (highlightEntity) {
-        highlightedNodes.add(highlightEntity);
-        upstreamAll.forEach((id) => highlightedNodes.add(id));
-        downstreamAll.forEach((id) => highlightedNodes.add(id));
-    }
+    /**
+     * 计算节点宽高：
+     * width = max(defaultWidth, measure(name + " " + type + " " + longestOther) + padding)
+     * height = base + fieldCount * lineHeight + extra rows for parents/children if you want
+     */
+    function computeNodeSizeForNode(
+        n: any,
+        showDetail: boolean,
+        options?: {
+            font?: string;
+            defaultWidth?: number;
+            defaultHeight?: number;
+            paddingX?: number;
+            paddingY?: number;
+            lineHeight?: number;
+        }
+    ) {
+        const font = options?.font ?? "15px Arial";
+        const defaultWidth = options?.defaultWidth ?? 150;
+        const defaultHeight = options?.defaultHeight ?? 40;
+        const paddingX = options?.paddingX ?? 12; // left+right padding
+        const paddingY = options?.paddingY ?? 12; // top+bottom padding
+        const lineHeight = options?.lineHeight ?? 20;
 
+        const measure = createTextMeasurer(font);
+
+        // 基础标题： name + " " + type
+        const titleText = `${n.name ?? ""}${n.type ? " " + n.type : ""}`.trim();
+
+        // 找 fields.name 的最长字符串
+        const fieldNames: string[] = (n.fields ?? []).map((f: any) => (f?.name ?? "").toString());
+        // parents/children 可能在字段层：把所有 parents/children 展平并选最长
+        const parents: string[] = (n.fields ?? []).flatMap((f: any) => (f.parents ?? []) as string[]);
+        const children: string[] = (n.fields ?? []).flatMap((f: any) => (f.children ?? []) as string[]);
+
+        // 最长的候选：fields.name | parents | children
+        const candidates = [...fieldNames, ...parents, ...children, ""];
+        const longestOther = candidates.reduce((acc, cur) => (cur && cur.length > (acc?.length ?? 0) ? cur : acc), "");
+
+        // 合并为计算宽度的字符串：title + " " + longestOther
+        const combined = showDetail ? `${titleText}${longestOther ? " " + longestOther : ""}`.trim() : titleText;
+
+        // 测量并加 padding
+        const measured = measure(combined);
+        const width = Math.max(defaultWidth, measured + paddingX);
+
+        // 高度：基础 + 字段行数 * lineHeight
+        let height = defaultHeight;
+        if (showDetail) {
+            const fieldsCount = (n.fields ?? []).length;
+            // 如果你想每个 field 行下面显示 parents/children，也可以把这些计算进高度。
+            // 这里简单按字段行来扩展高度：
+            height = defaultHeight + fieldsCount * lineHeight + paddingY;
+        }
+
+        return { width, height };
+    }
     // ---------- build nodes (only current or direct neighbors show detail) ----------
     function buildNodes(): Node[] {
         return entityGraph.nodes.map((n) => {
-            if(!n.id) n.id = "Unknown.Unknown";
+            if (!n.id) n.id = "Unknown.Unknown";
             const [category, entity] = n.id.split(".");
             const isCurrent = n.id === highlightEntity;
             const isDirectUp = directUpstream.has(n.id);
@@ -1254,10 +1320,12 @@ export async function toEntityGraphFlow(
 
             const showDetail = isCurrent || isDirectUp || isDirectDown; // 只有当前或直接相连的显示 detail
 
-            const width = showDetail ? defaultWidth + 300 : defaultWidth;
-            const height = showDetail
-                ? defaultHeight + (n.fields?.length || 0) * 20
-                : defaultHeight;
+            const { width, height } = computeNodeSizeForNode(n, showDetail);
+
+            // const width = showDetail ? defaultWidth + 300 : defaultWidth;
+            // const height = showDetail
+            //     ? defaultHeight + (n.fields?.length || 0) * 20
+            //     : defaultHeight;
 
             // 选择背景色：当前 = 色3 (黄)、上游(直接或非直接) = 色1 (绿系)、下游 = 色2 (蓝系)、普通白
             let background = "#FFF";
@@ -1269,79 +1337,79 @@ export async function toEntityGraphFlow(
             let label: React.ReactNode;
             if (showDetail && n.fields?.length) {
                 label = (
-<div className="graph_node_table_with_fields font-medium">
-    <div className="font-semibold mb-1"><b>{category}</b></div>
-    <div className="font-semibold mb-1">{entity}</div>
-    <table width={"100%"} border={1}  cellSpacing="0" cellPadding={4}>
-        <tbody>
-            {n.fields!.map((f) => (
-                <tr key={f.id}>
-                    <td align="left" className="border border-gray-300 px-1">{f.name}</td>
-                    <td align="left" className="border border-gray-300 px-1">{f.type}</td>
-                    <td align="right" className="border border-gray-300 px-1">
-                        {/* 值本身可点击 */}
-                        {/* <a
-                            href="#"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                onFieldClick?.(n.id, f);
-                            }}
-                            style={{ color: "#1976d2", cursor: "pointer" }}
-                        >
-                            {f.value}
-                        </a> */}
+                    <div className="graph_node_table_with_fields ">
+                        <div ><b>{category}</b></div>
+                        <div >{entity}</div>
+                        <table width={"100%"} border={1} cellSpacing="0" cellPadding={4}>
+                            <tbody>
+                                {n.fields!.map((f) => (
+                                    <tr key={f.id}>
+                                        <td align="left" className="border border-gray-300 px-1">{f.name}</td>
+                                        <td align="left" className="border border-gray-300 px-1">{f.type}</td>
+                                        <td align="right" className="border border-gray-300 px-1">
+                                            {/* 值本身可点击 */}
+                                            <a
+                                                href="#"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    onFieldClick?.(n.id, f);
+                                                }}
+                                                style={{ color: "#1976d2", cursor: "pointer" }}
+                                            >
+                                                {f.value}
+                                            </a>
 
-                        {/* 父节点链接 */}
-                        {f.parents?.length ? (
-                            <div style={{ fontSize: "0.8em", color: "#555" }}>
-                                <ul>
-                                Parents:&nbsp;
-                                {f.parents.map((p) => (
-                                    <li>
-                                    <a
-                                        key={p}
-                                        href="#"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            onFieldClick?.(p, { id: p, name: p, type: "parent" });
-                                        }}
-                                        style={{ color: "#388e3c", cursor: "pointer", marginRight: 4 }}
-                                    >
-                                        {p}
-                                    </a>
-                                    </li>
-                                ))}
-                                </ul>
-                            </div>
-                        ) : null}
+                                            {/* 父节点链接 */}
+                                            {f.parents?.length ? (
+                                                <div style={{ fontSize: "0.8em", color: "#555" }}>
+                                                    <ul>
+                                                        Parents:&nbsp;
+                                                        {f.parents.map((p) => (
+                                                            <li>
+                                                                <a
+                                                                    key={p}
+                                                                    href="#"
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        onFieldClick?.(p, { id: p, name: p, type: "parent" });
+                                                                    }}
+                                                                    style={{ color: "#388e3c", cursor: "pointer", marginRight: 4 }}
+                                                                >
+                                                                    {p}
+                                                                </a>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            ) : null}
 
-                        {/* 子节点链接 */}
-                        {f.children?.length ? (
-                            <div style={{ fontSize: "0.8em", color: "#555" }}>
-                                <ul>
-                                Children:&nbsp;
-                                {f.children.map((c) => (
-                                    <li><a
-                                        key={c}
-                                        href="#"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            onFieldClick?.(c, { id: c, name: c, type: "child" });
-                                        }}
-                                        style={{ color: "#1976d2", cursor: "pointer", marginRight: 4 }}
-                                    >
-                                        {c}
-                                    </a></li>
+                                            {/* 子节点链接 */}
+                                            {f.children?.length ? (
+                                                <div style={{ fontSize: "0.8em", color: "#555" }}>
+                                                    <ul>
+                                                        Children:&nbsp;
+                                                        {f.children.map((c) => (
+                                                            <li><a
+                                                                key={c}
+                                                                href="#"
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    onFieldClick?.(c, { id: c, name: c, type: "child" });
+                                                                }}
+                                                                style={{ color: "#1976d2", cursor: "pointer", marginRight: 4 }}
+                                                            >
+                                                                {c}
+                                                            </a></li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            ) : null}
+                                        </td>
+                                    </tr>
                                 ))}
-                                </ul>
-                            </div>
-                        ) : null}
-                    </td>
-                </tr>
-            ))}
-        </tbody>
-    </table>
-</div>
+                            </tbody>
+                        </table>
+                    </div>
                 );
             } else {
                 label = (
@@ -1409,8 +1477,8 @@ export async function toEntityGraphFlow(
         const g = new dagre.graphlib.Graph();
         g.setGraph({
             rankdir: rankdir,
-            nodesep: 50,
-            ranksep: 200,
+            nodesep: 20,
+            ranksep: 60,
             marginx: 20,
             marginy: 20,
             edgesep: 20,
